@@ -1,5 +1,5 @@
 {
-	"name": "welearn-task-agent",
+	"name": "shal-phyoke-admin",
 	"private": true,
 	"version": "0.0.0",
 	"type": "module",
@@ -15,7 +15,7 @@
 		"@tailwindcss/vite": "^4.1.11",
 		"@tanstack/react-router": "^1.130.1",
 		"@tanstack/react-router-devtools": "^1.130.1",
-		"daisyui": "^5.0.47",
+		"daisyui": "^5.1.14",
 		"lucide-react": "^0.526.0",
 		"react": "^19.1.0",
 		"react-dom": "^19.1.0",
