@@ -12,6 +12,7 @@
 	"dependencies": {
 		"@google/genai": "^1.13.0",
 		"@hookform/resolvers": "^5.2.0",
+		"@supabase/supabase-js": "^2.57.4",
 		"@tailwindcss/vite": "^4.1.11",
 		"@tanstack/react-router": "^1.130.1",
 		"@tanstack/react-router-devtools": "^1.130.1",

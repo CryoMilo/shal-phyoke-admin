@@ -5,6 +5,7 @@ import {
 } from "@tanstack/react-router";
 import App from "./App";
 import Home from "./pages/Home";
+import AllMenu from "./pages/AllMenu";
 
 // 1. Root route
 const rootRoute = createRootRoute({ component: App });
@@ -16,11 +17,11 @@ const homeRoute = createRoute({
 	component: Home,
 });
 
-// const aboutRoute = createRoute({
-// 	path: "/about",
-// 	getParentRoute: () => rootRoute,
-// 	component: About,
-// });
+const allMenuRoute = createRoute({
+	path: "/all-menu",
+	getParentRoute: () => rootRoute,
+	component: AllMenu,
+});
 
 // const creatorInfoCreateRoute = createRoute({
 // 	path: "/creator-info/create",
@@ -71,7 +72,7 @@ const homeRoute = createRoute({
 // });
 
 // 3. Combine all routes
-const routeTree = rootRoute.addChildren([homeRoute]);
+const routeTree = rootRoute.addChildren([homeRoute, allMenuRoute]);
 
 // 4. Create and export router
 export const router = createRouter({ routeTree });
