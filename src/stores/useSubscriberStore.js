@@ -27,15 +27,13 @@ const useSubscribersStore = create(
 				try {
 					const { data, error } = await supabase
 						.from("subscribers")
-						.select("*")
+						.select(
+							`
+							*,
+							subscription_plan:subscription_plans(*)
+						`
+						)
 						.order("created_at", { ascending: false });
-					// .select(
-					// 	`
-					//   *,
-					//   subscription_plans!inner(plan_name),
-					//   auth.users!inner(email, raw_user_meta_data)
-					// `
-					// )
 
 					if (error) throw error;
 

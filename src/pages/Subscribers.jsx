@@ -161,7 +161,7 @@ export const SubscribersPage = () => {
 								</td>
 								<td>
 									<span className="badge badge-outline">
-										{subscriber.plan_name}
+										{subscriber?.subscription_plan?.plan_name || "Unknown Plan"}
 									</span>
 								</td>
 								<td>
