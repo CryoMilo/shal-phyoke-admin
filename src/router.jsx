@@ -6,6 +6,8 @@ import {
 import App from "./App";
 import Home from "./pages/Home";
 import AllMenu from "./pages/AllMenu";
+import { SubscribersPage } from "./pages/Subscribers";
+import SubscriptionPlansPage from "./pages/SubscriptionPlans";
 
 // 1. Root route
 const rootRoute = createRootRoute({ component: App });
@@ -23,11 +25,17 @@ const allMenuRoute = createRoute({
 	component: AllMenu,
 });
 
-// const creatorInfoCreateRoute = createRoute({
-// 	path: "/creator-info/create",
-// 	getParentRoute: () => rootRoute,
-// 	component: CreatorInfoPage,
-// });
+const subscriberListRoute = createRoute({
+	path: "/subscribers",
+	getParentRoute: () => rootRoute,
+	component: SubscribersPage,
+});
+
+const subscriptionPlansRoute = createRoute({
+	path: "/subscription-plans",
+	getParentRoute: () => rootRoute,
+	component: SubscriptionPlansPage,
+});
 
 // const creatorInfoIdRoute = createRoute({
 // 	path: "/creator-info/$id",
@@ -72,7 +80,12 @@ const allMenuRoute = createRoute({
 // });
 
 // 3. Combine all routes
-const routeTree = rootRoute.addChildren([homeRoute, allMenuRoute]);
+const routeTree = rootRoute.addChildren([
+	homeRoute,
+	allMenuRoute,
+	subscriberListRoute,
+	subscriptionPlansRoute,
+]);
 
 // 4. Create and export router
 export const router = createRouter({ routeTree });

@@ -3,7 +3,7 @@ import { Plus, Edit, Trash2, Eye, X } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { supabase } from "../services/supabase";
-import { menuSchema } from "../validations/creatorData";
+import { menuSchema } from "../validations/menuSchema";
 import useMenuStore from "../stores/menuStore";
 
 const AllMenuPage = () => {
