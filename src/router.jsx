@@ -8,6 +8,7 @@ import Home from "./pages/Home";
 import AllMenu from "./pages/AllMenu";
 import { SubscribersPage } from "./pages/Subscribers";
 import SubscriptionPlansPage from "./pages/SubscriptionPlans";
+import WeeklyMenu from "./pages/WeeklyMenu";
 
 // 1. Root route
 const rootRoute = createRootRoute({ component: App });
@@ -37,47 +38,11 @@ const subscriptionPlansRoute = createRoute({
 	component: SubscriptionPlansPage,
 });
 
-// const creatorInfoIdRoute = createRoute({
-// 	path: "/creator-info/$id",
-// 	getParentRoute: () => rootRoute,
-// 	component: CreatorInfoPage,
-// });
-
-// const preChecksRoute = createRoute({
-// 	path: "/pre-checks",
-// 	getParentRoute: () => rootRoute,
-// 	component: GlobalPreChecks,
-// });
-
-// const postChecksRoute = createRoute({
-// 	path: "/post-checks",
-// 	getParentRoute: () => rootRoute,
-// 	component: GlobalPostChecks,
-// });
-
-// const salesPageContentAgentRoute = createRoute({
-// 	path: "/content-agent/sales-page",
-// 	getParentRoute: () => rootRoute,
-// 	component: SalesPageContentAgent,
-// });
-
-// const wlPageContentAgentRoute = createRoute({
-// 	path: "/content-agent/wl-page",
-// 	getParentRoute: () => rootRoute,
-// 	component: WLPageContentAgent,
-// });
-
-// const emailContentAgentRoute = createRoute({
-// 	path: "/content-agent/email",
-// 	getParentRoute: () => rootRoute,
-// 	component: EmailContentAgent,
-// });
-
-// const storePageContentAgentRoute = createRoute({
-// 	path: "/content-agent/store-page/",
-// 	getParentRoute: () => rootRoute,
-// 	component: StorePageContentAgent,
-// });
+const weeklyMenuRoute = createRoute({
+	path: "/weekly-menu",
+	getParentRoute: () => rootRoute,
+	component: WeeklyMenu,
+});
 
 // 3. Combine all routes
 const routeTree = rootRoute.addChildren([
@@ -85,6 +50,7 @@ const routeTree = rootRoute.addChildren([
 	allMenuRoute,
 	subscriberListRoute,
 	subscriptionPlansRoute,
+	weeklyMenuRoute,
 ]);
 
 // 4. Create and export router
