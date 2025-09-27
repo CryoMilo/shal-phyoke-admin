@@ -1,22 +1,28 @@
 import React, { useState, useEffect } from "react";
 import { Plus, Edit } from "lucide-react";
 import { useWeeklyMenuStore } from "../stores/weeklyMenuStore";
+import { formatDateRange } from "../utils/formatDateRange";
+import { WeeklyMenuPublishControl } from "./WeeklyMenuPublishControl";
 
-export const WeeklyMenuOverview = ({ onEditWeek }) => {
-	const { weeklyMenus, loading, fetchWeeklyMenus } = useWeeklyMenuStore();
-	const [selectedWeek, setSelectedWeek] = useState(null);
+export const WeeklyMenuOverview = ({ currentWeeklyMenu, onEditWeek }) => {
+	const { weeklyMenus, weeklyMenusLoading, fetchWeeklyMenus } =
+		useWeeklyMenuStore();
 
+	const [selectedWeek, setSelectedWeek] = useState(currentWeeklyMenu);
+
+	// Fetch list on mount
 	useEffect(() => {
 		fetchWeeklyMenus();
-	}, []);
+	}, [fetchWeeklyMenus]);
 
-	const formatDateRange = (weekFrom, weekTo) => {
-		const from = new Date(weekFrom).toLocaleDateString();
-		const to = new Date(weekTo).toLocaleDateString();
-		return `${from} to ${to}`;
-	};
+	// Keep selected week in sync with the latest menu passed from parent
+	useEffect(() => {
+		if (currentWeeklyMenu) {
+			setSelectedWeek(currentWeeklyMenu);
+		}
+	}, [currentWeeklyMenu]);
 
-	if (loading) {
+	if (weeklyMenusLoading) {
 		return (
 			<div className="flex justify-center items-center min-h-screen">
 				<span className="loading loading-spinner loading-lg"></span>
@@ -45,7 +51,7 @@ export const WeeklyMenuOverview = ({ onEditWeek }) => {
 						value={selectedWeek?.id || ""}
 						onChange={(e) => {
 							const menu = weeklyMenus.find((m) => m.id === e.target.value);
-							setSelectedWeek(menu);
+							setSelectedWeek(menu || null);
 						}}>
 						<option value="">Select a week</option>
 						{weeklyMenus.map((menu) => (
@@ -81,9 +87,11 @@ export const WeeklyMenuOverview = ({ onEditWeek }) => {
 	);
 };
 
-// Weekly Menu Grid Display Component
+// ==============================
+// Weekly Menu Grid Display
+// ==============================
 const WeeklyMenuGrid = ({ weeklyMenu, onEdit }) => {
-	const { currentWeeklyMenu, fetchWeeklyMenuWithItems } = useWeeklyMenuStore();
+	const { fetchWeeklyMenuWithItems } = useWeeklyMenuStore();
 	const [menuData, setMenuData] = useState(null);
 
 	useEffect(() => {
@@ -92,7 +100,7 @@ const WeeklyMenuGrid = ({ weeklyMenu, onEdit }) => {
 				if (result.data) setMenuData(result.data);
 			});
 		}
-	}, []);
+	}, [weeklyMenu?.id, fetchWeeklyMenuWithItems]);
 
 	const days = [
 		"Monday",
@@ -103,12 +111,10 @@ const WeeklyMenuGrid = ({ weeklyMenu, onEdit }) => {
 		"Saturday",
 	];
 
-	const getItemsForDay = (day) => {
-		if (!menuData?.weekly_menu_items) return [];
-		return menuData.weekly_menu_items
-			.filter((item) => item.weekday === day)
-			.map((item) => item.menu_items);
-	};
+	const getItemsForDay = (day) =>
+		menuData?.weekly_menu_items
+			?.filter((item) => item.weekday === day)
+			.map((item) => item.menu_items) || [];
 
 	return (
 		<div className="bg-base-200 rounded-lg p-6">
@@ -120,10 +126,14 @@ const WeeklyMenuGrid = ({ weeklyMenu, onEdit }) => {
 						{new Date(weeklyMenu.week_to).toLocaleDateString()}
 					</p>
 				</div>
-				<button className="btn btn-primary" onClick={onEdit}>
-					<Edit className="w-4 h-4 mr-2" />
-					Edit Menu
-				</button>
+
+				<div className="flex items-center gap-3">
+					<WeeklyMenuPublishControl weeklyMenu={weeklyMenu} />
+					<button className="btn btn-primary" onClick={onEdit}>
+						<Edit className="w-4 h-4 mr-2" />
+						Edit Menu
+					</button>
+				</div>
 			</div>
 
 			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

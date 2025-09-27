@@ -132,6 +132,7 @@ export const WeeklyMenuBuilder = ({ weeklyMenu, onBack }) => {
 
 			const itemsToInsert = [];
 			Object.entries(weeklyMenuData.items).forEach(([day, cats]) => {
+				// eslint-disable-next-line no-unused-vars
 				Object.entries(cats).forEach(([cat, items]) => {
 					items.forEach((item) => {
 						itemsToInsert.push({
