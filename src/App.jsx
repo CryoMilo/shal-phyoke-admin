@@ -1,11 +1,7 @@
-import { Outlet } from "@tanstack/react-router";
+import Sidebar from "./components/Sidebar";
 
 function App() {
-	return (
-		<div>
-			<Outlet />
-		</div>
-	);
+	return <Sidebar />;
 }
 
 export default App;
