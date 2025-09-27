@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { ChevronDown, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { useMenuStatusStore } from "../stores/useMenuStatusStore";
+import { getDayInfo } from "../utils/getDayInfo";
+import { formatDateRange } from "../utils/formatDateRange";
 
 export const MenuStatusManagement = () => {
 	const {
@@ -30,32 +32,11 @@ export const MenuStatusManagement = () => {
 		setUpdating((prev) => ({ ...prev, [itemId]: false }));
 	};
 
-	const getDayInfo = (offset = 0) => {
-		const date = new Date();
-		date.setDate(date.getDate() + offset);
-		const dayNames = [
-			"Sunday",
-			"Monday",
-			"Tuesday",
-			"Wednesday",
-			"Thursday",
-			"Friday",
-			"Saturday",
-		];
-		return {
-			name: dayNames[date.getDay()],
-			date: date.toLocaleDateString("en-US", {
-				month: "numeric",
-				day: "numeric",
-				year: "numeric",
-			}),
-		};
-	};
-
 	const todayInfo = getDayInfo(0);
 	const tomorrowInfo = getDayInfo(1);
 
 	const statusOptions = [
+		{ value: "Confirmed", label: "Confirmed", color: "text-pink-600" },
 		{ value: "Cooking", label: "Cooking", color: "text-orange-600" },
 		{ value: "Available", label: "Available", color: "text-green-600" },
 		{ value: "Out of Order", label: "Out of Order", color: "text-red-600" },
@@ -93,21 +74,22 @@ export const MenuStatusManagement = () => {
 	}
 
 	return (
-		<div className="min-h-screen bg-gray-900 text-white p-6">
+		<div className="min-h-screen text-white p-6">
 			{/* Header */}
 			<div className="text-center mb-8">
 				<h1 className="text-4xl font-bold mb-2">Menu Status Management</h1>
 				<div className="text-gray-400">
-					Weekly Menu:{" "}
-					{new Date(publishedWeeklyMenu.week_from).toLocaleDateString()} -{" "}
-					{new Date(publishedWeeklyMenu.week_to).toLocaleDateString()}
+					{formatDateRange(
+						publishedWeeklyMenu.week_from,
+						publishedWeeklyMenu.week_to
+					)}
 				</div>
 			</div>
 
 			{/* Menu Columns */}
 			<div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-7xl mx-auto">
 				{/* Today Column */}
-				<div className="bg-gray-800 rounded-3xl p-6 border-2 border-gray-600">
+				<div className="rounded-3xl p-6 border-2 border-gray-600">
 					<div className="text-center mb-6">
 						<h2 className="text-2xl font-bold mb-2">
 							Today ({todayInfo.name})
@@ -163,7 +145,7 @@ export const MenuStatusManagement = () => {
 				</div>
 
 				{/* Tomorrow Column */}
-				<div className="bg-gray-800 rounded-3xl p-6 border-2 border-gray-600">
+				<div className="rounded-3xl p-6 border-2 border-gray-600">
 					<div className="text-center mb-6">
 						<h2 className="text-2xl font-bold mb-2">
 							Tomorrow ({tomorrowInfo.name})
