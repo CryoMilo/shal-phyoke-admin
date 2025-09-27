@@ -128,7 +128,7 @@ const WeeklyMenuGrid = ({ weeklyMenu, onEdit }) => {
 				</div>
 
 				<div className="flex items-center gap-3">
-					<WeeklyMenuPublishControl weeklyMenu={weeklyMenu} />
+					<WeeklyMenuPublishControl />
 					<button className="btn btn-primary" onClick={onEdit}>
 						<Edit className="w-4 h-4 mr-2" />
 						Edit Menu

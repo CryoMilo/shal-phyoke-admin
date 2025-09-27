@@ -1,29 +1,36 @@
 import { useState } from "react";
-import { useWeeklyMenuStore } from "../stores/weeklyMenuStore"; // <-- adjust import if needed
+import { useWeeklyMenuStore } from "../stores/weeklyMenuStore";
 
-export const WeeklyMenuPublishControl = ({ weeklyMenu }) => {
-	const { updateWeeklyMenuStatus } = useWeeklyMenuStore();
-	const [status, setStatus] = useState(weeklyMenu.status);
+export const WeeklyMenuPublishControl = () => {
+	const { currentWeeklyMenu, updateWeeklyMenuStatus } = useWeeklyMenuStore();
+	const [status, setStatus] = useState(currentWeeklyMenu.status);
 	const [loading, setLoading] = useState(false);
 
-	const toggleStatus = async () => {
-		const newStatus = status === "Published" ? "Draft" : "Published";
-		setStatus(newStatus); // ✅ Optimistic UI
+	const handleChange = async (e) => {
+		const newStatus = e.target.value;
+		const previous = status;
+
+		setStatus(newStatus); // ✅ optimistic
 		setLoading(true);
 		try {
-			await updateWeeklyMenuStatus(weeklyMenu.id, newStatus);
+			await updateWeeklyMenuStatus(currentWeeklyMenu.id, newStatus);
 		} catch (err) {
-			// ❌ Revert if API fails
 			console.error(err);
-			setStatus(status);
+			setStatus(previous); // ❌ revert on failure
 		} finally {
 			setLoading(false);
 		}
 	};
 
 	return (
-		<button className="btn btn-error" disabled={loading} onClick={toggleStatus}>
-			{status === "Published" ? "Make Draft" : "Publish"}
-		</button>
+		<select
+			className="select select-bordered w-40"
+			disabled={loading}
+			value={status}
+			onChange={handleChange}>
+			<option value="Draft">Draft</option>
+			<option value="Published">Published</option>
+			<option value="Archived">Archived</option>
+		</select>
 	);
 };

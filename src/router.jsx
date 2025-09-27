@@ -9,6 +9,7 @@ import AllMenu from "./pages/AllMenu";
 import { SubscribersPage } from "./pages/Subscribers";
 import SubscriptionPlansPage from "./pages/SubscriptionPlans";
 import WeeklyMenu from "./pages/WeeklyMenu";
+import { MenuStatusManagement } from "./pages/MenuStatusManagement";
 
 // 1. Root route
 const rootRoute = createRootRoute({ component: App });
@@ -44,6 +45,12 @@ const weeklyMenuRoute = createRoute({
 	component: WeeklyMenu,
 });
 
+const menuStatusRoute = createRoute({
+	path: "/menu-status",
+	getParentRoute: () => rootRoute,
+	component: MenuStatusManagement,
+});
+
 // 3. Combine all routes
 const routeTree = rootRoute.addChildren([
 	homeRoute,
@@ -51,6 +58,7 @@ const routeTree = rootRoute.addChildren([
 	subscriberListRoute,
 	subscriptionPlansRoute,
 	weeklyMenuRoute,
+	menuStatusRoute,
 ]);
 
 // 4. Create and export router

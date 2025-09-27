@@ -7,6 +7,8 @@ import {
 	CreditCard,
 	Calendar,
 	Settings,
+	Sun,
+	CheckCheck,
 } from "lucide-react";
 
 const Sidebar = () => {
@@ -27,6 +29,11 @@ const Sidebar = () => {
 			name: "Weekly Menu",
 			path: "/weekly-menu",
 			icon: Calendar,
+		},
+		{
+			name: "Menu Status",
+			path: "/menu-status",
+			icon: CheckCheck,
 		},
 		{
 			name: "Subscribers",
@@ -119,17 +126,17 @@ const Sidebar = () => {
 
 					{/* Sidebar Footer */}
 					<div className="absolute bottom-0 left-0 right-0 p-4 border-t border-base-300">
-						<div className="flex items-center gap-3 p-3 rounded-lg hover:bg-base-300 cursor-pointer">
+						{/* <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-base-300 cursor-pointer">
 							<Settings className="w-5 h-5" />
 							<span className="font-medium">Settings</span>
-						</div>
+						</div> */}
 
-						<div className="mt-2 p-3 bg-base-300 rounded-lg">
+						{/* <div className="mt-2 p-3 bg-base-300 rounded-lg">
 							<div className="flex items-center gap-2 text-sm">
 								<div className="w-2 h-2 bg-green-500 rounded-full"></div>
 								<span>System Online</span>
 							</div>
-						</div>
+						</div> */}
 					</div>
 				</aside>
 			</div>

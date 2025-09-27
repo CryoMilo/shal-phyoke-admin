@@ -84,6 +84,30 @@ export const useWeeklyMenuStore = create(
 				}
 			},
 
+			fetchWeeklyMenuStatus: async (id) => {
+				try {
+					const { data, error } = await supabase
+						.from("weekly_menu")
+						.select("status")
+						.eq("id", id)
+						.single();
+					if (error) throw error;
+
+					// Update in-memory currentWeeklyMenu if it matches
+					set((state) => ({
+						currentWeeklyMenu:
+							state.currentWeeklyMenu?.id === id
+								? { ...state.currentWeeklyMenu, status: data.status }
+								: state.currentWeeklyMenu,
+					}));
+
+					return data.status;
+				} catch (e) {
+					console.error("Error fetching weekly menu status:", e);
+					return null;
+				}
+			},
+
 			updateWeeklyMenuStatus: async (id, status) => {
 				const { error } = await supabase
 					.from("weekly_menu")
