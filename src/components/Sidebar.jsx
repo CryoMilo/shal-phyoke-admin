@@ -6,9 +6,8 @@ import {
 	Users,
 	CreditCard,
 	Calendar,
-	Settings,
-	Sun,
 	CheckCheck,
+	ListOrdered,
 } from "lucide-react";
 
 const Sidebar = () => {
@@ -44,6 +43,11 @@ const Sidebar = () => {
 			name: "Subscription Plans",
 			path: "/subscription-plans",
 			icon: CreditCard,
+		},
+		{
+			name: "Subscriber Orders",
+			path: "/subscriber-orders",
+			icon: ListOrdered,
 		},
 	];
 
