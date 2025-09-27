@@ -66,6 +66,7 @@ export const WeeklyMenuOverview = ({ currentWeeklyMenu, onEditWeek }) => {
 			{/* Weekly Menu Grid */}
 			{selectedWeek ? (
 				<WeeklyMenuGrid
+					currentWeeklyMenu={currentWeeklyMenu}
 					weeklyMenu={selectedWeek}
 					onEdit={() => onEditWeek(selectedWeek)}
 				/>
@@ -90,7 +91,7 @@ export const WeeklyMenuOverview = ({ currentWeeklyMenu, onEditWeek }) => {
 // ==============================
 // Weekly Menu Grid Display
 // ==============================
-const WeeklyMenuGrid = ({ weeklyMenu, onEdit }) => {
+const WeeklyMenuGrid = ({ currentWeeklyMenu, weeklyMenu, onEdit }) => {
 	const { fetchWeeklyMenuWithItems } = useWeeklyMenuStore();
 	const [menuData, setMenuData] = useState(null);
 
@@ -128,7 +129,7 @@ const WeeklyMenuGrid = ({ weeklyMenu, onEdit }) => {
 				</div>
 
 				<div className="flex items-center gap-3">
-					<WeeklyMenuPublishControl />
+					<WeeklyMenuPublishControl currentWeeklyMenu={currentWeeklyMenu} />
 					<button className="btn btn-primary" onClick={onEdit}>
 						<Edit className="w-4 h-4 mr-2" />
 						Edit Menu
