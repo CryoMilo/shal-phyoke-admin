@@ -25,6 +25,8 @@ export const WeeklyMenuBuilder = ({ weeklyMenu, onBack }) => {
 		"Seafood",
 		"Salad",
 		"Vegetarian",
+		"Special",
+		"Soup",
 	];
 
 	// build empty structure for each day -> each category
