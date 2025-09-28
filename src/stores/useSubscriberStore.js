@@ -7,6 +7,7 @@ const useSubscribersStore = create(
 	persist(
 		(set, get) => ({
 			subscribers: [],
+			activeSubscribers: [],
 			loading: false,
 			setSubscribers: (subscribers) => set({ subscribers }),
 			setLoading: (loading) => set({ loading }),
@@ -52,6 +53,59 @@ const useSubscribersStore = create(
 				} catch (error) {
 					console.error("Error fetching subscribers:", error);
 					set({ loading: false });
+				}
+			},
+			fetchActiveSubscribers: async () => {
+				set({ loading: true });
+				try {
+					const { data, error } = await supabase
+						.from("subscribers")
+						.select(
+							`
+							id,
+							name,
+							line_id,
+							delivery_address,
+							phone_number,
+							remaining_points,
+							subscription_plans (
+								id,
+								plan_name,
+								main_dish_choice,
+								side_dish_choice
+							)
+						`
+						)
+						.eq("is_active", true)
+						.gt("remaining_points", 0); // Only subscribers with points
+
+					if (error) throw error;
+
+					set({ activeSubscribers: data, loading: false });
+				} catch (error) {
+					console.error("Error fetching subscribers:", error);
+					set({ loading: false });
+				}
+			},
+			fetchSubscriberWithId: async (id) => {
+				try {
+					const { data, error } = await supabase
+						.from("subscribers")
+						.select(
+							`
+              *,
+              subscription_plans(*)
+            `
+						)
+						.eq("id", id)
+						.single();
+
+					if (error) throw error;
+
+					return { data, error: null };
+				} catch (error) {
+					console.error("Error fetching subscriber by id:", error);
+					return { data: null, error };
 				}
 			},
 			createSubscriber: async (subscriberData) => {

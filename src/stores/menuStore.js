@@ -36,6 +36,21 @@ const useMenuStore = create(
 					set({ loading: false });
 				}
 			},
+			fetchMenuWithId: async (id) => {
+				try {
+					const { data, error } = await supabase
+						.from("menu_items")
+						.select("*")
+						.eq("id", id)
+						.single();
+
+					if (error) throw error;
+					return { data, error: null };
+				} catch (error) {
+					console.error("Error fetching menu by id:", error);
+					return { data: null, error };
+				}
+			},
 		}),
 		{
 			name: "menu-store",
