@@ -3,6 +3,7 @@ import { RefreshCw } from "lucide-react";
 import { useMenuStatusStore } from "../stores/useMenuStatusStore";
 import { getDayInfo } from "../utils/getDayInfo";
 import { formatDateRange } from "../utils/formatDateRange";
+import Loading from "../components/common/Loading";
 
 export const MenuStatusManagement = () => {
 	const {
@@ -36,6 +37,7 @@ export const MenuStatusManagement = () => {
 	const tomorrowInfo = getDayInfo(1);
 
 	const statusOptions = [
+		{ value: "Pending", label: "Pending", color: "text-orange-600" },
 		{ value: "Confirmed", label: "Confirmed", color: "text-pink-600" },
 		{ value: "Cooking", label: "Cooking", color: "text-orange-600" },
 		{ value: "Available", label: "Available", color: "text-green-600" },
@@ -49,11 +51,7 @@ export const MenuStatusManagement = () => {
 	};
 
 	if (loading) {
-		return (
-			<div className="flex justify-center items-center min-h-screen">
-				<span className="loading loading-spinner loading-lg"></span>
-			</div>
-		);
+		return <Loading />;
 	}
 
 	if (!publishedWeeklyMenu) {

@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { subscriberSchema } from "../validations/subscriberSchema";
 import { Calendar, Edit, Eye, Plus, Trash2, X } from "lucide-react";
 import { avatar_placeholder } from "../constants";
+import Loading from "../components/common/Loading";
 // Subscribers Component (Table Format)
 export const SubscribersPage = () => {
 	const {
@@ -106,11 +107,7 @@ export const SubscribersPage = () => {
 	};
 
 	if (loading) {
-		return (
-			<div className="flex justify-center items-center min-h-screen">
-				<span className="loading loading-spinner loading-lg"></span>
-			</div>
-		);
+		return <Loading />;
 	}
 
 	return (

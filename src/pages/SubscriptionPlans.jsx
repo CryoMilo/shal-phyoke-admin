@@ -13,6 +13,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { planSchema } from "../validations/subscriberSchema";
 import useSubscriptionPlansStore from "../stores/useSubscriptionPlanStore";
+import Loading from "../components/common/Loading";
 
 const SubscriptionPlansPage = () => {
 	const {
@@ -106,11 +107,7 @@ const SubscriptionPlansPage = () => {
 	};
 
 	if (loading) {
-		return (
-			<div className="flex justify-center items-center min-h-screen">
-				<span className="loading loading-spinner loading-lg"></span>
-			</div>
-		);
+		return <Loading />;
 	}
 
 	return (

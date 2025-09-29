@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { supabase } from "../services/supabase";
 import { menuSchema } from "../validations/menuSchema";
 import useMenuStore from "../stores/menuStore";
+import Loading from "../components/common/Loading";
 
 const AllMenuPage = () => {
 	const { menus, loading, fetchMenus, addMenu, updateMenu, deleteMenu } =
@@ -141,11 +142,7 @@ const AllMenuPage = () => {
 	};
 
 	if (loading) {
-		return (
-			<div className="flex justify-center items-center min-h-screen">
-				<span className="loading loading-spinner loading-lg"></span>
-			</div>
-		);
+		return <Loading />;
 	}
 
 	return (

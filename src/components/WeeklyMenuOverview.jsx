@@ -3,6 +3,7 @@ import { Plus, Edit } from "lucide-react";
 import { useWeeklyMenuStore } from "../stores/weeklyMenuStore";
 import { formatDateRange } from "../utils/formatDateRange";
 import { WeeklyMenuPublishControl } from "./WeeklyMenuPublishControl";
+import Loading from "./common/Loading";
 
 export const WeeklyMenuOverview = ({ currentWeeklyMenu, onEditWeek }) => {
 	const { weeklyMenus, weeklyMenusLoading, fetchWeeklyMenus } =
@@ -23,11 +24,7 @@ export const WeeklyMenuOverview = ({ currentWeeklyMenu, onEditWeek }) => {
 	}, [currentWeeklyMenu]);
 
 	if (weeklyMenusLoading) {
-		return (
-			<div className="flex justify-center items-center min-h-screen">
-				<span className="loading loading-spinner loading-lg"></span>
-			</div>
-		);
+		return <Loading />;
 	}
 
 	return (
