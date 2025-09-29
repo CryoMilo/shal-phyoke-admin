@@ -292,6 +292,7 @@ export const SubscriberOrder = () => {
 							</div>
 						)}
 
+						{/* Notes */}
 						{selectedDay && (
 							<textarea
 								{...register("note")}

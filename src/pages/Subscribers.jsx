@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { subscriberSchema } from "../validations/subscriberSchema";
 import { Calendar, Edit, Eye, Plus, Trash2, X } from "lucide-react";
+import { avatar_placeholder } from "../constants";
 // Subscribers Component (Table Format)
 export const SubscribersPage = () => {
 	const {
@@ -144,11 +145,11 @@ export const SubscribersPage = () => {
 							<tr key={subscriber.id}>
 								<td>
 									<div className="flex items-center gap-3">
-										<div className="avatar placeholder">
-											<div className="bg-neutral text-neutral-content rounded-full w-8">
-												<span className="text-xs">
-													{subscriber.name?.charAt(0) || "U"}
-												</span>
+										<div className="avatar">
+											<div className="w-16 rounded-full">
+												<img
+													src={subscriber?.image_url || avatar_placeholder}
+												/>
 											</div>
 										</div>
 										<div>

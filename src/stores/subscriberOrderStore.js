@@ -6,7 +6,7 @@ import { supabase } from "../services/supabase";
 const useOrderCreationStore = create(
 	persist(
 		(set, get) => ({
-			orders: [], // <== holds fetched orders
+			orders: [], // holds fetched orders
 			loadingOrders: false,
 
 			todayMenuItems: [],
@@ -54,6 +54,7 @@ const useOrderCreationStore = create(
 				set({ isAfter6PM: hour >= 18 });
 			},
 
+			// Fetch all subscription orders
 			async fetchSubscriberOrders() {
 				set({ loadingOrders: true });
 				try {
@@ -64,11 +65,100 @@ const useOrderCreationStore = create(
 
 					if (error) throw error;
 
-					set({ orders: data });
+					set({ orders: data || [] });
 				} catch (err) {
 					console.error("fetchSubscriberOrders error:", err.message);
 				} finally {
 					set({ loadingOrders: false });
+				}
+			},
+
+			// Update order status
+			async updateOrderStatus(orderId, newStatus) {
+				try {
+					const { error } = await supabase
+						.from("subscription_orders")
+						.update({ status: newStatus })
+						.eq("id", orderId);
+
+					if (error) throw error;
+
+					// Update local state
+					set((state) => ({
+						orders: state.orders.map((order) =>
+							order.id === orderId ? { ...order, status: newStatus } : order
+						),
+					}));
+
+					return { error: null };
+				} catch (error) {
+					console.error("Error updating order status:", error);
+					throw error;
+				}
+			},
+
+			// Delete order
+			async deleteOrder(orderId) {
+				try {
+					const { error } = await supabase
+						.from("subscription_orders")
+						.delete()
+						.eq("id", orderId);
+
+					if (error) throw error;
+
+					// Update local state
+					set((state) => ({
+						orders: state.orders.filter((order) => order.id !== orderId),
+					}));
+
+					return { error: null };
+				} catch (error) {
+					console.error("Error deleting order:", error);
+					throw error;
+				}
+			},
+
+			// Update order (for edit functionality)
+			async updateOrder(orderId, orderData) {
+				try {
+					const { data, error } = await supabase
+						.from("subscription_orders")
+						.update(orderData)
+						.eq("id", orderId)
+						.select()
+						.single();
+
+					if (error) throw error;
+
+					// Update local state
+					set((state) => ({
+						orders: state.orders.map((order) =>
+							order.id === orderId ? { ...order, ...data } : order
+						),
+					}));
+
+					return { data, error: null };
+				} catch (error) {
+					console.error("Error updating order:", error);
+					throw error;
+				}
+			},
+
+			// Get single order by ID
+			async getOrderById(orderId) {
+				try {
+					const { data, error } = await supabase
+						.from("subscription_orders")
+						.select("*")
+						.eq("id", orderId)
+						.single();
+
+					if (error) throw error;
+					return { data, error: null };
+				} catch (error) {
+					console.error("Error fetching order:", error);
+					return { data: null, error };
 				}
 			},
 
@@ -169,7 +259,8 @@ const useOrderCreationStore = create(
 								"id,status,menu_items(id,name_burmese,name_english,category,price,class)"
 							)
 							.eq("weekly_menu_id", published.id)
-							.eq("weekday", todayName),
+							.eq("weekday", todayName)
+							.in("status", ["Cooking", "Confirmed", "Available"]),
 						supabase
 							.from("weekly_menu_items")
 							.select(
@@ -177,7 +268,7 @@ const useOrderCreationStore = create(
 							)
 							.eq("weekly_menu_id", published.id)
 							.eq("weekday", tomorrowName)
-							.eq("status", "Confirmed"),
+							.in("status", ["Cooking", "Confirmed", "Available"]),
 					]);
 
 					set({
