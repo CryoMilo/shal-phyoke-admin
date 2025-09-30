@@ -18,7 +18,7 @@ export const SubscriberOrder = () => {
 		selectedMenuItems,
 		availableSelections,
 		usedSelections,
-		isAfter6PM,
+		isAfter10AM,
 		setSelectedSubscriber,
 		setSelectedDay,
 		toggleMenuItemSelection,
@@ -38,9 +38,10 @@ export const SubscriberOrder = () => {
 	const {
 		register,
 		handleSubmit,
-		formState: { errors },
+		formState: { errors, isSubmitting },
 		setValue,
 		reset,
+		watch,
 	} = useForm({
 		resolver: zodResolver(subscriberOrderSchema),
 		defaultValues: {
@@ -52,15 +53,27 @@ export const SubscriberOrder = () => {
 		},
 	});
 
+	// Watch form values for real-time validation
+	const watchSubscriberId = watch("subscriber_id");
+	// const watchDaySelection = watch("day_selection");
+
 	// ---------- INIT ----------
 	useEffect(() => {
 		fetchAvailableMenuItems();
 		checkTimeRestriction();
 		fetchActiveSubscribers();
-		fetchSubscriberOrders(); // ⬅️ pull existing orders
+		fetchSubscriberOrders();
 		const interval = setInterval(checkTimeRestriction, 60000);
 		return () => clearInterval(interval);
 	}, []);
+
+	// Reset form when modal closes
+	useEffect(() => {
+		if (!showCreateModal) {
+			reset();
+			resetSelections();
+		}
+	}, [showCreateModal, reset, resetSelections]);
 
 	// ---------- Handlers ----------
 	const handleSubscriberChange = (subscriberId) => {
@@ -77,12 +90,6 @@ export const SubscriberOrder = () => {
 		setValue("menu_selections", []);
 	};
 
-	/**
-	 * Smart toggler:
-	 *  - If clicked item is already selected -> deselect.
-	 *  - Else assign next available tag: main_dish first until quota filled,
-	 *    then side_dish if allowed.
-	 */
 	const toggleMenuItemSelectionSmart = (menuItem) => {
 		const plan = selectedSubscriber?.subscription_plans;
 		if (!plan) return;
@@ -144,6 +151,12 @@ export const SubscriberOrder = () => {
 		}
 	};
 
+	const closeModal = () => {
+		setShowCreateModal(false);
+		reset();
+		resetSelections();
+	};
+
 	// ---------- UI ----------
 	return (
 		<div className="container mx-auto p-6">
@@ -173,21 +186,35 @@ export const SubscriberOrder = () => {
 				</div>
 			)}
 
-			{/* Create Modal */}
-			{showCreateModal && (
-				<div className="modal modal-open">
-					<div className="modal-box w-full max-w-md bg-black text-white rounded-2xl p-6 border border-gray-700">
-						<h3 className="text-xl font-bold text-center mb-6">
-							Create Subscriber Order
-						</h3>
+			{/* Create Modal - DaisyUI Style */}
+			<dialog
+				className={`modal ${showCreateModal ? "modal-open" : ""}`}
+				id="create-order-modal">
+				<div className="modal-box max-w-2xl">
+					{/* Header */}
+					<div className="flex justify-between items-center mb-6">
+						<h3 className="text-xl font-bold">Create Subscriber Order</h3>
+						<button
+							onClick={closeModal}
+							className="btn btn-sm btn-circle btn-ghost">
+							✕
+						</button>
+					</div>
 
-						{/* Subscriber Dropdown */}
-						<div className="mb-4">
+					<form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+						{/* Subscriber Selection */}
+						<div className="form-control w-full">
+							<label className="label">
+								<span className="label-text">Select Subscriber</span>
+							</label>
 							<select
 								{...register("subscriber_id")}
-								className="w-full bg-transparent border border-gray-500 rounded-lg p-3"
-								onChange={(e) => handleSubscriberChange(e.target.value)}>
-								<option value="">Choose Subscriber</option>
+								className={`select select-bordered w-full ${
+									errors.subscriber_id ? "select-error" : ""
+								}`}
+								onChange={(e) => handleSubscriberChange(e.target.value)}
+								value={watchSubscriberId}>
+								<option value="">Choose a subscriber</option>
 								{activeSubscribers.map((s) => (
 									<option key={s.id} value={s.id}>
 										{s.name} – {s.subscription_plans?.plan_name}
@@ -195,122 +222,169 @@ export const SubscriberOrder = () => {
 								))}
 							</select>
 							{errors.subscriber_id && (
-								<p className="text-red-400 text-sm mt-1">
-									{errors.subscriber_id.message}
-								</p>
+								<label className="label">
+									<span className="label-text-alt text-error">
+										{errors.subscriber_id.message}
+									</span>
+								</label>
 							)}
 						</div>
-
-						{/* Day Toggle */}
-						<div className="flex justify-center gap-4 mb-6">
-							<button
-								type="button"
-								className={`px-4 py-2 rounded-lg border ${
-									selectedDay === "today"
-										? "bg-white text-black"
-										: "border-gray-500"
-								}`}
-								onClick={() => !isAfter6PM && handleDayChange("today")}>
-								Today
-							</button>
-							<button
-								type="button"
-								className={`px-4 py-2 rounded-lg border ${
-									selectedDay === "tomorrow"
-										? "bg-white text-black"
-										: "border-gray-500"
-								}`}
-								onClick={() => handleDayChange("tomorrow")}>
-								Tomorrow
-							</button>
-						</div>
-
-						{/* Menu List */}
+						{/* Day Selection */}
+						{watchSubscriberId && (
+							<div className="form-control">
+								<label className="label">
+									<span className="label-text">Select Day</span>
+								</label>
+								<div className="join w-full">
+									<button
+										type="button"
+										className={`join-item btn flex-1 ${
+											selectedDay === "today" ? "btn-primary" : "btn-outline"
+										} ${isAfter10AM ? "btn-disabled" : ""}`}
+										onClick={() => !isAfter10AM && handleDayChange("today")}
+										disabled={isAfter10AM}>
+										Today
+										{isAfter10AM && (
+											<span className="badge badge-sm badge-ghost ml-2">
+												Unavailable after 10AM
+											</span>
+										)}
+									</button>
+									<button
+										type="button"
+										className={`join-item btn flex-1 ${
+											selectedDay === "tomorrow" ? "btn-primary" : "btn-outline"
+										}`}
+										onClick={() => handleDayChange("tomorrow")}>
+										Tomorrow
+									</button>
+								</div>
+							</div>
+						)}
+						{/* Menu Selection */}
 						{selectedDay && (
-							<div className="space-y-3 mb-6">
-								{(selectedDay === "today"
-									? todayMenuItems
-									: tomorrowMenuItems
-								).map((item) => {
-									const chosen = selectedMenuItems.find(
-										(sel) => sel.id === item.menu_items.id
-									);
-									const border = chosen
-										? chosen.type === "main_dish"
-											? "border-red-400"
-											: "border-blue-400"
-										: "border-gray-600";
-									const tagText = chosen
-										? chosen.type === "main_dish"
-											? "Main"
-											: "Side"
-										: "";
+							<div className="form-control">
+								<label className="label">
+									<span className="label-text">
+										Select Menu Items ({usedSelections.main_dish}/
+										{availableSelections.main_dish} Main,{" "}
+										{usedSelections.side_dish}/{availableSelections.side_dish}{" "}
+										Side)
+									</span>
+								</label>
+								<div className="space-y-2 max-h-96 overflow-y-auto p-2 border rounded-lg">
+									{(selectedDay === "today"
+										? todayMenuItems
+										: tomorrowMenuItems
+									).map((item) => {
+										const chosen = selectedMenuItems.find(
+											(sel) => sel.id === item.menu_items.id
+										);
+										const isMainDish = chosen?.type === "main_dish";
+										const isSideDish = chosen?.type === "side_dish";
 
-									return (
-										<div
-											key={item.id}
-											onClick={() =>
-												toggleMenuItemSelectionSmart(item.menu_items)
-											}
-											className={`border-2 rounded-xl p-4 flex justify-between items-center cursor-pointer ${border}`}>
-											<div>
-												<p className="font-semibold">
-													{item.menu_items.name_burmese}
-												</p>
-												<p className="text-sm text-gray-400">
-													{item.menu_items.name_english}
-												</p>
+										return (
+											<div
+												key={item.id}
+												onClick={() =>
+													toggleMenuItemSelectionSmart(item.menu_items)
+												}
+												className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${
+													isMainDish
+														? "border-primary bg-primary/10"
+														: isSideDish
+														? "border-secondary bg-secondary/10"
+														: "border-base-300 hover:border-base-400"
+												}`}>
+												<div className="flex justify-between items-center">
+													<div className="flex-1">
+														<p className="font-semibold">
+															{item.menu_items.name_burmese}
+														</p>
+														<p className="text-sm text-base-content/70">
+															{item.menu_items.name_english}
+														</p>
+													</div>
+													{chosen && (
+														<span
+															className={`badge ${
+																isMainDish ? "badge-primary" : "badge-secondary"
+															}`}>
+															{isMainDish ? "Main" : "Side"}
+														</span>
+													)}
+												</div>
 											</div>
-											{tagText && (
-												<span
-													className={`text-xs px-2 py-1 rounded-full border ${
-														tagText === "Main"
-															? "border-red-400 text-red-300"
-															: "border-blue-400 text-blue-300"
-													}`}>
-													{tagText}
-												</span>
-											)}
-										</div>
-									);
-								})}
+										);
+									})}
+								</div>
 								{errors.menu_selections && (
-									<p className="text-red-400 text-sm">
-										{errors.menu_selections.message}
-									</p>
+									<label className="label">
+										<span className="label-text-alt text-error">
+											{errors.menu_selections.message}
+										</span>
+									</label>
 								)}
 							</div>
 						)}
-
-						{/* Delivery / Dine-In */}
+						{/* Dine-in Option */}
 						{selectedDay && (
-							<div className="flex items-center gap-3 mb-4">
-								<label className="flex items-center gap-2 cursor-pointer">
-									<input type="checkbox" {...register("eat_in")} />
-									Dine-In (uncheck = Delivery)
+							<div className="form-control">
+								<label className="label cursor-pointer justify-start gap-3">
+									<input
+										type="checkbox"
+										{...register("eat_in")}
+										className="checkbox"
+									/>
+									<span className="label-text">
+										Dine-In (unchecked = Delivery)
+									</span>
 								</label>
 							</div>
 						)}
-
 						{/* Notes */}
 						{selectedDay && (
-							<textarea
-								{...register("note")}
-								className="w-full bg-transparent border border-gray-500 rounded-lg p-3 mb-6"
-								rows={3}
-								placeholder="Notes"
-							/>
+							<div className="form-control">
+								<label className="label">
+									<span className="label-text">Additional Notes</span>
+								</label>
+								<textarea
+									{...register("note")}
+									className="textarea textarea-bordered h-20"
+									placeholder="Any special instructions or notes..."
+								/>
+							</div>
 						)}
-
-						<button
-							onClick={handleSubmit(onSubmit)}
-							disabled={!isValidSelection()}
-							className="w-full py-3 rounded-lg bg-white text-black font-semibold disabled:opacity-40">
-							Submit
-						</button>
-					</div>
+						{/* Action Buttons */}
+						<div className="modal-action">
+							<button
+								type="button"
+								onClick={closeModal}
+								className="btn btn-ghost">
+								Cancel
+							</button>
+							<button
+								type="submit"
+								disabled={!isValidSelection() || isSubmitting}
+								className="btn btn-primary">
+								{isSubmitting ? (
+									<>
+										<span className="loading loading-spinner loading-sm"></span>
+										Creating...
+									</>
+								) : (
+									"Create Order"
+								)}
+							</button>
+						</div>
+					</form>
 				</div>
-			)}
+
+				{/* Backdrop */}
+				<form method="dialog" className="modal-backdrop">
+					<button onClick={closeModal}>close</button>
+				</form>
+			</dialog>
 		</div>
 	);
 };

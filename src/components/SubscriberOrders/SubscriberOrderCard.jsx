@@ -4,8 +4,6 @@ import {
 	MapPin,
 	Home,
 	Truck,
-	Clock,
-	CheckCircle,
 	ShoppingBag,
 	Edit,
 	Trash2,
@@ -220,6 +218,7 @@ export const SubscriberOrderCard = ({ order }) => {
 							<option value="Delivering">Delivering</option>
 							<option value="Delivered">Delivered</option>
 							<option value="Cancelled">Cancelled</option>
+							<option value="Archived">Archived</option>
 						</select>
 						{updatingStatus && (
 							<div className="absolute right-2 top-1/2 transform -translate-y-1/2">

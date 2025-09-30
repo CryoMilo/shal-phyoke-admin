@@ -20,7 +20,7 @@ const useOrderCreationStore = create(
 			usedSelections: { main_dish: 0, side_dish: 0, total: 0 },
 
 			loading: false,
-			isAfter6PM: false,
+			isAfter10AM: false,
 
 			setTodayMenuItems: (items) => set({ todayMenuItems: items }),
 			setTomorrowMenuItems: (items) => set({ tomorrowMenuItems: items }),
@@ -51,7 +51,7 @@ const useOrderCreationStore = create(
 			setLoading: (loading) => set({ loading }),
 			checkTimeRestriction: () => {
 				const hour = new Date().getHours();
-				set({ isAfter6PM: hour >= 18 });
+				set({ isAfter10AM: hour >= 10 }); // Changed from 18 to 10
 			},
 
 			// Fetch all subscription orders
@@ -315,7 +315,7 @@ const useOrderCreationStore = create(
 				const s = get();
 				if (!s.selectedSubscriber || !s.selectedDay) return false;
 				if (s.selectedMenuItems.length === 0) return false;
-				if (s.selectedDay === "today" && s.isAfter6PM) return false;
+				if (s.selectedDay === "today" && s.isAfter10AM) return false; // Changed from isAfter6PM to isAfter10AM
 				// Require at least one main if plan demands it
 				const plan = s.selectedSubscriber.subscription_plans;
 				if (plan.main_dish_choice > 0 && s.usedSelections.main_dish === 0)
