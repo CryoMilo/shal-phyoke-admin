@@ -11,6 +11,7 @@ import SubscriptionPlansPage from "./pages/SubscriptionPlans";
 import WeeklyMenu from "./pages/WeeklyMenu";
 import { MenuStatusManagement } from "./pages/MenuStatusManagement";
 import { SubscriberOrder } from "./pages/SubscriberOrder";
+import RegularMenu from "./pages/RegularMenu";
 
 // 1. Root route
 const rootRoute = createRootRoute({ component: App });
@@ -26,6 +27,12 @@ const allMenuRoute = createRoute({
 	path: "/all-menu",
 	getParentRoute: () => rootRoute,
 	component: AllMenu,
+});
+
+const regularMenuRoute = createRoute({
+	path: "/regular-menu",
+	getParentRoute: () => rootRoute,
+	component: RegularMenu,
 });
 
 const subscriberListRoute = createRoute({
@@ -67,6 +74,7 @@ const routeTree = rootRoute.addChildren([
 	weeklyMenuRoute,
 	menuStatusRoute,
 	subscriberOrderRoute,
+	regularMenuRoute,
 ]);
 
 // 4. Create and export router

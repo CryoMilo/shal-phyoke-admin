@@ -8,6 +8,7 @@ import {
 	Calendar,
 	CheckCheck,
 	ListOrdered,
+	Menu,
 } from "lucide-react";
 
 const Sidebar = () => {
@@ -23,6 +24,11 @@ const Sidebar = () => {
 			name: "All Menu Items",
 			path: "/all-menu",
 			icon: UtensilsCrossed,
+		},
+		{
+			name: "Regular Menu Items",
+			path: "/regular-menu",
+			icon: Menu,
 		},
 		{
 			name: "Weekly Menu",
