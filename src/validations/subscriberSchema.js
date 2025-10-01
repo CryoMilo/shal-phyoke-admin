@@ -2,15 +2,10 @@
 import { z } from "zod";
 
 export const subscriberSchema = z.object({
-	name: z.string().min(1, "Name is required"), // Direct name field
-	line_id: z.string().optional(), // LINE ID for messaging
-	user_id: z.string().optional(), // Still keep for auth reference
-	subscription_plan_id: z.string().min(1, "Subscription plan is required"),
-	remaining_points: z.number().min(0, "Points must be positive"),
-	subscription_start_date: z.string().min(1, "Start date is required"),
-	subscription_end_date: z.string().min(1, "End date is required"),
-	delivery_address: z.string().min(1, "Delivery address is required"),
+	name: z.string().min(1, "Name is required"),
+	line_id: z.string().optional(),
 	phone_number: z.string().min(1, "Phone number is required"),
+	delivery_address: z.string().min(1, "Delivery address is required"),
 	special_instructions: z.string().optional(),
 	is_active: z.boolean().default(true),
 });
