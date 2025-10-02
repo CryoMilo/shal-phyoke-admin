@@ -12,6 +12,7 @@ import WeeklyMenu from "./pages/WeeklyMenu";
 import { MenuStatusManagement } from "./pages/MenuStatusManagement";
 import { SubscriberOrder } from "./pages/SubscriberOrder";
 import RegularMenu from "./pages/RegularMenu";
+import { ArchivedOrders } from "./pages/ArchivedOrders";
 
 // 1. Root route
 const rootRoute = createRootRoute({ component: App });
@@ -59,10 +60,17 @@ const menuStatusRoute = createRoute({
 	component: MenuStatusManagement,
 });
 
+// Subscriber orders with nested routes
 const subscriberOrderRoute = createRoute({
 	path: "/subscriber-orders",
 	getParentRoute: () => rootRoute,
 	component: SubscriberOrder,
+});
+
+const archivedOrdersRoute = createRoute({
+	path: "/subscriber-orders/archived-orders",
+	getParentRoute: () => rootRoute,
+	component: ArchivedOrders,
 });
 
 // 3. Combine all routes
@@ -74,6 +82,7 @@ const routeTree = rootRoute.addChildren([
 	weeklyMenuRoute,
 	menuStatusRoute,
 	subscriberOrderRoute,
+	archivedOrdersRoute,
 	regularMenuRoute,
 ]);
 
