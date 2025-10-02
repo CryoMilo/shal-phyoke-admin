@@ -6,29 +6,35 @@ import { supabase } from "../services/supabase";
 const useOrderCreationStore = create(
 	persist(
 		(set, get) => ({
-			orders: [], // holds fetched orders
+			orders: [],
 			loadingOrders: false,
 
 			todayMenuItems: [],
 			tomorrowMenuItems: [],
 			selectedSubscriber: null,
-			selectedSubscriberPlan: null, // NEW: Track specific plan
+			selectedSubscriberPlan: null,
 			selectedDay: null,
 
 			// Selection
-			selectedMenuItems: [],
+			selectedMenuItems: [], // Stores { id, type } objects
 			availableSelections: { main_dish: 0, side_dish: 0, total: 0 },
 			usedSelections: { main_dish: 0, side_dish: 0, total: 0 },
 
 			loading: false,
 			isAfter10AM: false,
 
+			// Setters
 			setTodayMenuItems: (items) => set({ todayMenuItems: items }),
 			setTomorrowMenuItems: (items) => set({ tomorrowMenuItems: items }),
+			setLoading: (loading) => set({ loading }),
+			setSelectedDay: (day) =>
+				set({
+					selectedDay: day,
+					selectedMenuItems: [],
+					usedSelections: { main_dish: 0, side_dish: 0, total: 0 },
+				}),
 
-			// UPDATED: Now accepts both subscriber and specific plan
 			setSelectedSubscriber: (subscriber, planId = null) => {
-				// If planId is provided, find the specific plan
 				let selectedPlan = null;
 				if (planId && subscriber.active_plans) {
 					selectedPlan = subscriber.active_plans.find(
@@ -36,7 +42,6 @@ const useOrderCreationStore = create(
 					);
 				}
 
-				// Fallback to first active plan if no specific plan selected
 				const plan = selectedPlan || subscriber.active_plans?.[0];
 				const planDetails = plan?.subscription_plans;
 
@@ -45,7 +50,7 @@ const useOrderCreationStore = create(
 
 				set({
 					selectedSubscriber: subscriber,
-					selectedSubscriberPlan: plan, // NEW: Store the specific plan
+					selectedSubscriberPlan: plan,
 					selectedDay: null,
 					selectedMenuItems: [],
 					availableSelections: {
@@ -57,11 +62,9 @@ const useOrderCreationStore = create(
 				});
 			},
 
-			// NEW: Method to select specific plan for a subscriber
 			setSelectedSubscriberPlan: (planId) => {
 				const state = get();
-				if (!state.selectedSubscriber || !state.selectedSubscriber.active_plans)
-					return;
+				if (!state.selectedSubscriber?.active_plans) return;
 
 				const plan = state.selectedSubscriber.active_plans.find(
 					(p) => p.id === planId
@@ -84,30 +87,21 @@ const useOrderCreationStore = create(
 				});
 			},
 
-			setSelectedDay: (day) =>
-				set({
-					selectedDay: day,
-					selectedMenuItems: [],
-					usedSelections: { main_dish: 0, side_dish: 0, total: 0 },
-				}),
-
-			setLoading: (loading) => set({ loading }),
 			checkTimeRestriction: () => {
 				const hour = new Date().getHours();
 				set({ isAfter10AM: hour >= 10 });
 			},
 
-			// UPDATED: Fetch orders with plan information
+			// Order Operations
 			async fetchSubscriberOrders() {
 				set({ loadingOrders: true });
 				try {
 					const { data, error } = await supabase
-						.from("subscription_orders_with_plans") // Use the view we created
+						.from("subscription_orders_with_plans")
 						.select("*")
 						.order("created_at", { ascending: false });
 
 					if (error) throw error;
-
 					set({ orders: data || [] });
 				} catch (err) {
 					console.error("fetchSubscriberOrders error:", err.message);
@@ -116,50 +110,6 @@ const useOrderCreationStore = create(
 				}
 			},
 
-			// UPDATED: Fetch orders for a specific subscriber
-			async fetchSubscriberOrdersBySubscriberId(subscriberId) {
-				set({ loadingOrders: true });
-				try {
-					const { data, error } = await supabase
-						.from("subscription_orders_with_plans")
-						.select("*")
-						.eq("subscriber_id", subscriberId)
-						.order("created_at", { ascending: false });
-
-					if (error) throw error;
-
-					set({ orders: data || [] });
-				} catch (err) {
-					console.error(
-						"fetchSubscriberOrdersBySubscriberId error:",
-						err.message
-					);
-				} finally {
-					set({ loadingOrders: false });
-				}
-			},
-
-			// UPDATED: Fetch orders for a specific subscriber plan
-			async fetchSubscriberOrdersByPlanId(planId) {
-				set({ loadingOrders: true });
-				try {
-					const { data, error } = await supabase
-						.from("subscription_orders_with_plans")
-						.select("*")
-						.eq("subscriber_plan_id", planId)
-						.order("created_at", { ascending: false });
-
-					if (error) throw error;
-
-					set({ orders: data || [] });
-				} catch (err) {
-					console.error("fetchSubscriberOrdersByPlanId error:", err.message);
-				} finally {
-					set({ loadingOrders: false });
-				}
-			},
-
-			// Update order status
 			async updateOrderStatus(orderId, newStatus) {
 				try {
 					const { error } = await supabase
@@ -169,13 +119,8 @@ const useOrderCreationStore = create(
 
 					if (error) throw error;
 
-					// Update local state
-					set((state) => ({
-						orders: state.orders.map((order) =>
-							order.id === orderId ? { ...order, status: newStatus } : order
-						),
-					}));
-
+					// Refetch to get updated data with menu details
+					await get().fetchSubscriberOrders();
 					return { error: null };
 				} catch (error) {
 					console.error("Error updating order status:", error);
@@ -183,7 +128,6 @@ const useOrderCreationStore = create(
 				}
 			},
 
-			// Delete order
 			async deleteOrder(orderId) {
 				try {
 					const { error } = await supabase
@@ -193,7 +137,6 @@ const useOrderCreationStore = create(
 
 					if (error) throw error;
 
-					// Update local state
 					set((state) => ({
 						orders: state.orders.filter((order) => order.id !== orderId),
 					}));
@@ -205,61 +148,13 @@ const useOrderCreationStore = create(
 				}
 			},
 
-			// Update order (for edit functionality)
-			async updateOrder(orderId, orderData) {
-				try {
-					const { data, error } = await supabase
-						.from("subscription_orders")
-						.update(orderData)
-						.eq("id", orderId)
-						.select()
-						.single();
-
-					if (error) throw error;
-
-					// Update local state
-					set((state) => ({
-						orders: state.orders.map((order) =>
-							order.id === orderId ? { ...order, ...data } : order
-						),
-					}));
-
-					return { data, error: null };
-				} catch (error) {
-					console.error("Error updating order:", error);
-					throw error;
-				}
-			},
-
-			// Get single order by ID
-			async getOrderById(orderId) {
-				try {
-					const { data, error } = await supabase
-						.from("subscription_orders_with_plans") // Use view for detailed info
-						.select("*")
-						.eq("id", orderId)
-						.single();
-
-					if (error) throw error;
-					return { data, error: null };
-				} catch (error) {
-					console.error("Error fetching order:", error);
-					return { data: null, error };
-				}
-			},
-
-			/**
-			 * Toggle selection:
-			 * 1st click -> Main (if any slot)
-			 * 2nd click -> Side (if any slot)
-			 * deselect -> free slot
-			 */
+			// Menu Item Selection
 			toggleMenuItemSelection: (menuItem) => {
 				const s = get();
 				const already = s.selectedMenuItems.find((m) => m.id === menuItem.id);
 
 				if (already) {
-					// --- Deselect ---
+					// Deselect
 					set({
 						selectedMenuItems: s.selectedMenuItems.filter(
 							(m) => m.id !== menuItem.id
@@ -273,10 +168,9 @@ const useOrderCreationStore = create(
 					return;
 				}
 
-				// --- Add new ---
+				// Add new
 				if (s.usedSelections.total >= s.availableSelections.total) return;
 
-				// Decide tag: main first, then side
 				let type = "side_dish";
 				if (
 					s.usedSelections.main_dish < s.availableSelections.main_dish &&
@@ -289,7 +183,6 @@ const useOrderCreationStore = create(
 				) {
 					type = "side_dish";
 				} else {
-					// no slot
 					return;
 				}
 
@@ -313,6 +206,7 @@ const useOrderCreationStore = create(
 				);
 			},
 
+			// Menu Data
 			fetchAvailableMenuItems: async () => {
 				set({ loading: true });
 				try {
@@ -336,6 +230,7 @@ const useOrderCreationStore = create(
 						.select("id")
 						.eq("status", "Published")
 						.single();
+
 					if (error || !published) throw error || new Error("No menu");
 
 					const [todayRes, tomorrowRes] = await Promise.all([
@@ -368,17 +263,7 @@ const useOrderCreationStore = create(
 				}
 			},
 
-			resetSelections: () =>
-				set({
-					selectedSubscriber: null,
-					selectedSubscriberPlan: null,
-					selectedDay: null,
-					selectedMenuItems: [],
-					availableSelections: { main_dish: 0, side_dish: 0, total: 0 },
-					usedSelections: { main_dish: 0, side_dish: 0, total: 0 },
-				}),
-
-			// UPDATED: Order data now includes subscriber_plan_id
+			// Order Creation
 			getOrderData: () => {
 				const s = get();
 				if (
@@ -388,10 +273,22 @@ const useOrderCreationStore = create(
 				)
 					return null;
 
+				// Separate main and side dishes for structured data
+				const mainDishes = s.selectedMenuItems
+					.filter((item) => item.type === "main_dish")
+					.map((item) => item.id);
+
+				const sideDishes = s.selectedMenuItems
+					.filter((item) => item.type === "side_dish")
+					.map((item) => item.id);
+
 				return {
 					subscriber_id: s.selectedSubscriber.id,
-					subscriber_plan_id: s.selectedSubscriberPlan?.id, // NEW: Include plan ID
-					menu_items: s.selectedMenuItems.map((i) => i.id),
+					subscriber_plan_id: s.selectedSubscriberPlan?.id,
+					menu_items_structured: {
+						main_dish: mainDishes,
+						side_dish: sideDishes,
+					},
 					order_date:
 						s.selectedDay === "today"
 							? new Date().toISOString().split("T")[0]
@@ -401,7 +298,6 @@ const useOrderCreationStore = create(
 				};
 			},
 
-			// UPDATED: Create order with new schema
 			async createOrder() {
 				const s = get();
 				const orderData = s.getOrderData();
@@ -419,10 +315,13 @@ const useOrderCreationStore = create(
 
 					if (error) throw error;
 
-					// Add to local state
+					// Add to local state and refetch to get complete data with menu details
 					set((state) => ({
 						orders: [data, ...state.orders],
 					}));
+
+					// Refetch to get the complete order data with menu details from the view
+					await get().fetchSubscriberOrders();
 
 					return { data, error: null };
 				} catch (error) {
@@ -431,13 +330,13 @@ const useOrderCreationStore = create(
 				}
 			},
 
+			// Validation & Helpers
 			isValidSelection: () => {
 				const s = get();
 				if (!s.selectedSubscriber || !s.selectedDay) return false;
 				if (s.selectedMenuItems.length === 0) return false;
 				if (s.selectedDay === "today" && s.isAfter10AM) return false;
 
-				// Require at least one main if plan demands it
 				const planDetails = s.selectedSubscriberPlan?.subscription_plans;
 				if (
 					planDetails?.main_dish_choice > 0 &&
@@ -447,17 +346,25 @@ const useOrderCreationStore = create(
 				return true;
 			},
 
-			// NEW: Check if subscriber has multiple active plans
 			hasMultipleActivePlans: () => {
 				const s = get();
 				return s.selectedSubscriber?.active_plans?.length > 1;
 			},
 
-			// NEW: Get available plans for current subscriber
 			getAvailablePlans: () => {
 				const s = get();
 				return s.selectedSubscriber?.active_plans || [];
 			},
+
+			resetSelections: () =>
+				set({
+					selectedSubscriber: null,
+					selectedSubscriberPlan: null,
+					selectedDay: null,
+					selectedMenuItems: [],
+					availableSelections: { main_dish: 0, side_dish: 0, total: 0 },
+					usedSelections: { main_dish: 0, side_dish: 0, total: 0 },
+				}),
 		}),
 		{
 			name: "order-creation-store",
