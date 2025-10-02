@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import {
 	useMenuItemsStore,
 	useWeeklyMenuStore,
-} from "../stores/weeklyMenuStore";
-import { supabase } from "../services/supabase";
+} from "../../stores/weeklyMenuStore";
+import { supabase } from "../../services/supabase";
 import { ChevronLeft, ChevronRight, Plus, X } from "lucide-react";
 
 export const WeeklyMenuBuilder = ({ weeklyMenu, onBack }) => {

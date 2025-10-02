@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { WeeklyMenuBuilder } from "../components/WeeklyMenuBuilder";
-import { WeeklyMenuOverview } from "../components/WeeklyMenuOverview";
 import { useWeeklyMenuStore } from "../stores/weeklyMenuStore";
+import { WeeklyMenuBuilder } from "../components/WeeklyMenu/WeeklyMenuBuilder";
+import { WeeklyMenuOverview } from "../components/WeeklyMenu/WeeklyMenuOverview";
 
 const WeeklyMenu = () => {
 	const [currentView, setCurrentView] = useState("overview");

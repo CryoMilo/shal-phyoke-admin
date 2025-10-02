@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useWeeklyMenuStore } from "../stores/weeklyMenuStore";
+import { useWeeklyMenuStore } from "../../stores/weeklyMenuStore";
 
 export const WeeklyMenuPublishControl = ({ currentWeeklyMenu }) => {
 	const { updateWeeklyMenuStatus, weeklyMenus } = useWeeklyMenuStore();
