@@ -34,15 +34,10 @@ const useOrderCreationStore = create(
 					usedSelections: { main_dish: 0, side_dish: 0, total: 0 },
 				}),
 
-			setSelectedSubscriber: (subscriber, planId = null) => {
-				let selectedPlan = null;
-				if (planId && subscriber.active_plans) {
-					selectedPlan = subscriber.active_plans.find(
-						(plan) => plan.id === planId
-					);
-				}
-
-				const plan = selectedPlan || subscriber.active_plans?.[0];
+			// In orderCreationStore.js - simplify setSelectedSubscriber
+			setSelectedSubscriber: (subscriber) => {
+				// Always use the first active plan
+				const plan = subscriber.active_plans?.[0];
 				const planDetails = plan?.subscription_plans;
 
 				const main = planDetails?.main_dish_choice || 0;
@@ -61,6 +56,8 @@ const useOrderCreationStore = create(
 					usedSelections: { main_dish: 0, side_dish: 0, total: 0 },
 				});
 			},
+
+			// Remove setSelectedSubscriberPlan method entirely
 
 			setSelectedSubscriberPlan: (planId) => {
 				const state = get();

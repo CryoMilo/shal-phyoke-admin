@@ -20,14 +20,14 @@ export const CreateOrderModal = ({ showModal, onClose, onOrderCreated }) => {
 		usedSelections,
 		isAfter10AM,
 		setSelectedSubscriber,
-		setSelectedSubscriberPlan,
+		// setSelectedSubscriberPlan,
 		setSelectedDay,
 		toggleMenuItemSelection,
 		isValidSelection,
 		resetSelections,
 		createOrder,
 		hasMultipleActivePlans,
-		getAvailablePlans,
+		// getAvailablePlans,
 		todayMenuItems,
 		tomorrowMenuItems,
 	} = useOrderCreationStore();
@@ -56,7 +56,7 @@ export const CreateOrderModal = ({ showModal, onClose, onOrderCreated }) => {
 	const watchSubscriberId = watch("subscriber_id");
 	const watchSubscriberPlanId = watch("subscriber_plan_id");
 	const activeSubscribers = subscribers.filter((sub) => sub.is_active);
-	const availablePlans = getAvailablePlans();
+	// const availablePlans = getAvailablePlans();
 
 	const handleSubscriberChange = (subscriberId) => {
 		const subscriber = activeSubscribers.find((s) => s.id === subscriberId);
@@ -69,11 +69,11 @@ export const CreateOrderModal = ({ showModal, onClose, onOrderCreated }) => {
 		setValue("menu_selections", []);
 	};
 
-	const handlePlanChange = (planId) => {
-		setSelectedSubscriberPlan(planId);
-		setValue("subscriber_plan_id", planId);
-		setValue("menu_selections", []);
-	};
+	// const handlePlanChange = (planId) => {
+	// 	setSelectedSubscriberPlan(planId);
+	// 	setValue("subscriber_plan_id", planId);
+	// 	setValue("menu_selections", []);
+	// };
 
 	const handleDayChange = (day) => {
 		setSelectedDay(day);
@@ -148,17 +148,28 @@ export const CreateOrderModal = ({ showModal, onClose, onOrderCreated }) => {
 						watchSubscriberId={watchSubscriberId}
 					/>
 
-					<PlanSelection
-						register={register}
-						errors={errors}
-						hasMultipleActivePlans={hasMultipleActivePlans()}
-						availablePlans={availablePlans}
-						selectedSubscriberPlan={selectedSubscriberPlan}
-						availableSelections={availableSelections}
-						onPlanChange={handlePlanChange}
-						watchSubscriberId={watchSubscriberId}
-						watchSubscriberPlanId={watchSubscriberPlanId}
-					/>
+					{watchSubscriberId && selectedSubscriberPlan && (
+						<div className="alert alert-info">
+							<div>
+								<h4 className="font-semibold">Selected Plan</h4>
+								<p className="text-sm">
+									{selectedSubscriberPlan.subscription_plans?.plan_name} -
+									{selectedSubscriberPlan.remaining_points} points -
+									{selectedSubscriberPlan.serve_type}
+								</p>
+								<p className="text-xs mt-1">
+									Main: {availableSelections.main_dish} | Side:{" "}
+									{availableSelections.side_dish}
+								</p>
+								{hasMultipleActivePlans() && (
+									<p className="text-xs mt-2 text-warning">
+										💡 Subscriber has multiple plans. Create separate orders for
+										each plan.
+									</p>
+								)}
+							</div>
+						</div>
+					)}
 
 					<DaySelection
 						selectedDay={selectedDay}

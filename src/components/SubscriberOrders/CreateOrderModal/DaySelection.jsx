@@ -1,17 +1,11 @@
-// components/SubscriberOrders/DaySelection.js
+// components/SubscriberOrders/CreateOrderModal/DaySelection.js
 export const DaySelection = ({
 	selectedDay,
 	isAfter10AM,
 	onDayChange,
-	watchSubscriberPlanId,
 	selectedSubscriberPlan,
-	hasMultipleActivePlans,
 }) => {
-	const showDaySelection =
-		watchSubscriberPlanId ||
-		(!hasMultipleActivePlans && selectedSubscriberPlan);
-
-	if (!showDaySelection) return null;
+	if (!selectedSubscriberPlan) return null;
 
 	return (
 		<div className="form-control">
@@ -42,6 +36,17 @@ export const DaySelection = ({
 					Tomorrow
 				</button>
 			</div>
+
+			{/* Show menu items immediately after subscriber selection */}
+			{!selectedDay && (
+				<div className="mt-4 alert alert-warning">
+					<div>
+						<span className="text-sm">
+							📋 Please select a day to view menu items
+						</span>
+					</div>
+				</div>
+			)}
 		</div>
 	);
 };
