@@ -7,19 +7,19 @@ import { subscriberOrderSchema } from "../validations/subscriberOrderSchema";
 import { useOrderCreationStore } from "../stores/subscriberOrderStore";
 import useSubscribersStore from "../stores/useSubscriberStore";
 import { SubscriberOrderCard } from "../components/SubscriberOrders/SubscriberOrderCard";
-import { supabase } from "../services/supabase";
 
 export const SubscriberOrder = () => {
 	const {
 		todayMenuItems,
 		tomorrowMenuItems,
-		selectedSubscriber,
+		selectedSubscriberPlan,
 		selectedDay,
 		selectedMenuItems,
 		availableSelections,
 		usedSelections,
 		isAfter10AM,
 		setSelectedSubscriber,
+		setSelectedSubscriberPlan,
 		setSelectedDay,
 		toggleMenuItemSelection,
 		fetchAvailableMenuItems,
@@ -29,9 +29,12 @@ export const SubscriberOrder = () => {
 		orders,
 		loadingOrders,
 		fetchSubscriberOrders,
+		createOrder,
+		hasMultipleActivePlans,
+		getAvailablePlans,
 	} = useOrderCreationStore();
 
-	const { activeSubscribers, fetchActiveSubscribers } = useSubscribersStore();
+	const { subscribers, fetchSubscribers, loading } = useSubscribersStore(); // CHANGED: Use subscribers instead of activeSubscribers
 
 	const [showCreateModal, setShowCreateModal] = useState(false);
 
@@ -46,6 +49,7 @@ export const SubscriberOrder = () => {
 		resolver: zodResolver(subscriberOrderSchema),
 		defaultValues: {
 			subscriber_id: "",
+			subscriber_plan_id: "",
 			day_selection: "",
 			menu_selections: [],
 			eat_in: false,
@@ -55,13 +59,16 @@ export const SubscriberOrder = () => {
 
 	// Watch form values for real-time validation
 	const watchSubscriberId = watch("subscriber_id");
-	// const watchDaySelection = watch("day_selection");
+	const watchSubscriberPlanId = watch("subscriber_plan_id");
+
+	// Get active subscribers from the full subscribers list
+	const activeSubscribers = subscribers.filter((sub) => sub.is_active); // CHANGED: Filter active subscribers
 
 	// ---------- INIT ----------
 	useEffect(() => {
 		fetchAvailableMenuItems();
 		checkTimeRestriction();
-		fetchActiveSubscribers();
+		fetchSubscribers(); // CHANGED: Use fetchSubscribers instead of fetchActiveSubscribers
 		fetchSubscriberOrders();
 		const interval = setInterval(checkTimeRestriction, 60000);
 		return () => clearInterval(interval);
@@ -78,9 +85,18 @@ export const SubscriberOrder = () => {
 	// ---------- Handlers ----------
 	const handleSubscriberChange = (subscriberId) => {
 		const subscriber = activeSubscribers.find((s) => s.id === subscriberId);
+		if (!subscriber) return;
+
 		setSelectedSubscriber(subscriber);
 		setValue("subscriber_id", subscriberId);
+		setValue("subscriber_plan_id", "");
 		setValue("day_selection", "");
+		setValue("menu_selections", []);
+	};
+
+	const handlePlanChange = (planId) => {
+		setSelectedSubscriberPlan(planId);
+		setValue("subscriber_plan_id", planId);
 		setValue("menu_selections", []);
 	};
 
@@ -91,18 +107,16 @@ export const SubscriberOrder = () => {
 	};
 
 	const toggleMenuItemSelectionSmart = (menuItem) => {
-		const plan = selectedSubscriber?.subscription_plans;
-		if (!plan) return;
+		if (!selectedSubscriberPlan) return;
 
 		const isSelected = selectedMenuItems.some((s) => s.id === menuItem.id);
 		if (isSelected) {
-			const type = selectedMenuItems.find((s) => s.id === menuItem.id)?.type;
-			toggleMenuItemSelection(menuItem, type);
+			toggleMenuItemSelection(menuItem);
 		} else {
 			if (usedSelections.main_dish < availableSelections.main_dish) {
-				toggleMenuItemSelection(menuItem, "main_dish");
+				toggleMenuItemSelection(menuItem);
 			} else if (usedSelections.side_dish < availableSelections.side_dish) {
-				toggleMenuItemSelection(menuItem, "side_dish");
+				toggleMenuItemSelection(menuItem);
 			}
 		}
 		const currentIds = selectedMenuItems.map((i) => i.id);
@@ -115,31 +129,8 @@ export const SubscriberOrder = () => {
 			return;
 		}
 
-		if (!selectedSubscriber || !selectedDay || selectedMenuItems.length === 0) {
-			alert("Invalid order data");
-			return;
-		}
-
-		const completeOrderData = {
-			subscriber_id: selectedSubscriber.id,
-			menu_items: selectedMenuItems.map((i) => i.id),
-			order_date:
-				selectedDay === "today"
-					? new Date().toISOString().split("T")[0]
-					: new Date(Date.now() + 86400000).toISOString().split("T")[0],
-			point_use: 1,
-			status: "Cooking",
-			eat_in: data.eat_in,
-			note: data.note || null,
-		};
-
 		try {
-			const { error } = await supabase
-				.from("subscription_orders")
-				.insert([completeOrderData]);
-
-			if (error) throw error;
-
+			await createOrder();
 			await fetchSubscriberOrders();
 			resetSelections();
 			reset();
@@ -147,7 +138,7 @@ export const SubscriberOrder = () => {
 			alert("Order created successfully!");
 		} catch (err) {
 			console.error("Error creating order:", err);
-			alert("Error creating order");
+			alert("Error creating order: " + (err.message || "Unknown error"));
 		}
 	};
 
@@ -156,6 +147,9 @@ export const SubscriberOrder = () => {
 		reset();
 		resetSelections();
 	};
+
+	// Get available plans for current subscriber
+	const availablePlans = getAvailablePlans();
 
 	// ---------- UI ----------
 	return (
@@ -186,11 +180,11 @@ export const SubscriberOrder = () => {
 				</div>
 			)}
 
-			{/* Create Modal - DaisyUI Style */}
+			{/* Create Modal */}
 			<dialog
 				className={`modal ${showCreateModal ? "modal-open" : ""}`}
 				id="create-order-modal">
-				<div className="modal-box max-w-2xl">
+				<div className="modal-box max-w-2xl max-h-[90vh] overflow-y-auto">
 					{/* Header */}
 					<div className="flex justify-between items-center mb-6">
 						<h3 className="text-xl font-bold">Create Subscriber Order</h3>
@@ -217,7 +211,7 @@ export const SubscriberOrder = () => {
 								<option value="">Choose a subscriber</option>
 								{activeSubscribers.map((s) => (
 									<option key={s.id} value={s.id}>
-										{s.name} – {s.subscription_plans?.plan_name}
+										{s.name} – {s.active_plans?.length || 0} active plan(s)
 									</option>
 								))}
 							</select>
@@ -229,8 +223,66 @@ export const SubscriberOrder = () => {
 								</label>
 							)}
 						</div>
-						{/* Day Selection */}
-						{watchSubscriberId && (
+
+						{/* Plan Selection - Show only if subscriber has multiple plans */}
+						{watchSubscriberId && hasMultipleActivePlans() && (
+							<div className="form-control w-full">
+								<label className="label">
+									<span className="label-text">Select Plan</span>
+									<span className="label-text-alt text-warning">
+										Required - subscriber has multiple plans
+									</span>
+								</label>
+								<select
+									{...register("subscriber_plan_id", {
+										required: "Please select a plan",
+									})}
+									className={`select select-bordered w-full ${
+										errors.subscriber_plan_id ? "select-error" : ""
+									}`}
+									onChange={(e) => handlePlanChange(e.target.value)}
+									value={watchSubscriberPlanId}>
+									<option value="">Choose a plan</option>
+									{availablePlans.map((plan) => (
+										<option key={plan.id} value={plan.id}>
+											{plan.subscription_plans?.plan_name} -
+											{plan.remaining_points} points -{plan.serve_type}
+										</option>
+									))}
+								</select>
+								{errors.subscriber_plan_id && (
+									<label className="label">
+										<span className="label-text-alt text-error">
+											{errors.subscriber_plan_id.message}
+										</span>
+									</label>
+								)}
+							</div>
+						)}
+
+						{/* Show plan info if only one plan exists */}
+						{watchSubscriberId &&
+							!hasMultipleActivePlans() &&
+							selectedSubscriberPlan && (
+								<div className="alert alert-info">
+									<div>
+										<h4 className="font-semibold">Selected Plan</h4>
+										<p className="text-sm">
+											{selectedSubscriberPlan.subscription_plans?.plan_name} -
+											{selectedSubscriberPlan.remaining_points} points -
+											{selectedSubscriberPlan.serve_type}
+										</p>
+										<p className="text-xs mt-1">
+											Main: {availableSelections.main_dish} | Side:{" "}
+											{availableSelections.side_dish}
+										</p>
+									</div>
+								</div>
+							)}
+
+						{/* Day Selection - Show only when plan is selected */}
+						{(watchSubscriberPlanId ||
+							(!hasMultipleActivePlans() && selectedSubscriberPlan)) && (
 							<div className="form-control">
 								<label className="label">
 									<span className="label-text">Select Day</span>
@@ -261,6 +313,7 @@ export const SubscriberOrder = () => {
 								</div>
 							</div>
 						)}
+
 						{/* Menu Selection */}
 						{selectedDay && (
 							<div className="form-control">
@@ -295,6 +348,11 @@ export const SubscriberOrder = () => {
 														: isSideDish
 														? "border-secondary bg-secondary/10"
 														: "border-base-300 hover:border-base-400"
+												} ${
+													!chosen &&
+													usedSelections.total >= availableSelections.total
+														? "opacity-50 cursor-not-allowed"
+														: ""
 												}`}>
 												<div className="flex justify-between items-center">
 													<div className="flex-1">
@@ -303,6 +361,9 @@ export const SubscriberOrder = () => {
 														</p>
 														<p className="text-sm text-base-content/70">
 															{item.menu_items.name_english}
+														</p>
+														<p className="text-xs text-base-content/50">
+															{item.menu_items.category}
 														</p>
 													</div>
 													{chosen && (
@@ -327,6 +388,7 @@ export const SubscriberOrder = () => {
 								)}
 							</div>
 						)}
+
 						{/* Dine-in Option */}
 						{selectedDay && (
 							<div className="form-control">
@@ -342,6 +404,7 @@ export const SubscriberOrder = () => {
 								</label>
 							</div>
 						)}
+
 						{/* Notes */}
 						{selectedDay && (
 							<div className="form-control">
@@ -355,6 +418,7 @@ export const SubscriberOrder = () => {
 								/>
 							</div>
 						)}
+
 						{/* Action Buttons */}
 						<div className="modal-action">
 							<button
