@@ -44,7 +44,7 @@ export const OrdersGrid = ({ loading, orders }) => {
 				<div key={address} className="space-y-4">
 					{/* Address Header */}
 					<div className="border-b border-gray-200 pb-2">
-						<h3 className="text-xl font-semibold text-gray-800">{address}</h3>
+						<h3 className="text-xl font-semibold text-gray-50">{address}</h3>
 						<p className="text-sm text-gray-500 mt-1">
 							{addressOrders.length} order
 							{addressOrders.length !== 1 ? "s" : ""}

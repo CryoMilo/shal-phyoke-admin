@@ -142,7 +142,7 @@ const WeeklyMenuGrid = ({ currentWeeklyMenu, weeklyMenu, onEdit }) => {
 						<h3 className="font-bold text-lg mb-3 text-center">{day}</h3>
 						<div className="space-y-2 min-h-[200px]">
 							{getItemsForDay(day).map((item) => (
-								<div key={item.id} className="text-sm p-2 bg-gray-50 rounded">
+								<div key={item.id} className="text-sm p-2 rounded">
 									<div className="font-medium">{item.name_burmese}</div>
 									<div className="text-gray-600 text-xs">
 										{item.name_english}

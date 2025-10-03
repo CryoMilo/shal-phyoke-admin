@@ -204,12 +204,14 @@ const useOrderCreationStore = create(
 			},
 
 			// Menu Data
+			// Menu Data - Fixed version
 			fetchAvailableMenuItems: async () => {
 				set({ loading: true });
 				try {
 					const today = new Date();
 					const tomorrow = new Date(today);
 					tomorrow.setDate(tomorrow.getDate() + 1);
+
 					const days = [
 						"Sunday",
 						"Monday",
@@ -222,44 +224,95 @@ const useOrderCreationStore = create(
 					const todayName = days[today.getDay()];
 					const tomorrowName = days[tomorrow.getDay()];
 
-					const { data: published, error } = await supabase
+					console.log("Fetching menu for:", { todayName, tomorrowName });
+
+					// Get the published weekly menu
+					const { data: published, error: menuError } = await supabase
 						.from("weekly_menu")
-						.select("id")
+						.select("id, week_from, week_to, status")
 						.eq("status", "Published")
 						.single();
 
-					if (error || !published) throw error || new Error("No menu");
+					if (menuError || !published) {
+						console.log("No published menu found:", menuError);
+						throw menuError || new Error("No published weekly menu found");
+					}
 
-					const [todayRes, tomorrowRes] = await Promise.all([
-						supabase
-							.from("weekly_menu_items")
-							.select(
-								"id,status,menu_items(id,name_burmese,name_english,category,price,class)"
-							)
-							.eq("weekly_menu_id", published.id)
-							.eq("weekday", todayName)
-							.in("status", ["Cooking", "Confirmed", "Available"]),
-						supabase
-							.from("weekly_menu_items")
-							.select(
-								"id,status,menu_items(id,name_burmese,name_english,category,price,class)"
-							)
-							.eq("weekly_menu_id", published.id)
-							.eq("weekday", tomorrowName)
-							.in("status", ["Cooking", "Confirmed", "Available"]),
-					]);
+					console.log("Found published menu:", published.id);
+
+					// Fetch today's menu items with proper joins
+					const { data: todayData, error: todayError } = await supabase
+						.from("weekly_menu_items")
+						.select(
+							`
+        id,
+        status,
+        weekday,
+        menu_items (
+          id,
+          name_burmese,
+          name_english,
+          category,
+          price,
+          class,
+          taste_profile
+        )
+      `
+						)
+						.eq("weekly_menu_id", published.id)
+						.eq("weekday", todayName)
+						.in("status", ["Cooking", "Confirmed", "Available"]);
+
+					if (todayError) {
+						console.error("Error fetching today menu:", todayError);
+						throw todayError;
+					}
+
+					// Fetch tomorrow's menu items with proper joins
+					const { data: tomorrowData, error: tomorrowError } = await supabase
+						.from("weekly_menu_items")
+						.select(
+							`
+        id,
+        status,
+        weekday,
+        menu_items (
+          id,
+          name_burmese,
+          name_english,
+          category,
+          price,
+          class,
+          taste_profile
+        )
+      `
+						)
+						.eq("weekly_menu_id", published.id)
+						.eq("weekday", tomorrowName)
+						.in("status", ["Cooking", "Confirmed", "Available"]);
+
+					if (tomorrowError) {
+						console.error("Error fetching tomorrow menu:", tomorrowError);
+						throw tomorrowError;
+					}
+
+					console.log("Today menu items:", todayData?.length);
+					console.log("Tomorrow menu items:", tomorrowData?.length);
 
 					set({
-						todayMenuItems: todayRes.data || [],
-						tomorrowMenuItems: tomorrowRes.data || [],
+						todayMenuItems: todayData || [],
+						tomorrowMenuItems: tomorrowData || [],
 						loading: false,
 					});
 				} catch (err) {
-					console.error(err);
-					set({ loading: false });
+					console.error("Error in fetchAvailableMenuItems:", err);
+					set({
+						todayMenuItems: [],
+						tomorrowMenuItems: [],
+						loading: false,
+					});
 				}
 			},
-
 			// Order Creation
 			getOrderData: () => {
 				const s = get();
@@ -351,6 +404,60 @@ const useOrderCreationStore = create(
 			getAvailablePlans: () => {
 				const s = get();
 				return s.selectedSubscriber?.active_plans || [];
+			},
+
+			// Add to your store actions
+			updateMenuItemQuantity: (menuItem, type, change) => {
+				const state = get();
+
+				// Find all instances of this menu item with the specified type
+				const matchingItems = state.selectedMenuItems.filter(
+					(item) => item.id === menuItem.id && item.type === type
+				);
+
+				if (change > 0) {
+					// Add more items
+					const newItems = Array(change)
+						.fill()
+						.map(() => ({
+							...menuItem,
+							type: type,
+						}));
+
+					set({
+						selectedMenuItems: [...state.selectedMenuItems, ...newItems],
+						usedSelections: {
+							...state.usedSelections,
+							[type]: state.usedSelections[type] + change,
+							total: state.usedSelections.total + change,
+						},
+					});
+				} else if (change < 0) {
+					// Remove items
+					const itemsToRemove = Math.min(
+						matchingItems.length,
+						Math.abs(change)
+					);
+					const itemsToKeep = state.selectedMenuItems.filter((item) => {
+						// Remove the first X items that match
+						const isMatch = item.id === menuItem.id && item.type === type;
+						if (isMatch && itemsToRemove > 0) {
+							// eslint-disable-next-line no-const-assign
+							itemsToRemove--;
+							return false;
+						}
+						return true;
+					});
+
+					set({
+						selectedMenuItems: itemsToKeep,
+						usedSelections: {
+							...state.usedSelections,
+							[type]: state.usedSelections[type] - Math.abs(change),
+							total: state.usedSelections.total - Math.abs(change),
+						},
+					});
+				}
 			},
 
 			resetSelections: () =>

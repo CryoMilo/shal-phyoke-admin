@@ -1,3 +1,6 @@
+import { ShoppingCart } from "lucide-react";
+import { SelectedItemQuantity } from "./SelectedItemQuantity";
+
 export const MenuSelection = ({
 	selectedDay,
 	todayMenuItems,
@@ -6,6 +9,7 @@ export const MenuSelection = ({
 	usedSelections,
 	availableSelections,
 	onMenuItemToggle,
+	onQuantityChange, // New prop for quantity changes
 	errors,
 }) => {
 	if (!selectedDay) return null;
@@ -37,15 +41,59 @@ export const MenuSelection = ({
 		return statusConfig[status] || "badge-ghost";
 	};
 
+	// Group selected items by menu item ID with quantities
+	const selectedItemsWithQuantity = selectedMenuItems.reduce((acc, item) => {
+		if (!acc[item.id]) {
+			acc[item.id] = {
+				menuItem: item,
+				mainDishCount: 0,
+				sideDishCount: 0,
+				totalCount: 0,
+			};
+		}
+		if (item.type === "main_dish") {
+			acc[item.id].mainDishCount++;
+		} else if (item.type === "side_dish") {
+			acc[item.id].sideDishCount++;
+		}
+		acc[item.id].totalCount++;
+		return acc;
+	}, {});
+
 	return (
 		<div className="form-control">
 			<label className="label">
-				<span className="label-text">
-					Select Menu Items ({usedSelections.main_dish}/
-					{availableSelections.main_dish} Main, {usedSelections.side_dish}/
-					{availableSelections.side_dish} Side)
+				<span className="label-text font-semibold">Select Menu Items</span>
+				<span className="label-text-alt">
+					({usedSelections.main_dish}/{availableSelections.main_dish} Main •{" "}
+					{usedSelections.side_dish}/{availableSelections.side_dish} Side)
 				</span>
 			</label>
+
+			{/* Selected Items with Quantity Controls */}
+			{Object.keys(selectedItemsWithQuantity).length > 0 && (
+				<div className="mb-4 p-4 bg-base-200 rounded-lg">
+					<h4 className="font-semibold mb-3">
+						<ShoppingCart size={16} className="inline mr-1" />
+					</h4>
+					<div className="space-y-3">
+						{Object.values(selectedItemsWithQuantity).map(
+							({ menuItem, mainDishCount, sideDishCount, totalCount }) => (
+								<SelectedItemQuantity
+									key={menuItem.id}
+									item={menuItem}
+									mainDishCount={mainDishCount}
+									sideDishCount={sideDishCount}
+									totalCount={totalCount}
+									usedSelections={usedSelections}
+									availableSelections={availableSelections}
+									onQuantityChange={onQuantityChange}
+								/>
+							)
+						)}
+					</div>
+				</div>
+			)}
 
 			{/* Available Items */}
 			<div className="space-y-2 max-h-96 overflow-y-auto p-2 border rounded-lg mb-4">
@@ -80,7 +128,7 @@ export const MenuSelection = ({
 					<label className="label">
 						<span className="label-text text-gray-500">Unavailable Items</span>
 					</label>
-					<div className="space-y-2 max-h-48 overflow-y-auto p-2 border border-gray-300 rounded-lg bg-gray-50">
+					<div className="space-y-2 max-h-48 overflow-y-auto p-2 border border-gray-300 rounded-lg">
 						{unavailableItems.map((item) => (
 							<MenuItem
 								key={item.id}

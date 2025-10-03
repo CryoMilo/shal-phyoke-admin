@@ -24,7 +24,7 @@ export const WeeklyMenuBuilder = ({ weeklyMenu, onBack }) => {
 		"Pork",
 		"Seafood",
 		"Salad",
-		"Vegetarian",
+		"Vege",
 		"Special",
 		"Soup",
 	];
@@ -289,7 +289,7 @@ export const WeeklyMenuBuilder = ({ weeklyMenu, onBack }) => {
 								{weeklyMenuData.items[selectedDay][cat].map((item) => (
 									<div
 										key={item.id}
-										className="flex justify-between bg-gray-50 p-2 rounded">
+										className="flex justify-between p-2 rounded">
 										<span>{item.name_burmese}</span>
 										<button
 											className="btn btn-xs btn-error btn-outline"

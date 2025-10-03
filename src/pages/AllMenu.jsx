@@ -295,7 +295,7 @@ const AllMenuPage = () => {
 										<option value="Chicken">Chicken</option>
 										<option value="Pork">Pork</option>
 										<option value="Beef">Beef</option>
-										<option value="Vegetarian">Vegetarian</option>
+										<option value="Vege">Vege</option>
 										<option value="Salad">Salad</option>
 										<option value="Special">Special</option>
 									</select>

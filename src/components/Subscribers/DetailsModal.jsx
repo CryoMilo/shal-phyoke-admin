@@ -141,7 +141,7 @@ export const DetailsModal = ({ subscriber, onClose }) => {
 
 					<div>
 						<strong>Delivery Address:</strong>
-						<div className="mt-1 p-2 bg-gray-50 rounded">
+						<div className="mt-1 p-2 rounded">
 							{subscriber.delivery_address}
 						</div>
 					</div>

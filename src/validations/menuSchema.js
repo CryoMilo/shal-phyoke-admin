@@ -12,7 +12,7 @@ export const menuSchema = z.object({
 		"Chicken",
 		"Pork",
 		"Beef",
-		"Vegetarian",
+		"Vege",
 		"Salad",
 		"Seafood",
 		"Special",
