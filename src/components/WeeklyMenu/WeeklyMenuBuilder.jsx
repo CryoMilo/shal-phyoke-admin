@@ -17,6 +17,7 @@ export const WeeklyMenuBuilder = ({ weeklyMenu, onBack }) => {
 		"Thursday",
 		"Friday",
 		"Saturday",
+		"Sunday",
 	];
 	const baseCategories = [
 		"Beef",

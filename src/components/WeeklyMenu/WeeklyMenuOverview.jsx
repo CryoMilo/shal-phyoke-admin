@@ -107,6 +107,7 @@ const WeeklyMenuGrid = ({ currentWeeklyMenu, weeklyMenu, onEdit }) => {
 		"Thursday",
 		"Friday",
 		"Saturday",
+		"Sunday",
 	];
 
 	const getItemsForDay = (day) =>
