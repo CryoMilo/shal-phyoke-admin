@@ -3,12 +3,13 @@ import useSubscribersStore from "../stores/useSubscriberStore";
 import useSubscriptionPlansStore from "../stores/useSubscriptionPlanStore";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus } from "lucide-react";
+import { Plus, UserPlus } from "lucide-react";
 import Loading from "../components/common/Loading";
 import { SubscribersTable } from "../components/Subscribers/SubscribersTable";
 import { SubscriberModal } from "../components/Subscribers/SubscriberModal";
 import { subscriberSchema } from "../validations/subscriberSchema";
 import { DetailsModal } from "../components/Subscribers/DetailsModal";
+import { PageHeader } from "../components/common/PageHeader";
 
 export const SubscribersPage = () => {
 	const {
@@ -282,16 +283,20 @@ export const SubscribersPage = () => {
 	return (
 		<div className="container mx-auto p-6">
 			{/* Header */}
-			<div className="flex justify-between items-center mb-6">
-				<div>
-					<h1 className="text-3xl font-bold">Subscribers</h1>
-					<p className="text-gray-600">Manage subscription customers</p>
-				</div>
-				<button className="btn btn-primary" onClick={openCreateModal}>
-					<Plus className="w-4 h-4 mr-2" />
-					Add Subscriber
-				</button>
-			</div>
+			<PageHeader
+				title="Subscribers"
+				description="Manage all subscribers"
+				buttons={[
+					{
+						type: "button",
+						label: "Add Subscriber",
+						shortLabel: "Add Subscriber",
+						icon: UserPlus,
+						onClick: () => openCreateModal(true),
+						variant: "primary",
+					},
+				]}
+			/>
 
 			{/* Subscribers Table */}
 			<SubscribersTable

@@ -6,6 +6,7 @@ import { supabase } from "../services/supabase";
 import { menuSchema } from "../validations/menuSchema";
 import useMenuStore from "../stores/menuStore";
 import Loading from "../components/common/Loading";
+import { PageHeader } from "../components/common/PageHeader";
 
 const AllMenuPage = () => {
 	const { menus, loading, fetchMenus, addMenu, updateMenu, deleteMenu } =
@@ -148,16 +149,19 @@ const AllMenuPage = () => {
 	return (
 		<div className="container mx-auto p-6">
 			{/* Header */}
-			<div className="flex justify-between items-center mb-6">
-				<div>
-					<h1 className="text-3xl font-bold">All Menu Items</h1>
-					<p className="text-gray-600">Manage your restaurant menu items</p>
-				</div>
-				<button className="btn btn-primary" onClick={openCreateModal}>
-					<Plus className="w-4 h-4 mr-2" />
-					Create Menu Item
-				</button>
-			</div>
+			<PageHeader
+				title="All Menu Items"
+				buttons={[
+					{
+						type: "button",
+						label: "Create Menu Item",
+						shortLabel: "Create Menu Item",
+						icon: Plus,
+						onClick: () => openCreateModal(true),
+						variant: "primary",
+					},
+				]}
+			/>
 
 			{/* Table */}
 			<div className="overflow-x-auto">

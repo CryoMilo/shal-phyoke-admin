@@ -6,6 +6,7 @@ import { useOrderCreationStore } from "../stores/subscriberOrderStore";
 import useSubscribersStore from "../stores/useSubscriberStore";
 import { CreateOrderModal } from "../components/SubscriberOrders/CreateOrderModal/CreateOrderModal";
 import { OrdersGrid } from "../components/SubscriberOrders/OrdersGrid";
+import { PageHeader } from "../components/common/PageHeader";
 
 export const SubscriberOrder = () => {
 	const { orders, loadingOrders, fetchSubscriberOrders, resetSelections } =
@@ -30,26 +31,28 @@ export const SubscriberOrder = () => {
 
 	return (
 		<div className="container mx-auto p-6">
-			<div className="flex justify-between items-center mb-6">
-				<div>
-					<h1 className="text-3xl font-bold">Subscription Orders</h1>
-					<p className="text-gray-600">Manage customer orders</p>
-				</div>
-				<div className="flex gap-2">
-					<Link
-						to="/subscriber-orders/archived-orders"
-						className="btn btn-outline">
-						<Archive className="w-4 h-4 mr-2" />
-						View Archived
-					</Link>
-					<button
-						className="btn btn-primary"
-						onClick={() => setShowCreateModal(true)}>
-						<Plus className="w-4 h-4 mr-2" /> Create Order
-					</button>
-				</div>
-			</div>
-
+			<PageHeader
+				title="Subscription Orders"
+				description="Manage customer orders"
+				buttons={[
+					{
+						type: "link",
+						to: "/subscriber-orders/archived-orders",
+						label: "View Archived",
+						shortLabel: "Archived",
+						icon: Archive,
+						variant: "outline",
+					},
+					{
+						type: "button",
+						label: "Create Order",
+						shortLabel: "Create",
+						icon: Plus,
+						onClick: () => setShowCreateModal(true),
+						variant: "primary",
+					},
+				]}
+			/>
 			<OrdersGrid loading={loadingOrders} orders={activeOrders} />
 
 			<CreateOrderModal

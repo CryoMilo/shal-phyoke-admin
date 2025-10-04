@@ -4,6 +4,7 @@ import { useWeeklyMenuStore } from "../../stores/weeklyMenuStore";
 import { formatDateRange } from "../../utils/formatDateRange";
 import Loading from "../common/Loading";
 import { WeeklyMenuPublishControl } from "./WeeklyMenuPublishControl";
+import { PageHeader } from "../common/PageHeader";
 
 export const WeeklyMenuOverview = ({ currentWeeklyMenu, onEditWeek }) => {
 	const { weeklyMenus, weeklyMenusLoading, fetchWeeklyMenus } =
@@ -29,22 +30,25 @@ export const WeeklyMenuOverview = ({ currentWeeklyMenu, onEditWeek }) => {
 
 	return (
 		<div className="container mx-auto p-6">
-			<div className="flex justify-between items-center mb-6">
-				<div>
-					<h1 className="text-3xl font-bold">Menu of the Week</h1>
-					<p className="text-gray-600">Weekly menu overview</p>
-				</div>
-				<button className="btn btn-primary" onClick={() => onEditWeek(null)}>
-					<Plus className="w-4 h-4 mr-2" />
-					Create Weekly Menu
-				</button>
-			</div>
-
+			<PageHeader
+				title="Menu of the Week"
+				description="Weekly menu overview"
+				buttons={[
+					{
+						type: "button",
+						label: "Create Weekly Menu",
+						shortLabel: "Create Menu",
+						icon: Plus,
+						onClick: () => onEditWeek(null),
+						variant: "primary",
+					},
+				]}
+			/>
 			{/* Week Selection Dropdown */}
 			{weeklyMenus.length > 0 && (
 				<div className="mb-6">
 					<select
-						className="select select-bordered w-full max-w-xs"
+						className="select select-bordered w-full max-w-md"
 						value={selectedWeek?.id || ""}
 						onChange={(e) => {
 							const menu = weeklyMenus.find((m) => m.id === e.target.value);
@@ -59,7 +63,6 @@ export const WeeklyMenuOverview = ({ currentWeeklyMenu, onEditWeek }) => {
 					</select>
 				</div>
 			)}
-
 			{/* Weekly Menu Grid */}
 			{selectedWeek ? (
 				<WeeklyMenuGrid
@@ -117,23 +120,30 @@ const WeeklyMenuGrid = ({ currentWeeklyMenu, weeklyMenu, onEdit }) => {
 
 	return (
 		<div className="bg-base-200 rounded-lg p-6">
-			<div className="flex justify-between items-center mb-6">
-				<div>
-					<h2 className="text-2xl font-bold">Menu of the Week</h2>
-					<p className="text-gray-600">
-						{new Date(weeklyMenu.week_from).toLocaleDateString()} to{" "}
-						{new Date(weeklyMenu.week_to).toLocaleDateString()}
-					</p>
-				</div>
-
-				<div className="flex items-center gap-3">
-					<WeeklyMenuPublishControl currentWeeklyMenu={currentWeeklyMenu} />
-					<button className="btn btn-primary" onClick={onEdit}>
-						<Edit className="w-4 h-4 mr-2" />
-						Edit Menu
-					</button>
-				</div>
-			</div>
+			<PageHeader
+				// description={`${new Date(
+				// 	weeklyMenu.week_from
+				// ).toLocaleDateString()} to ${new Date(
+				// 	weeklyMenu.week_to
+				// ).toLocaleDateString()}`}
+				buttons={[
+					{
+						type: "custom",
+						component: (
+							<WeeklyMenuPublishControl currentWeeklyMenu={currentWeeklyMenu} />
+						),
+					},
+					{
+						type: "button",
+						label: "Edit Menu",
+						shortLabel: "Edit",
+						icon: Edit,
+						onClick: onEdit,
+						variant: "primary",
+					},
+				]}
+				titleSize="clamp(1.5rem, 4vw, 2rem)"
+			/>
 
 			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 				{days.map((day) => (

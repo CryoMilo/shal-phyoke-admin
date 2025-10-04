@@ -131,7 +131,7 @@ export const CreateOrderModal = ({ showModal, onClose, onOrderCreated }) => {
 		<dialog
 			className={`modal ${showModal ? "modal-open" : ""}`}
 			id="create-order-modal">
-			<div className="modal-box max-w-2xl max-h-[90vh] overflow-y-auto">
+			<div className="modal-box max-w-4xl max-h-[90vh] overflow-y-auto">
 				<div className="flex justify-between items-center mb-6">
 					<h3 className="text-xl font-bold">Create Subscriber Order</h3>
 					<button
@@ -162,12 +162,6 @@ export const CreateOrderModal = ({ showModal, onClose, onOrderCreated }) => {
 									Main: {availableSelections.main_dish} | Side:{" "}
 									{availableSelections.side_dish}
 								</p>
-								{/* {hasMultipleActivePlans() && (
-									<p className="text-xs mt-2 text-warning">
-										💡 Subscriber has multiple plans. Create separate orders for
-										each plan.
-									</p>
-								)} */}
 							</div>
 						</div>
 					)}

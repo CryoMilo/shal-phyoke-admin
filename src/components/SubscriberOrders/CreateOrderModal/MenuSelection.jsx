@@ -70,31 +70,6 @@ export const MenuSelection = ({
 				</span>
 			</label>
 
-			{/* Selected Items with Quantity Controls */}
-			{Object.keys(selectedItemsWithQuantity).length > 0 && (
-				<div className="mb-4 p-4 bg-base-200 rounded-lg">
-					<h4 className="font-semibold mb-3">
-						<ShoppingCart size={16} className="inline mr-1" />
-					</h4>
-					<div className="space-y-3">
-						{Object.values(selectedItemsWithQuantity).map(
-							({ menuItem, mainDishCount, sideDishCount, totalCount }) => (
-								<SelectedItemQuantity
-									key={menuItem.id}
-									item={menuItem}
-									mainDishCount={mainDishCount}
-									sideDishCount={sideDishCount}
-									totalCount={totalCount}
-									usedSelections={usedSelections}
-									availableSelections={availableSelections}
-									onQuantityChange={onQuantityChange}
-								/>
-							)
-						)}
-					</div>
-				</div>
-			)}
-
 			{/* Available Items */}
 			<div className="space-y-2 max-h-96 overflow-y-auto p-2 border rounded-lg mb-4">
 				{availableItems.map((item) => {
@@ -144,6 +119,31 @@ export const MenuSelection = ({
 								disabled={true}
 							/>
 						))}
+					</div>
+				</div>
+			)}
+
+			{/* Selected Items with Quantity Controls */}
+			{Object.keys(selectedItemsWithQuantity).length > 0 && (
+				<div className="mb-4 p-4 bg-base-200 rounded-lg">
+					<h4 className="font-semibold mb-3">
+						<ShoppingCart size={16} className="inline mr-1" />
+					</h4>
+					<div className="space-y-3">
+						{Object.values(selectedItemsWithQuantity).map(
+							({ menuItem, mainDishCount, sideDishCount, totalCount }) => (
+								<SelectedItemQuantity
+									key={menuItem.id}
+									item={menuItem}
+									mainDishCount={mainDishCount}
+									sideDishCount={sideDishCount}
+									totalCount={totalCount}
+									usedSelections={usedSelections}
+									availableSelections={availableSelections}
+									onQuantityChange={onQuantityChange}
+								/>
+							)
+						)}
 					</div>
 				</div>
 			)}

@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRegularMenuStore } from "../stores/regularMenuStore";
 import { regularMenuSchema } from "../validations/regularMenuSchema";
+import { PageHeader } from "../components/common/PageHeader";
 
 const RegularMenuPage = () => {
 	const {
@@ -120,18 +121,19 @@ const RegularMenuPage = () => {
 	return (
 		<div className="container mx-auto p-6">
 			{/* Header */}
-			<div className="flex justify-between items-center mb-6">
-				<div>
-					<h1 className="text-3xl font-bold">Regular Menu Items</h1>
-					<p className="text-gray-600">
-						Manage your restaurant's regular menu items
-					</p>
-				</div>
-				<button className="btn btn-primary" onClick={openCreateModal}>
-					<Plus className="w-4 h-4 mr-2" />
-					Create Menu Item
-				</button>
-			</div>
+			<PageHeader
+				title="Regular Menu Items"
+				buttons={[
+					{
+						type: "button",
+						label: "Create Menu Item",
+						shortLabel: "Create Menu Item",
+						icon: Plus,
+						onClick: () => openCreateModal(true),
+						variant: "primary",
+					},
+				]}
+			/>
 
 			{/* Table */}
 			<div className="overflow-x-auto">

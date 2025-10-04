@@ -14,6 +14,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { planSchema } from "../validations/subscriberSchema";
 import useSubscriptionPlansStore from "../stores/useSubscriptionPlanStore";
 import Loading from "../components/common/Loading";
+import { PageHeader } from "../components/common/PageHeader";
 
 const SubscriptionPlansPage = () => {
 	const {
@@ -113,16 +114,20 @@ const SubscriptionPlansPage = () => {
 	return (
 		<div className="container mx-auto p-6">
 			{/* Header */}
-			<div className="flex justify-between items-center mb-6">
-				<div>
-					<h1 className="text-3xl font-bold">Subscription Plans</h1>
-					<p className="text-gray-600">Manage meal subscription plans</p>
-				</div>
-				<button className="btn btn-primary" onClick={openCreateModal}>
-					<Plus className="w-4 h-4 mr-2" />
-					Create Plan
-				</button>
-			</div>
+			<PageHeader
+				title="Subscription Plans"
+				description="Manage meal subscription plans"
+				buttons={[
+					{
+						type: "button",
+						label: "Add Subscriber",
+						shortLabel: "Add Subscriber",
+						icon: Plus,
+						onClick: () => openCreateModal(true),
+						variant: "primary",
+					},
+				]}
+			/>
 
 			{/* Cards Grid */}
 			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
