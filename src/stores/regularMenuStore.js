@@ -21,13 +21,32 @@ export const useRegularMenuStore = create(
 					menus: state.menus.filter((menu) => menu.id !== id),
 				})),
 
+			// Get menus by specific category
+			getMenusByCategory: (category) => {
+				const state = get();
+				return state.menus.filter((menu) => menu.category === category);
+			},
+
+			// Get all regular items (all three categories)
+			getAllRegularItems: () => {
+				const state = get();
+				return state.menus.filter(
+					(menu) =>
+						menu.category === "Regular" ||
+						menu.category === "Regular_Extra" ||
+						menu.category === "Regular_Drink"
+				);
+			},
+
 			fetchMenus: async () => {
 				set({ loading: true });
 				try {
 					const { data, error } = await supabase
-						.from("regular_menu_items")
+						.from("menu_items")
 						.select("*")
-						.order("created_at", { ascending: false });
+						.in("category", ["Regular", "Regular_Extra", "Regular_Drink"])
+						.order("category", { ascending: true })
+						.order("name_english", { ascending: true });
 
 					if (error) throw error;
 					set({ menus: data || [], loading: false });
@@ -37,10 +56,40 @@ export const useRegularMenuStore = create(
 				}
 			},
 
+			// Fetch by specific category
+			fetchMenusByCategory: async (category) => {
+				set({ loading: true });
+				try {
+					const { data, error } = await supabase
+						.from("menu_items")
+						.select("*")
+						.eq("category", category)
+						.order("name_english", { ascending: true });
+
+					if (error) throw error;
+
+					// Update only the specific category items in state
+					const state = get();
+					const otherMenus = state.menus.filter(
+						(menu) => menu.category !== category
+					);
+					set({
+						menus: [...otherMenus, ...(data || [])],
+						loading: false,
+					});
+
+					return { data, error: null };
+				} catch (error) {
+					console.error(`Error fetching ${category} menus:`, error);
+					set({ loading: false });
+					return { data: null, error };
+				}
+			},
+
 			createMenu: async (menuData) => {
 				try {
 					const { data, error } = await supabase
-						.from("regular_menu_items")
+						.from("menu_items")
 						.insert([menuData])
 						.select()
 						.single();
@@ -58,7 +107,7 @@ export const useRegularMenuStore = create(
 			updateMenuById: async (id, menuData) => {
 				try {
 					const { data, error } = await supabase
-						.from("regular_menu_items")
+						.from("menu_items")
 						.update(menuData)
 						.eq("id", id)
 						.select()
@@ -77,7 +126,7 @@ export const useRegularMenuStore = create(
 			deleteMenuById: async (id) => {
 				try {
 					const { error } = await supabase
-						.from("regular_menu_items")
+						.from("menu_items")
 						.delete()
 						.eq("id", id);
 
@@ -88,6 +137,36 @@ export const useRegularMenuStore = create(
 				} catch (error) {
 					console.error("Error deleting menu:", error);
 					return { error };
+				}
+			},
+
+			// Bulk operations
+			bulkUpdateMenus: async (updates) => {
+				try {
+					const { data, error } = await supabase
+						.from("menu_items")
+						.upsert(updates)
+						.select();
+
+					if (error) throw error;
+
+					// Update local state
+					const state = get();
+					const updatedMenus = state.menus.map((menu) => {
+						const update = updates.find((u) => u.id === menu.id);
+						return update ? { ...menu, ...update } : menu;
+					});
+
+					// Add new menus that weren't in local state
+					const newMenus = updates.filter(
+						(update) => !state.menus.some((menu) => menu.id === update.id)
+					);
+
+					set({ menus: [...updatedMenus, ...newMenus] });
+					return { data, error: null };
+				} catch (error) {
+					console.error("Error bulk updating menus:", error);
+					return { data: null, error };
 				}
 			},
 		}),

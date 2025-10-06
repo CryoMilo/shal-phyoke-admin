@@ -14,12 +14,14 @@ const RegularMenuPage = () => {
 		createMenu,
 		updateMenuById,
 		deleteMenuById,
+		getMenusByCategory,
 	} = useRegularMenuStore();
 
 	const [showModal, setShowModal] = useState(false);
 	const [showDetailsModal, setShowDetailsModal] = useState(false);
 	const [editingMenu, setEditingMenu] = useState(null);
 	const [selectedMenu, setSelectedMenu] = useState(null);
+	const [activeCategory, setActiveCategory] = useState("all"); // "all", "Regular", "Regular_Extra", "Regular_Drink"
 
 	const {
 		register,
@@ -38,18 +40,21 @@ const RegularMenuPage = () => {
 		fetchMenus();
 	}, []);
 
+	// Filter menus based on active category
+	const filteredMenus =
+		activeCategory === "all" ? menus : getMenusByCategory(activeCategory);
+
 	const openCreateModal = () => {
 		setEditingMenu(null);
 		reset({
-			name: "",
-			name_eng: "",
+			name_burmese: "",
+			name_english: "",
 			name_thai: "",
 			price: 0,
-			category: "",
+			category: "Regular", // Default to Regular
 			taste_profile: "",
 			description: "",
 			image_url: "",
-			is_vegan: false,
 			is_active: true,
 		});
 		setShowModal(true);
@@ -57,15 +62,14 @@ const RegularMenuPage = () => {
 
 	const openEditModal = (menu) => {
 		setEditingMenu(menu);
-		setValue("name", menu.name);
-		setValue("name_eng", menu.name_eng || "");
+		setValue("name_burmese", menu.name_burmese);
+		setValue("name_english", menu.name_english || "");
 		setValue("name_thai", menu.name_thai || "");
 		setValue("price", menu.price);
 		setValue("category", menu.category);
 		setValue("taste_profile", menu.taste_profile || "");
 		setValue("description", menu.description || "");
 		setValue("image_url", menu.image_url || "");
-		setValue("is_vegan", menu.is_vegan);
 		setValue("is_active", menu.is_active);
 		setShowModal(true);
 	};
@@ -110,6 +114,19 @@ const RegularMenuPage = () => {
 		}
 	};
 
+	const getCategoryBadgeColor = (category) => {
+		switch (category) {
+			case "Regular":
+				return "badge-primary";
+			case "Regular_Extra":
+				return "badge-secondary";
+			case "Regular_Drink":
+				return "badge-accent";
+			default:
+				return "badge-outline";
+		}
+	};
+
 	if (loading) {
 		return (
 			<div className="flex justify-center items-center min-h-screen">
@@ -123,20 +140,48 @@ const RegularMenuPage = () => {
 			{/* Header */}
 			<PageHeader
 				title="Regular Menu Items"
+				description="Manage always-available menu items"
 				buttons={[
 					{
 						type: "button",
 						label: "Create Menu Item",
-						shortLabel: "Create Menu Item",
 						icon: Plus,
-						onClick: () => openCreateModal(true),
+						onClick: openCreateModal,
 						variant: "primary",
 					},
 				]}
 			/>
 
+			{/* Category Filter Tabs */}
+			<div className="tabs tabs-boxed mb-6 justify-center">
+				<button
+					className={`tab ${activeCategory === "all" ? "tab-active" : ""}`}
+					onClick={() => setActiveCategory("all")}>
+					All Items ({menus.length})
+				</button>
+				<button
+					className={`tab ${activeCategory === "Regular" ? "tab-active" : ""}`}
+					onClick={() => setActiveCategory("Regular")}>
+					Regular ({getMenusByCategory("Regular").length})
+				</button>
+				<button
+					className={`tab ${
+						activeCategory === "Regular_Extra" ? "tab-active" : ""
+					}`}
+					onClick={() => setActiveCategory("Regular_Extra")}>
+					Extras ({getMenusByCategory("Regular_Extra").length})
+				</button>
+				<button
+					className={`tab ${
+						activeCategory === "Regular_Drink" ? "tab-active" : ""
+					}`}
+					onClick={() => setActiveCategory("Regular_Drink")}>
+					Drinks ({getMenusByCategory("Regular_Drink").length})
+				</button>
+			</div>
+
 			{/* Table */}
-			<div className="overflow-x-auto">
+			<div className="overflow-x-auto bg-base-100 rounded-lg shadow">
 				<table className="table table-zebra w-full">
 					<thead>
 						<tr>
@@ -144,30 +189,27 @@ const RegularMenuPage = () => {
 							<th>Name (Burmese)</th>
 							<th>Category</th>
 							<th>Price</th>
-							<th>Vegan</th>
 							<th>Status</th>
 							<th>Actions</th>
 						</tr>
 					</thead>
 					<tbody>
-						{menus.map((menu) => (
+						{filteredMenus.map((menu) => (
 							<tr key={menu.id}>
 								<td>
-									<div className="font-medium">{menu.name_eng || "-"}</div>
-									<div className="text-sm text-gray-500">
+									<div className="font-medium">{menu.name_english || "-"}</div>
+									{/* <div className="text-sm text-gray-500">
 										{menu.name_thai || "-"}
-									</div>
+									</div> */}
 								</td>
-								<td className="font-medium">{menu.name}</td>
+								<td className="font-medium">{menu.name_burmese}</td>
 								<td>
-									<span className="badge badge-outline">{menu.category}</span>
+									<span
+										className={`badge ${getCategoryBadgeColor(menu.category)}`}>
+										{menu.category}
+									</span>
 								</td>
 								<td>฿{menu.price}</td>
-								<td>
-									{menu.is_vegan && (
-										<span className="badge badge-success badge-sm">Vegan</span>
-									)}
-								</td>
 								<td>
 									<span
 										className={`badge ${
@@ -180,17 +222,20 @@ const RegularMenuPage = () => {
 									<div className="flex gap-2">
 										<button
 											className="btn btn-sm btn-ghost"
-											onClick={() => openDetailsModal(menu)}>
+											onClick={() => openDetailsModal(menu)}
+											title="View Details">
 											<Eye className="w-4 h-4" />
 										</button>
 										<button
 											className="btn btn-sm btn-ghost"
-											onClick={() => openEditModal(menu)}>
+											onClick={() => openEditModal(menu)}
+											title="Edit">
 											<Edit className="w-4 h-4" />
 										</button>
 										<button
 											className="btn btn-sm btn-ghost text-red-600"
-											onClick={() => handleDelete(menu.id)}>
+											onClick={() => handleDelete(menu.id)}
+											title="Delete">
 											<Trash2 className="w-4 h-4" />
 										</button>
 									</div>
@@ -201,11 +246,18 @@ const RegularMenuPage = () => {
 				</table>
 			</div>
 
-			{menus.length === 0 && (
-				<div className="text-center py-12">
-					<p className="text-gray-500 text-lg">No menu items found</p>
-					<button className="btn btn-primary mt-4" onClick={openCreateModal}>
-						Create Your First Menu Item
+			{filteredMenus.length === 0 && (
+				<div className="text-center py-12 bg-base-100 rounded-lg">
+					<p className="text-gray-500 text-lg mb-4">
+						{activeCategory === "all"
+							? "No menu items found"
+							: `No ${activeCategory
+									.replace("Regular_", "")
+									.toLowerCase()} items found`}
+					</p>
+					<button className="btn btn-primary" onClick={openCreateModal}>
+						<Plus className="w-4 h-4 mr-2" />
+						Create New Menu Item
 					</button>
 				</div>
 			)}
@@ -214,11 +266,18 @@ const RegularMenuPage = () => {
 			{showModal && (
 				<div className="modal modal-open">
 					<div className="modal-box w-11/12 max-w-2xl">
-						<h3 className="font-bold text-lg mb-4">
-							{editingMenu ? "Edit Menu Item" : "Create New Menu Item"}
-						</h3>
+						<div className="flex justify-between items-center mb-4">
+							<h3 className="font-bold text-lg">
+								{editingMenu ? "Edit Menu Item" : "Create New Menu Item"}
+							</h3>
+							<button
+								className="btn btn-sm btn-ghost"
+								onClick={() => setShowModal(false)}>
+								<X className="w-4 h-4" />
+							</button>
+						</div>
 
-						<div className="space-y-4">
+						<form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
 							{/* Image Preview */}
 							{watchImageUrl && (
 								<div className="form-control">
@@ -244,7 +303,7 @@ const RegularMenuPage = () => {
 										<span className="label-text">Name (Burmese) *</span>
 									</label>
 									<input
-										{...register("name")}
+										{...register("name_burmese")}
 										className="input input-bordered"
 										placeholder="Enter Burmese name"
 									/>
@@ -260,7 +319,7 @@ const RegularMenuPage = () => {
 										<span className="label-text">Name (English)</span>
 									</label>
 									<input
-										{...register("name_eng")}
+										{...register("name_english")}
 										className="input input-bordered"
 										placeholder="Enter English name"
 									/>
@@ -281,11 +340,13 @@ const RegularMenuPage = () => {
 									<label className="label">
 										<span className="label-text">Category *</span>
 									</label>
-									<input
+									<select
 										{...register("category")}
-										className="input input-bordered"
-										placeholder="e.g., Appetizer, Main Course"
-									/>
+										className="select select-bordered w-full">
+										<option value="Regular">Regular</option>
+										<option value="Regular_Extra">Extra</option>
+										<option value="Regular_Drink">Drink</option>
+									</select>
 									{errors.category && (
 										<span className="text-red-500 text-sm">
 											{errors.category.message}
@@ -347,22 +408,12 @@ const RegularMenuPage = () => {
 
 							<div className="flex gap-6">
 								<div className="form-control">
-									<label className="label cursor-pointer">
-										<span className="label-text mr-2">Vegan</span>
-										<input
-											{...register("is_vegan")}
-											type="checkbox"
-											className="checkbox checkbox-primary"
-										/>
-									</label>
-								</div>
-
-								<div className="form-control">
-									<label className="label cursor-pointer">
-										<span className="label-text mr-2">Active</span>
+									<label className="label cursor-pointer gap-4">
+										<span className="label-text">Active</span>
 										<input
 											{...register("is_active")}
 											type="checkbox"
+											defaultChecked
 											className="toggle toggle-primary"
 										/>
 									</label>
@@ -376,13 +427,11 @@ const RegularMenuPage = () => {
 									onClick={() => setShowModal(false)}>
 									Cancel
 								</button>
-								<button
-									onClick={handleSubmit(onSubmit)}
-									className="btn btn-primary">
+								<button type="submit" className="btn btn-primary">
 									{editingMenu ? "Update" : "Create"}
 								</button>
 							</div>
-						</div>
+						</form>
 					</div>
 				</div>
 			)}
@@ -404,7 +453,7 @@ const RegularMenuPage = () => {
 							<div className="mb-4">
 								<img
 									src={selectedMenu.image_url}
-									alt={selectedMenu.name_eng}
+									alt={selectedMenu.name_english}
 									className="w-full h-48 object-cover rounded-lg"
 								/>
 							</div>
@@ -412,11 +461,11 @@ const RegularMenuPage = () => {
 
 						<div className="space-y-3">
 							<div>
-								<strong>Burmese:</strong> {selectedMenu.name}
+								<strong>Burmese</strong> {selectedMenu.name_burmese}
 							</div>
-							{selectedMenu.name_eng && (
+							{selectedMenu.name_english && (
 								<div>
-									<strong>English:</strong> {selectedMenu.name_eng}
+									<strong>In English:</strong> {selectedMenu.name_english}
 								</div>
 							)}
 							{selectedMenu.name_thai && (
@@ -443,14 +492,6 @@ const RegularMenuPage = () => {
 									<strong>Description:</strong> {selectedMenu.description}
 								</div>
 							)}
-							<div>
-								<strong>Vegan:</strong>
-								{selectedMenu.is_vegan ? (
-									<span className="badge badge-success ml-2">Yes</span>
-								) : (
-									<span className="badge badge-ghost ml-2">No</span>
-								)}
-							</div>
 							<div>
 								<strong>Status:</strong>
 								<span
