@@ -21,7 +21,6 @@ export const SubscriberOrder = () => {
 
 	// Filter out archived orders for the main page
 	const activeOrders = orders.filter((order) => order.status !== "Archived");
-	console.log(activeOrders);
 
 	const closeModal = () => {
 		setShowCreateModal(false);

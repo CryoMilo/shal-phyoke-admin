@@ -235,14 +235,14 @@ export const ArchivedOrders = () => {
 													</>
 												)}
 											</button>
-											<button
+											{/* <button
 												className="btn btn-ghost btn-sm"
 												onClick={() => {
 													// View order details - you can implement this later
 													console.log("View order:", order.id);
 												}}>
 												View
-											</button>
+											</button> */}
 										</div>
 									</td>
 								</tr>
