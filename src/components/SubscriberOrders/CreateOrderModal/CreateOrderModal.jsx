@@ -1,4 +1,3 @@
-// components/SubscriberOrders/CreateOrderModal.js
 import React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -7,25 +6,33 @@ import { PlanSelection } from "./PlanSelection";
 import { DaySelection } from "./DaySelection";
 import { MenuSelection } from "./MenuSelection";
 import { OrderOptions } from "./OrderOptions";
+import { AddOnsStep } from "./AddOnsStep";
 import { subscriberOrderSchema } from "../../../validations/subscriberOrderSchema";
 import { useOrderCreationStore } from "../../../stores/subscriberOrderStore";
 import useSubscribersStore from "../../../stores/useSubscriberStore";
+import { useRegularMenuStore } from "../../../stores/regularMenuStore";
 
 export const CreateOrderModal = ({ showModal, onClose, onOrderCreated }) => {
 	const {
 		selectedSubscriberPlan,
 		selectedDay,
 		selectedMenuItems,
+		selectedAddOns, // Add this
+		addOnStep, // Add this
 		availableSelections,
 		usedSelections,
 		isAfter10AM,
 		setSelectedSubscriber,
+		setSelectedSubscriberPlan, // Add this if missing
 		setSelectedDay,
+		setAddOnStep, // Add this
 		toggleMenuItemSelection,
+		updateAddOnQuantity, // Add this
 		isValidSelection,
 		resetSelections,
 		createOrder,
 		hasMultipleActivePlans,
+		getAvailablePlans, // Add this
 		updateMenuItemQuantity,
 		todayMenuItems,
 		tomorrowMenuItems,
@@ -34,6 +41,7 @@ export const CreateOrderModal = ({ showModal, onClose, onOrderCreated }) => {
 	} = useOrderCreationStore();
 
 	const { subscribers } = useSubscribersStore();
+	const { getAllRegularItems } = useRegularMenuStore(); // Add this
 
 	// Fetch menu items when modal opens
 	React.useEffect(() => {
@@ -50,6 +58,7 @@ export const CreateOrderModal = ({ showModal, onClose, onOrderCreated }) => {
 		setValue,
 		reset,
 		watch,
+		trigger, // Add this for better validation
 	} = useForm({
 		resolver: zodResolver(subscriberOrderSchema),
 		defaultValues: {
@@ -60,27 +69,65 @@ export const CreateOrderModal = ({ showModal, onClose, onOrderCreated }) => {
 			eat_in: false,
 			note: "",
 		},
+		mode: "onChange", // Add this for better validation
 	});
 
 	const watchSubscriberId = watch("subscriber_id");
 	const watchSubscriberPlanId = watch("subscriber_plan_id");
 	const activeSubscribers = subscribers.filter((sub) => sub.is_active);
+	const availablePlans = getAvailablePlans?.() || []; // Add this
 
-	const handleSubscriberChange = (subscriberId) => {
+	// Add this function to get available add-on items
+	const getAvailableAddOnItems = () => {
+		if (!selectedDay) return [];
+
+		// Get rotating menu items for selected day
+		const rotatingMenuItems = (
+			selectedDay === "today" ? todayMenuItems : tomorrowMenuItems
+		)
+			.map((item) => item.menu_items)
+			.filter(Boolean);
+
+		// Get regular menu items (all three categories)
+		const regularMenuItems = getAllRegularItems?.() || [];
+
+		// Combine and remove duplicates
+		const allItems = [...rotatingMenuItems, ...regularMenuItems];
+		const uniqueItems = allItems.filter(
+			(item, index, self) => index === self.findIndex((i) => i.id === item.id)
+		);
+
+		return uniqueItems;
+	};
+
+	const handleSubscriberChange = async (subscriberId) => {
 		const subscriber = activeSubscribers.find((s) => s.id === subscriberId);
 		if (!subscriber) return;
 
-		setSelectedSubscriber(subscriber);
-		setValue("subscriber_id", subscriberId);
-		setValue("subscriber_plan_id", "");
-		setValue("day_selection", "");
-		setValue("menu_selections", []);
+		await setSelectedSubscriber(subscriber);
+		setValue("subscriber_id", subscriberId, { shouldValidate: true });
+		setValue("subscriber_plan_id", "", { shouldValidate: true });
+		setValue("day_selection", "", { shouldValidate: true });
+		setValue("menu_selections", [], { shouldValidate: true });
+		setAddOnStep(false); // Reset add-on step
+		await trigger();
 	};
 
-	const handleDayChange = (day) => {
-		setSelectedDay(day);
-		setValue("day_selection", day);
-		setValue("menu_selections", []);
+	// Add this function for plan selection
+	const handlePlanSelect = async (planId) => {
+		await setSelectedSubscriberPlan(planId);
+		setValue("subscriber_plan_id", planId, { shouldValidate: true });
+		setValue("menu_selections", [], { shouldValidate: true });
+		setAddOnStep(false); // Reset add-on step
+		await trigger();
+	};
+
+	const handleDayChange = async (day) => {
+		await setSelectedDay(day);
+		setValue("day_selection", day, { shouldValidate: true });
+		setValue("menu_selections", [], { shouldValidate: true });
+		setAddOnStep(false); // Reset add-on step
+		await trigger();
 	};
 
 	const toggleMenuItemSelectionSmart = (menuItem) => {
@@ -97,7 +144,8 @@ export const CreateOrderModal = ({ showModal, onClose, onOrderCreated }) => {
 			}
 		}
 		const currentIds = selectedMenuItems.map((i) => i.id);
-		setValue("menu_selections", currentIds);
+		setValue("menu_selections", currentIds, { shouldValidate: true });
+		trigger("menu_selections");
 	};
 
 	const onSubmit = async () => {
@@ -107,6 +155,23 @@ export const CreateOrderModal = ({ showModal, onClose, onOrderCreated }) => {
 		}
 
 		try {
+			// Ensure all form values are set correctly
+			setValue("subscriber_plan_id", selectedSubscriberPlan?.id, {
+				shouldValidate: true,
+			});
+			setValue(
+				"menu_selections",
+				selectedMenuItems.map((item) => item.id),
+				{ shouldValidate: true }
+			);
+
+			// Final validation check
+			const isValid = await trigger();
+			if (!isValid) {
+				alert("Please fix the validation errors before submitting");
+				return;
+			}
+
 			await createOrder();
 			await onOrderCreated();
 			resetSelections();
@@ -135,86 +200,148 @@ export const CreateOrderModal = ({ showModal, onClose, onOrderCreated }) => {
 				<div className="flex justify-between items-center mb-6">
 					<h3 className="text-xl font-bold">Create Subscriber Order</h3>
 					<button
+						type="button"
 						onClick={closeModal}
 						className="btn btn-sm btn-circle btn-ghost">
 						✕
 					</button>
 				</div>
 
-				<form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-					<SubscriberSelection
-						register={register}
-						errors={errors}
-						activeSubscribers={activeSubscribers}
-						onSubscriberChange={handleSubscriberChange}
-						watchSubscriberId={watchSubscriberId}
-					/>
-					{watchSubscriberId && selectedSubscriberPlan && (
-						<div className="alert alert-info">
-							<div>
-								<h4 className="font-semibold">Selected Plan</h4>
-								<p className="text-sm">
-									{selectedSubscriberPlan.subscription_plans?.plan_name} -
-									{selectedSubscriberPlan.remaining_points} points -
-									{selectedSubscriberPlan.serve_type}
-								</p>
-								<p className="text-xs mt-1">
-									Main: {availableSelections.main_dish} | Side:{" "}
-									{availableSelections.side_dish}
+				{!addOnStep ? (
+					// Main Order Creation Form
+					<form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+						<SubscriberSelection
+							register={register}
+							errors={errors}
+							activeSubscribers={activeSubscribers}
+							onSubscriberChange={handleSubscriberChange}
+							watchSubscriberId={watchSubscriberId}
+						/>
+
+						{/* Plan Selection - Show when subscriber is selected */}
+						{watchSubscriberId && availablePlans.length > 0 && (
+							<PlanSelection
+								selectedSubscriberPlan={selectedSubscriberPlan}
+								availablePlans={availablePlans}
+								onPlanSelect={handlePlanSelect}
+								selectedDay={selectedDay}
+							/>
+						)}
+
+						{/* Show warning if no active plans */}
+						{watchSubscriberId && availablePlans.length === 0 && (
+							<div className="alert alert-error">
+								<div>
+									<h4 className="font-semibold">No Active Plans</h4>
+									<p className="text-sm">
+										This subscriber doesn't have any active subscription plans.
+									</p>
+								</div>
+							</div>
+						)}
+
+						{/* Show selected plan details */}
+						{selectedSubscriberPlan && (
+							<div className="alert alert-info">
+								<div>
+									<h4 className="font-semibold">Selected Plan</h4>
+									<p className="text-sm">
+										{selectedSubscriberPlan.subscription_plans?.plan_name} -
+										{selectedSubscriberPlan.remaining_points} points -
+										{selectedSubscriberPlan.serve_type}
+									</p>
+									<p className="text-xs mt-1">
+										Main: {availableSelections.main_dish} | Side:{" "}
+										{availableSelections.side_dish}
+									</p>
+								</div>
+							</div>
+						)}
+
+						<DaySelection
+							selectedDay={selectedDay}
+							isAfter10AM={isAfter10AM}
+							onDayChange={handleDayChange}
+							watchSubscriberPlanId={watchSubscriberPlanId}
+							selectedSubscriberPlan={selectedSubscriberPlan}
+							hasMultipleActivePlans={hasMultipleActivePlans?.()}
+						/>
+
+						<MenuSelection
+							selectedDay={selectedDay}
+							todayMenuItems={todayMenuItems}
+							tomorrowMenuItems={tomorrowMenuItems}
+							selectedMenuItems={selectedMenuItems}
+							usedSelections={usedSelections}
+							availableSelections={availableSelections}
+							onMenuItemToggle={toggleMenuItemSelectionSmart}
+							onQuantityChange={updateMenuItemQuantity}
+							errors={errors}
+						/>
+
+						<OrderOptions
+							register={register}
+							selectedDay={selectedDay}
+							errors={errors}
+						/>
+
+						{/* Show "Add Add-Ons" button after menu selection */}
+						{selectedMenuItems.length > 0 && (
+							<div className="text-center border-t pt-4">
+								<button
+									type="button"
+									onClick={() => setAddOnStep(true)}
+									className="btn btn-outline btn-lg">
+									Add Extra Items +
+								</button>
+								<p className="text-sm text-gray-600 mt-2">
+									Optional: Add drinks, extras, or additional menu items
 								</p>
 							</div>
+						)}
+
+						<div className="modal-action">
+							<button
+								type="button"
+								onClick={closeModal}
+								className="btn btn-ghost">
+								Cancel
+							</button>
+							<button
+								type="submit"
+								disabled={
+									!isValidSelection() || isSubmitting || !selectedSubscriberPlan
+								}
+								className="btn btn-primary">
+								{isSubmitting ? (
+									<>
+										<span className="loading loading-spinner loading-sm"></span>
+										Creating...
+									</>
+								) : (
+									"Create Order"
+								)}
+							</button>
 						</div>
-					)}
-					<DaySelection
-						selectedDay={selectedDay}
-						isAfter10AM={isAfter10AM}
-						onDayChange={handleDayChange}
-						watchSubscriberPlanId={watchSubscriberPlanId}
-						selectedSubscriberPlan={selectedSubscriberPlan}
-						hasMultipleActivePlans={hasMultipleActivePlans()}
+					</form>
+				) : (
+					// Add-Ons Step
+					<AddOnsStep
+						availableAddOnItems={getAvailableAddOnItems()}
+						selectedAddOns={selectedAddOns}
+						onAddOnQuantityChange={updateAddOnQuantity}
+						onBack={() => setAddOnStep(false)}
+						onSubmit={handleSubmit(onSubmit)}
+						isSubmitting={isSubmitting}
 					/>
-
-					<MenuSelection
-						selectedDay={selectedDay}
-						todayMenuItems={todayMenuItems}
-						tomorrowMenuItems={tomorrowMenuItems}
-						selectedMenuItems={selectedMenuItems}
-						usedSelections={usedSelections}
-						availableSelections={availableSelections}
-						onMenuItemToggle={toggleMenuItemSelectionSmart}
-						onQuantityChange={updateMenuItemQuantity}
-						errors={errors}
-					/>
-
-					<OrderOptions register={register} selectedDay={selectedDay} />
-
-					<div className="modal-action">
-						<button
-							type="button"
-							onClick={closeModal}
-							className="btn btn-ghost">
-							Cancel
-						</button>
-						<button
-							type="submit"
-							disabled={!isValidSelection() || isSubmitting}
-							className="btn btn-primary">
-							{isSubmitting ? (
-								<>
-									<span className="loading loading-spinner loading-sm"></span>
-									Creating...
-								</>
-							) : (
-								"Create Order"
-							)}
-						</button>
-					</div>
-				</form>
+				)}
 			</div>
 
-			<form method="dialog" className="modal-backdrop">
-				<button onClick={closeModal}>close</button>
-			</form>
+			<div className="modal-backdrop">
+				<button type="button" onClick={closeModal}>
+					close
+				</button>
+			</div>
 		</dialog>
 	);
 };

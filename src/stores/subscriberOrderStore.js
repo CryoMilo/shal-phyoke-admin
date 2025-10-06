@@ -2,31 +2,41 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { supabase } from "../services/supabase";
+import { useRegularMenuStore } from "./regularMenuStore";
 
 const useOrderCreationStore = create(
 	persist(
 		(set, get) => ({
+			// State
 			orders: [],
 			loadingOrders: false,
+			loading: false,
 
+			// Menu Items
 			todayMenuItems: [],
 			tomorrowMenuItems: [],
+
+			// Selection State
 			selectedSubscriber: null,
 			selectedSubscriberPlan: null,
 			selectedDay: null,
+			selectedMenuItems: [],
+			selectedAddOns: [],
+			addOnStep: false,
 
-			// Selection
-			selectedMenuItems: [], // Stores { id, type } objects
+			// Selection Counters
 			availableSelections: { main_dish: 0, side_dish: 0, total: 0 },
 			usedSelections: { main_dish: 0, side_dish: 0, total: 0 },
 
-			loading: false,
+			// Time Restrictions
 			isAfter10AM: false,
 
-			// Setters
+			// ===== SETTERS =====
+			setLoading: (loading) => set({ loading }),
 			setTodayMenuItems: (items) => set({ todayMenuItems: items }),
 			setTomorrowMenuItems: (items) => set({ tomorrowMenuItems: items }),
-			setLoading: (loading) => set({ loading }),
+			setAddOnStep: (show) => set({ addOnStep: show }),
+
 			setSelectedDay: (day) =>
 				set({
 					selectedDay: day,
@@ -34,12 +44,9 @@ const useOrderCreationStore = create(
 					usedSelections: { main_dish: 0, side_dish: 0, total: 0 },
 				}),
 
-			// In orderCreationStore.js - simplify setSelectedSubscriber
 			setSelectedSubscriber: (subscriber) => {
-				// Always use the first active plan
 				const plan = subscriber.active_plans?.[0];
 				const planDetails = plan?.subscription_plans;
-
 				const main = planDetails?.main_dish_choice || 0;
 				const side = planDetails?.side_dish_choice || 0;
 
@@ -56,8 +63,6 @@ const useOrderCreationStore = create(
 					usedSelections: { main_dish: 0, side_dish: 0, total: 0 },
 				});
 			},
-
-			// Remove setSelectedSubscriberPlan method entirely
 
 			setSelectedSubscriberPlan: (planId) => {
 				const state = get();
@@ -84,12 +89,164 @@ const useOrderCreationStore = create(
 				});
 			},
 
-			checkTimeRestriction: () => {
-				const hour = new Date().getHours();
-				set({ isAfter10AM: hour >= 10 });
+			// ===== ADD-ONS =====
+			updateAddOnQuantity: (menuItemId, change) => {
+				const state = get();
+				const existingIndex = state.selectedAddOns.findIndex(
+					(item) => item.id === menuItemId
+				);
+
+				if (existingIndex >= 0) {
+					const updatedAddOns = [...state.selectedAddOns];
+					const newQuantity = updatedAddOns[existingIndex].quantity + change;
+
+					if (newQuantity <= 0) {
+						updatedAddOns.splice(existingIndex, 1);
+					} else {
+						updatedAddOns[existingIndex] = {
+							...updatedAddOns[existingIndex],
+							quantity: newQuantity,
+						};
+					}
+
+					set({ selectedAddOns: updatedAddOns });
+				} else if (change > 0) {
+					const menuItem = state
+						.getAvailableAddOnItems()
+						.find((item) => item.id === menuItemId);
+					if (menuItem) {
+						set({
+							selectedAddOns: [
+								...state.selectedAddOns,
+								{ id: menuItemId, quantity: 1, menu_item: menuItem },
+							],
+						});
+					}
+				}
 			},
 
-			// Order Operations
+			getAvailableAddOnItems: () => {
+				const state = get();
+				if (!state.selectedDay) return [];
+
+				// Get rotating menu items for selected day
+				const rotatingMenuItems = (
+					state.selectedDay === "today"
+						? state.todayMenuItems
+						: state.tomorrowMenuItems
+				)
+					.map((item) => item.menu_items)
+					.filter(Boolean);
+
+				// Get regular menu items
+				const regularMenuItems = useRegularMenuStore
+					.getState()
+					.getAllRegularItems();
+
+				// Combine and remove duplicates
+				const allItems = [...rotatingMenuItems, ...regularMenuItems];
+				return allItems.filter(
+					(item, index, self) =>
+						index === self.findIndex((i) => i.id === item.id)
+				);
+			},
+
+			// ===== MENU ITEM SELECTION =====
+			toggleMenuItemSelection: (menuItem) => {
+				const s = get();
+				const existingItem = s.selectedMenuItems.find(
+					(m) => m.id === menuItem.id
+				);
+
+				if (existingItem) {
+					// Deselect
+					set({
+						selectedMenuItems: s.selectedMenuItems.filter(
+							(m) => m.id !== menuItem.id
+						),
+						usedSelections: {
+							...s.usedSelections,
+							[existingItem.type]: s.usedSelections[existingItem.type] - 1,
+							total: s.usedSelections.total - 1,
+						},
+					});
+				} else {
+					// Add new - check limits
+					if (s.usedSelections.total >= s.availableSelections.total) return;
+
+					let type = "side_dish";
+					if (
+						s.usedSelections.main_dish < s.availableSelections.main_dish &&
+						(s.usedSelections.main_dish <= s.usedSelections.side_dish ||
+							s.availableSelections.side_dish === 0)
+					) {
+						type = "main_dish";
+					} else if (
+						s.usedSelections.side_dish < s.availableSelections.side_dish
+					) {
+						type = "side_dish";
+					} else {
+						return;
+					}
+
+					set({
+						selectedMenuItems: [...s.selectedMenuItems, { ...menuItem, type }],
+						usedSelections: {
+							...s.usedSelections,
+							[type]: s.usedSelections[type] + 1,
+							total: s.usedSelections.total + 1,
+						},
+					});
+				}
+			},
+
+			updateMenuItemQuantity: (menuItem, type, change) => {
+				const state = get();
+				const matchingItems = state.selectedMenuItems.filter(
+					(item) => item.id === menuItem.id && item.type === type
+				);
+
+				if (change > 0) {
+					// Add items
+					const newItems = Array(change)
+						.fill()
+						.map(() => ({ ...menuItem, type }));
+					set({
+						selectedMenuItems: [...state.selectedMenuItems, ...newItems],
+						usedSelections: {
+							...state.usedSelections,
+							[type]: state.usedSelections[type] + change,
+							total: state.usedSelections.total + change,
+						},
+					});
+				} else if (change < 0) {
+					// Remove items
+					const itemsToRemove = Math.min(
+						matchingItems.length,
+						Math.abs(change)
+					);
+					let removed = 0;
+					const itemsToKeep = state.selectedMenuItems.filter((item) => {
+						const isMatch = item.id === menuItem.id && item.type === type;
+						if (isMatch && removed < itemsToRemove) {
+							removed++;
+							return false;
+						}
+						return true;
+					});
+
+					set({
+						selectedMenuItems: itemsToKeep,
+						usedSelections: {
+							...state.usedSelections,
+							[type]: state.usedSelections[type] - itemsToRemove,
+							total: state.usedSelections.total - itemsToRemove,
+						},
+					});
+				}
+			},
+
+			// ===== ORDER OPERATIONS =====
 			async fetchSubscriberOrders() {
 				set({ loadingOrders: true });
 				try {
@@ -115,8 +272,6 @@ const useOrderCreationStore = create(
 						.eq("id", orderId);
 
 					if (error) throw error;
-
-					// Refetch to get updated data with menu details
 					await get().fetchSubscriberOrders();
 					return { error: null };
 				} catch (error) {
@@ -145,67 +300,8 @@ const useOrderCreationStore = create(
 				}
 			},
 
-			// Menu Item Selection
-			toggleMenuItemSelection: (menuItem) => {
-				const s = get();
-				const already = s.selectedMenuItems.find((m) => m.id === menuItem.id);
-
-				if (already) {
-					// Deselect
-					set({
-						selectedMenuItems: s.selectedMenuItems.filter(
-							(m) => m.id !== menuItem.id
-						),
-						usedSelections: {
-							...s.usedSelections,
-							[already.type]: s.usedSelections[already.type] - 1,
-							total: s.usedSelections.total - 1,
-						},
-					});
-					return;
-				}
-
-				// Add new
-				if (s.usedSelections.total >= s.availableSelections.total) return;
-
-				let type = "side_dish";
-				if (
-					s.usedSelections.main_dish < s.availableSelections.main_dish &&
-					(s.usedSelections.main_dish <= s.usedSelections.side_dish ||
-						s.availableSelections.side_dish === 0)
-				) {
-					type = "main_dish";
-				} else if (
-					s.usedSelections.side_dish < s.availableSelections.side_dish
-				) {
-					type = "side_dish";
-				} else {
-					return;
-				}
-
-				set({
-					selectedMenuItems: [...s.selectedMenuItems, { ...menuItem, type }],
-					usedSelections: {
-						...s.usedSelections,
-						[type]: s.usedSelections[type] + 1,
-						total: s.usedSelections.total + 1,
-					},
-				});
-			},
-
-			canSelectMenuItem: (menuItem) => {
-				const s = get();
-				const isSelected = s.selectedMenuItems.some(
-					(m) => m.id === menuItem.id
-				);
-				return (
-					isSelected || s.usedSelections.total < s.availableSelections.total
-				);
-			},
-
-			// Menu Data
-			// Menu Data - Fixed version
-			fetchAvailableMenuItems: async () => {
+			// ===== MENU DATA =====
+			async fetchAvailableMenuItems() {
 				set({ loading: true });
 				try {
 					const today = new Date();
@@ -224,96 +320,44 @@ const useOrderCreationStore = create(
 					const todayName = days[today.getDay()];
 					const tomorrowName = days[tomorrow.getDay()];
 
-					console.log("Fetching menu for:", { todayName, tomorrowName });
-
-					// Get the published weekly menu
+					// Get published weekly menu
 					const { data: published, error: menuError } = await supabase
 						.from("weekly_menu")
-						.select("id, week_from, week_to, status")
+						.select("id")
 						.eq("status", "Published")
 						.single();
 
-					if (menuError || !published) {
-						console.log("No published menu found:", menuError);
-						throw menuError || new Error("No published weekly menu found");
-					}
+					if (menuError || !published)
+						throw new Error("No published weekly menu found");
 
-					console.log("Found published menu:", published.id);
-
-					// Fetch today's menu items with proper joins
-					const { data: todayData, error: todayError } = await supabase
-						.from("weekly_menu_items")
-						.select(
-							`
-        id,
-        status,
-        weekday,
-        menu_items (
-          id,
-          name_burmese,
-          name_english,
-          category,
-          price,
-          class,
-          taste_profile
-        )
-      `
-						)
-						.eq("weekly_menu_id", published.id)
-						.eq("weekday", todayName)
-						.in("status", ["Cooking", "Confirmed", "Available"]);
-
-					if (todayError) {
-						console.error("Error fetching today menu:", todayError);
-						throw todayError;
-					}
-
-					// Fetch tomorrow's menu items with proper joins
-					const { data: tomorrowData, error: tomorrowError } = await supabase
-						.from("weekly_menu_items")
-						.select(
-							`
-        id,
-        status,
-        weekday,
-        menu_items (
-          id,
-          name_burmese,
-          name_english,
-          category,
-          price,
-          class,
-          taste_profile
-        )
-      `
-						)
-						.eq("weekly_menu_id", published.id)
-						.eq("weekday", tomorrowName)
-						.in("status", ["Cooking", "Confirmed", "Available"]);
-
-					if (tomorrowError) {
-						console.error("Error fetching tomorrow menu:", tomorrowError);
-						throw tomorrowError;
-					}
-
-					console.log("Today menu items:", todayData?.length);
-					console.log("Tomorrow menu items:", tomorrowData?.length);
+					// Fetch menu items for both days
+					const [todayRes, tomorrowRes] = await Promise.all([
+						supabase
+							.from("weekly_menu_items")
+							.select(`id, status, weekday, menu_items (*)`)
+							.eq("weekly_menu_id", published.id)
+							.eq("weekday", todayName)
+							.in("status", ["Cooking", "Confirmed", "Available"]),
+						supabase
+							.from("weekly_menu_items")
+							.select(`id, status, weekday, menu_items (*)`)
+							.eq("weekly_menu_id", published.id)
+							.eq("weekday", tomorrowName)
+							.in("status", ["Cooking", "Confirmed", "Available"]),
+					]);
 
 					set({
-						todayMenuItems: todayData || [],
-						tomorrowMenuItems: tomorrowData || [],
+						todayMenuItems: todayRes.data || [],
+						tomorrowMenuItems: tomorrowRes.data || [],
 						loading: false,
 					});
 				} catch (err) {
-					console.error("Error in fetchAvailableMenuItems:", err);
-					set({
-						todayMenuItems: [],
-						tomorrowMenuItems: [],
-						loading: false,
-					});
+					console.error("Error fetching menu items:", err);
+					set({ todayMenuItems: [], tomorrowMenuItems: [], loading: false });
 				}
 			},
-			// Order Creation
+
+			// ===== ORDER CREATION =====
 			getOrderData: () => {
 				const s = get();
 				if (
@@ -323,11 +367,9 @@ const useOrderCreationStore = create(
 				)
 					return null;
 
-				// Separate main and side dishes for structured data
 				const mainDishes = s.selectedMenuItems
 					.filter((item) => item.type === "main_dish")
 					.map((item) => item.id);
-
 				const sideDishes = s.selectedMenuItems
 					.filter((item) => item.type === "side_dish")
 					.map((item) => item.id);
@@ -351,13 +393,11 @@ const useOrderCreationStore = create(
 			async createOrder() {
 				const s = get();
 				const orderData = s.getOrderData();
-
-				if (!orderData) {
-					throw new Error("Invalid order data");
-				}
+				if (!orderData) throw new Error("Invalid order data");
 
 				try {
-					const { data, error } = await supabase
+					// Create main order
+					const { data: order, error } = await supabase
 						.from("subscription_orders")
 						.insert([orderData])
 						.select()
@@ -365,22 +405,35 @@ const useOrderCreationStore = create(
 
 					if (error) throw error;
 
-					// Add to local state and refetch to get complete data with menu details
-					set((state) => ({
-						orders: [data, ...state.orders],
-					}));
+					// Create add-ons if any
+					if (s.selectedAddOns.length > 0) {
+						const addOnsData = s.selectedAddOns.map((addOn) => ({
+							subscription_order_id: order.id,
+							menu_item_id: addOn.id,
+							quantity: addOn.quantity,
+						}));
 
-					// Refetch to get the complete order data with menu details from the view
+						const { error: addOnsError } = await supabase
+							.from("subscription_order_add_ons")
+							.insert(addOnsData);
+
+						if (addOnsError) throw addOnsError;
+					}
+
 					await get().fetchSubscriberOrders();
-
-					return { data, error: null };
+					return { data: order, error: null };
 				} catch (error) {
 					console.error("Error creating order:", error);
 					throw error;
 				}
 			},
 
-			// Validation & Helpers
+			// ===== VALIDATION & HELPERS =====
+			checkTimeRestriction: () => {
+				const hour = new Date().getHours();
+				set({ isAfter10AM: hour >= 10 });
+			},
+
 			isValidSelection: () => {
 				const s = get();
 				if (!s.selectedSubscriber || !s.selectedDay) return false;
@@ -388,12 +441,9 @@ const useOrderCreationStore = create(
 				if (s.selectedDay === "today" && s.isAfter10AM) return false;
 
 				const planDetails = s.selectedSubscriberPlan?.subscription_plans;
-				if (
-					planDetails?.main_dish_choice > 0 &&
-					s.usedSelections.main_dish === 0
-				)
-					return false;
-				return true;
+				return !(
+					planDetails?.main_dish_choice > 0 && s.usedSelections.main_dish === 0
+				);
 			},
 
 			hasMultipleActivePlans: () => {
@@ -406,59 +456,8 @@ const useOrderCreationStore = create(
 				return s.selectedSubscriber?.active_plans || [];
 			},
 
-			// Add to your store actions
-			updateMenuItemQuantity: (menuItem, type, change) => {
-				const state = get();
-
-				// Find all instances of this menu item with the specified type
-				const matchingItems = state.selectedMenuItems.filter(
-					(item) => item.id === menuItem.id && item.type === type
-				);
-
-				if (change > 0) {
-					// Add more items
-					const newItems = Array(change)
-						.fill()
-						.map(() => ({
-							...menuItem,
-							type: type,
-						}));
-
-					set({
-						selectedMenuItems: [...state.selectedMenuItems, ...newItems],
-						usedSelections: {
-							...state.usedSelections,
-							[type]: state.usedSelections[type] + change,
-							total: state.usedSelections.total + change,
-						},
-					});
-				} else if (change < 0) {
-					// Remove items
-					const itemsToRemove = Math.min(
-						matchingItems.length,
-						Math.abs(change)
-					);
-					const itemsToKeep = state.selectedMenuItems.filter((item) => {
-						// Remove the first X items that match
-						const isMatch = item.id === menuItem.id && item.type === type;
-						if (isMatch && itemsToRemove > 0) {
-							// eslint-disable-next-line no-const-assign
-							itemsToRemove--;
-							return false;
-						}
-						return true;
-					});
-
-					set({
-						selectedMenuItems: itemsToKeep,
-						usedSelections: {
-							...state.usedSelections,
-							[type]: state.usedSelections[type] - Math.abs(change),
-							total: state.usedSelections.total - Math.abs(change),
-						},
-					});
-				}
-			},
+			// ===== RESET METHODS =====
+			resetAddOns: () => set({ selectedAddOns: [], addOnStep: false }),
 
 			resetSelections: () =>
 				set({
@@ -466,6 +465,8 @@ const useOrderCreationStore = create(
 					selectedSubscriberPlan: null,
 					selectedDay: null,
 					selectedMenuItems: [],
+					selectedAddOns: [],
+					addOnStep: false,
 					availableSelections: { main_dish: 0, side_dish: 0, total: 0 },
 					usedSelections: { main_dish: 0, side_dish: 0, total: 0 },
 				}),

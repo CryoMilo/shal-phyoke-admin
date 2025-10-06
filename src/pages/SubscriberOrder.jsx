@@ -1,7 +1,5 @@
-// pages/SubscriberOrder.js - Ensure it filters out archived orders
 import React, { useState, useEffect } from "react";
 import { Plus, Archive } from "lucide-react";
-import { Link } from "@tanstack/react-router";
 import { useOrderCreationStore } from "../stores/subscriberOrderStore";
 import useSubscribersStore from "../stores/useSubscriberStore";
 import { CreateOrderModal } from "../components/SubscriberOrders/CreateOrderModal/CreateOrderModal";
@@ -23,6 +21,7 @@ export const SubscriberOrder = () => {
 
 	// Filter out archived orders for the main page
 	const activeOrders = orders.filter((order) => order.status !== "Archived");
+	console.log(activeOrders);
 
 	const closeModal = () => {
 		setShowCreateModal(false);
