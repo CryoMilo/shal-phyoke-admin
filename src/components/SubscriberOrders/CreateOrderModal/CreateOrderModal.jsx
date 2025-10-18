@@ -17,22 +17,22 @@ export const CreateOrderModal = ({ showModal, onClose, onOrderCreated }) => {
 		selectedSubscriberPlan,
 		selectedDay,
 		selectedMenuItems,
-		selectedAddOns, // Add this
-		addOnStep, // Add this
+		selectedAddOns,
+		addOnStep,
 		availableSelections,
 		usedSelections,
 		isAfter10AM,
 		setSelectedSubscriber,
-		setSelectedSubscriberPlan, // Add this if missing
+		setSelectedSubscriberPlan,
 		setSelectedDay,
-		setAddOnStep, // Add this
+		setAddOnStep,
 		toggleMenuItemSelection,
-		updateAddOnQuantity, // Add this
+		updateAddOnQuantity,
 		isValidSelection,
 		resetSelections,
 		createOrder,
 		hasMultipleActivePlans,
-		getAvailablePlans, // Add this
+		getAvailablePlans,
 		updateMenuItemQuantity,
 		todayMenuItems,
 		tomorrowMenuItems,
@@ -41,7 +41,7 @@ export const CreateOrderModal = ({ showModal, onClose, onOrderCreated }) => {
 	} = useOrderCreationStore();
 
 	const { subscribers } = useSubscribersStore();
-	const { getAllRegularItems } = useRegularMenuStore(); // Add this
+	const { getAllRegularItems } = useRegularMenuStore();
 
 	// Fetch menu items when modal opens
 	React.useEffect(() => {
@@ -58,7 +58,7 @@ export const CreateOrderModal = ({ showModal, onClose, onOrderCreated }) => {
 		setValue,
 		reset,
 		watch,
-		trigger, // Add this for better validation
+		trigger,
 	} = useForm({
 		resolver: zodResolver(subscriberOrderSchema),
 		defaultValues: {
@@ -69,13 +69,13 @@ export const CreateOrderModal = ({ showModal, onClose, onOrderCreated }) => {
 			eat_in: false,
 			note: "",
 		},
-		mode: "onChange", // Add this for better validation
+		mode: "onChange",
 	});
 
 	const watchSubscriberId = watch("subscriber_id");
 	const watchSubscriberPlanId = watch("subscriber_plan_id");
 	const activeSubscribers = subscribers.filter((sub) => sub.is_active);
-	const availablePlans = getAvailablePlans?.() || []; // Add this
+	const availablePlans = getAvailablePlans?.() || [];
 
 	// Add this function to get available add-on items
 	const getAvailableAddOnItems = () => {

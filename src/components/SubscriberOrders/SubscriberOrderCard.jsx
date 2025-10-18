@@ -78,6 +78,8 @@ export const SubscriberOrderCard = ({ order, onStatusUpdate }) => {
 		});
 	};
 
+	console.log(order);
+
 	return (
 		<div className="card bg-base-100 shadow-xl border border-base-300 hover:shadow-2xl transition-all duration-300">
 			{/* Header Section */}
@@ -86,9 +88,9 @@ export const SubscriberOrderCard = ({ order, onStatusUpdate }) => {
 					{/* Subscriber Info */}
 					<div className="flex items-center space-x-3">
 						{/* Subscriber Image */}
-						<div className="avatar placeholder">
-							<div className="bg-neutral text-neutral-content rounded-full w-12">
-								<span className="text-lg font-bold">{order.image_url}</span>
+						<div className="avatar">
+							<div class="w-24 rounded">
+								<img src={order.subscriber_image_url} />
 							</div>
 						</div>
 

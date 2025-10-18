@@ -173,7 +173,10 @@ export const ArchivedOrders = () => {
 											<div className="avatar">
 												<div className="w-10 h-10 rounded-full">
 													<img
-														src={order.image_url || "/default-avatar.png"}
+														src={
+															order.subscriber_image_url ||
+															"/default-avatar.png"
+														}
 														alt={order.subscriber_name}
 													/>
 												</div>
