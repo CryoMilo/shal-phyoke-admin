@@ -264,24 +264,44 @@ const useOrderCreationStore = create(
 				}
 			},
 
+			// ===== ORDER OPERATIONS =====
 			async updateOrderStatus(orderId, newStatus) {
+				const previousOrders = get().orders; // Store current state for rollback
+
 				try {
+					// Optimistically update local state
+					set((state) => ({
+						orders: state.orders.map((order) =>
+							order.id === orderId ? { ...order, status: newStatus } : order
+						),
+					}));
+
+					// Update in database
 					const { error } = await supabase
 						.from("subscription_orders")
 						.update({ status: newStatus })
 						.eq("id", orderId);
 
 					if (error) throw error;
-					await get().fetchSubscriberOrders();
+
 					return { error: null };
 				} catch (error) {
+					// Revert on error
+					set({ orders: previousOrders });
 					console.error("Error updating order status:", error);
 					throw error;
 				}
 			},
 
 			async deleteOrder(orderId) {
+				const previousOrders = get().orders;
+
 				try {
+					// Optimistically remove from local state
+					set((state) => ({
+						orders: state.orders.filter((order) => order.id !== orderId),
+					}));
+
 					const { error } = await supabase
 						.from("subscription_orders")
 						.delete()
@@ -289,17 +309,14 @@ const useOrderCreationStore = create(
 
 					if (error) throw error;
 
-					set((state) => ({
-						orders: state.orders.filter((order) => order.id !== orderId),
-					}));
-
 					return { error: null };
 				} catch (error) {
+					// Revert on error
+					set({ orders: previousOrders });
 					console.error("Error deleting order:", error);
 					throw error;
 				}
 			},
-
 			// ===== MENU DATA =====
 			async fetchAvailableMenuItems() {
 				set({ loading: true });
@@ -434,16 +451,48 @@ const useOrderCreationStore = create(
 				set({ isAfter10AM: hour >= 10 });
 			},
 
+			// Replace isValidSelection with more comprehensive validation:
 			isValidSelection: () => {
 				const s = get();
+
+				// Basic requirements
 				if (!s.selectedSubscriber || !s.selectedDay) return false;
 				if (s.selectedMenuItems.length === 0) return false;
-				if (s.selectedDay === "today" && s.isAfter10AM) return false;
 
+				// Time restriction
+				if (s.selectedDay === "today" && s.isAfter10AM) {
+					return {
+						isValid: false,
+						reason: "Cannot create today's orders after 10 AM",
+					};
+				}
+
+				// Plan validation
 				const planDetails = s.selectedSubscriberPlan?.subscription_plans;
-				return !(
-					planDetails?.main_dish_choice > 0 && s.usedSelections.main_dish === 0
-				);
+				if (
+					planDetails?.main_dish_choice > 0 &&
+					s.usedSelections.main_dish === 0
+				) {
+					return {
+						isValid: false,
+						reason: "Must select at least one main dish for this plan",
+					};
+				}
+
+				// Check if selections match plan limits exactly
+				const mainOk =
+					s.usedSelections.main_dish <= s.availableSelections.main_dish;
+				const sideOk =
+					s.usedSelections.side_dish <= s.availableSelections.side_dish;
+
+				if (!mainOk || !sideOk) {
+					return {
+						isValid: false,
+						reason: "Selection exceeds plan limits",
+					};
+				}
+
+				return { isValid: true };
 			},
 
 			hasMultipleActivePlans: () => {

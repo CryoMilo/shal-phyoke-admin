@@ -4,6 +4,7 @@ import { ArrowLeft, Search, Filter, RotateCcw } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { useOrderCreationStore } from "../stores/subscriberOrderStore";
 import Loading from "../components/common/Loading";
+import { PageHeader } from "../components/common/PageHeader";
 
 export const ArchivedOrders = () => {
 	const { orders, loadingOrders, fetchSubscriberOrders, updateOrderStatus } =
@@ -72,19 +73,15 @@ export const ArchivedOrders = () => {
 	return (
 		<div className="container mx-auto p-6">
 			{/* Header */}
-			<div className="flex justify-between items-center mb-6">
+			<div className="flex items-center">
 				<div className="flex items-center gap-4">
 					<Link to="/subscriber-orders" className="btn btn-ghost btn-sm">
 						<ArrowLeft className="w-4 h-4 mr-2" />
-						Back to Orders
 					</Link>
-					<div>
-						<h1 className="text-3xl font-bold">Archived Orders</h1>
-						<p className="text-gray-600">View and manage archived orders</p>
-					</div>
-				</div>
-				<div className="text-sm text-gray-500">
-					{archivedOrders.length} order(s) found
+					<PageHeader
+						title="Archived Orders"
+						description="Manage Archived Orders"
+					/>
 				</div>
 			</div>
 
