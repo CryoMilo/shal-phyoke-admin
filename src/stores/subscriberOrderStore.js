@@ -125,6 +125,21 @@ const useOrderCreationStore = create(
 				}
 			},
 
+			toggleAllAddOnsPaid: (paidStatus) => {
+				set((state) => ({
+					selectedAddOns: state.selectedAddOns.map((addOn) => ({
+						...addOn,
+						addons_paid: paidStatus,
+					})),
+				}));
+			},
+
+			getAllAddOnsPaidStatus: () => {
+				const state = get();
+				if (state.selectedAddOns.length === 0) return false;
+				return state.selectedAddOns.every((addOn) => addOn.addons_paid);
+			},
+
 			getAvailableAddOnItems: () => {
 				const state = get();
 				if (!state.selectedDay) return [];

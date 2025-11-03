@@ -28,6 +28,8 @@ export const CreateOrderModal = ({ showModal, onClose, onOrderCreated }) => {
 		setAddOnStep,
 		toggleMenuItemSelection,
 		updateAddOnQuantity,
+		toggleAllAddOnsPaid, // Make sure this exists in your store
+		getAllAddOnsPaidStatus, // Make sure this exists in your store
 		isValidSelection,
 		resetSelections,
 		createOrder,
@@ -76,6 +78,7 @@ export const CreateOrderModal = ({ showModal, onClose, onOrderCreated }) => {
 	const watchSubscriberPlanId = watch("subscriber_plan_id");
 	const activeSubscribers = subscribers.filter((sub) => sub.is_active);
 	const availablePlans = getAvailablePlans?.() || [];
+	const allAddOnsPaid = getAllAddOnsPaidStatus?.() || false; // Get the current paid status
 
 	// Add this function to get available add-on items
 	const getAvailableAddOnItems = () => {
@@ -98,6 +101,11 @@ export const CreateOrderModal = ({ showModal, onClose, onOrderCreated }) => {
 		);
 
 		return uniqueItems;
+	};
+
+	// Add this function to handle the paid status toggle
+	const handleAllAddOnsPaidChange = (paidStatus) => {
+		toggleAllAddOnsPaid(paidStatus);
 	};
 
 	const handleSubscriberChange = async (subscriberId) => {
@@ -325,11 +333,13 @@ export const CreateOrderModal = ({ showModal, onClose, onOrderCreated }) => {
 						</div>
 					</form>
 				) : (
-					// Add-Ons Step
+					// Add-Ons Step - Updated with paid status props
 					<AddOnsStep
 						availableAddOnItems={getAvailableAddOnItems()}
 						selectedAddOns={selectedAddOns}
 						onAddOnQuantityChange={updateAddOnQuantity}
+						onAllAddOnsPaidChange={handleAllAddOnsPaidChange}
+						allAddOnsPaid={allAddOnsPaid}
 						onBack={() => setAddOnStep(false)}
 						onSubmit={handleSubmit(onSubmit)}
 						isSubmitting={isSubmitting}

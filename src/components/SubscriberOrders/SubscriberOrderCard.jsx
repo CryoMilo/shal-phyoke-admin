@@ -25,10 +25,12 @@ export const SubscriberOrderCard = ({ order, onStatusUpdate }) => {
 	const totalAddOnPrice = calculateAddOnTotal(addOns);
 	const hasAddOns = addOns.length > 0;
 
+	console.log(order);
+
 	// Determine payment status for add-ons
 	const getAddOnPaymentStatus = () => {
 		if (!hasAddOns) return null;
-		return order.payment_for_extra ? "paid" : "unpaid";
+		return order.addons_paid ? "paid" : "unpaid";
 	};
 
 	const paymentStatus = getAddOnPaymentStatus();

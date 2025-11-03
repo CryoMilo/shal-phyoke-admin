@@ -5,6 +5,8 @@ export const AddOnsStep = ({
 	availableAddOnItems,
 	selectedAddOns,
 	onAddOnQuantityChange,
+	onAllAddOnsPaidChange,
+	allAddOnsPaid,
 	onBack,
 	onSubmit,
 }) => {
@@ -23,17 +25,17 @@ export const AddOnsStep = ({
 		return acc;
 	}, {});
 
-	// Define category order and display names
+	// Define category order and display names for regular items
 	const categoryOrder = {
 		Regular_Extra: "Extras & Sides",
 		Regular_Drink: "Drinks & Beverages",
 		Regular: "Regular Menu Items",
 	};
 
-	// Get remaining categories (rotating menu items)
-	const otherCategories = Object.keys(groupedItems).filter(
-		(category) => !categoryOrder[category]
-	);
+	// Get rotating menu items (all categories not in categoryOrder)
+	const rotatingMenuItems = Object.keys(groupedItems)
+		.filter((category) => !categoryOrder[category])
+		.flatMap((category) => groupedItems[category]);
 
 	// Calculate total add-ons price
 	const totalAddOnsPrice = selectedAddOns.reduce((total, addOn) => {
@@ -51,7 +53,7 @@ export const AddOnsStep = ({
 
 			{/* Available Add-Ons by Category */}
 			<div className="space-y-8">
-				{/* Display categories in specified order */}
+				{/* Display regular categories in specified order */}
 				{Object.entries(categoryOrder).map(
 					([categoryKey, displayName]) =>
 						groupedItems[categoryKey]?.length > 0 && (
@@ -65,22 +67,19 @@ export const AddOnsStep = ({
 						)
 				)}
 
-				{/* Display rotating menu items */}
-				{otherCategories.map(
-					(category) =>
-						groupedItems[category]?.length > 0 && (
-							<CategorySection
-								key={category}
-								categoryName={category}
-								items={groupedItems[category]}
-								getQuantity={getAddOnQuantity}
-								onQuantityChange={onAddOnQuantityChange}
-							/>
-						)
+				{/* Display rotating menu items under "Daily Special Menu" */}
+				{rotatingMenuItems.length > 0 && (
+					<CategorySection
+						key="daily-special"
+						categoryName="Daily Special Menu"
+						items={rotatingMenuItems}
+						getQuantity={getAddOnQuantity}
+						onQuantityChange={onAddOnQuantityChange}
+					/>
 				)}
 			</div>
 
-			{/* Selected Add-Ons Summary - Moved above submission button */}
+			{/* Selected Add-Ons Summary */}
 			{selectedAddOns.length > 0 && (
 				<div className="bg-base-200 p-6 rounded-xl border border-base-300">
 					<div className="flex items-center justify-between mb-4">
@@ -90,6 +89,24 @@ export const AddOnsStep = ({
 								{selectedAddOns.length} item
 								{selectedAddOns.length !== 1 ? "s" : ""}
 							</span>
+
+							{/* Single Toggle for All Add-Ons */}
+							<div className="flex items-center space-x-3 bg-base-100 px-4 py-2 rounded-lg border">
+								<span className="text-sm font-medium">Mark all as paid:</span>
+								<input
+									type="checkbox"
+									checked={allAddOnsPaid}
+									onChange={(e) => onAllAddOnsPaidChange(e.target.checked)}
+									className="toggle toggle-success"
+								/>
+								<span
+									className={`text-sm font-semibold ${
+										allAddOnsPaid ? "text-success" : "text-warning"
+									}`}>
+									{allAddOnsPaid ? "All Paid" : "Unpaid"}
+								</span>
+							</div>
+
 							{totalAddOnsPrice > 0 && (
 								<span className="text-lg font-bold text-primary">
 									Total: ฿{totalAddOnsPrice}
@@ -99,57 +116,12 @@ export const AddOnsStep = ({
 					</div>
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
 						{selectedAddOns.map((addOn) => (
-							<div
+							<SelectedAddOnCard
 								key={addOn.id}
-								className="bg-base-100 p-4 rounded-lg border border-base-300">
-								<div className="flex items-center justify-between">
-									<div className="flex items-center space-x-3">
-										{addOn.menu_item.image_url ? (
-											<img
-												src={addOn.menu_item.image_url}
-												alt={addOn.menu_item.name_burmese}
-												className="w-12 h-12 rounded-lg object-cover"
-											/>
-										) : (
-											<div className="w-12 h-12 bg-base-300 rounded-lg flex items-center justify-center text-base-content/50">
-												<span className="text-2xl">🍽️</span>
-											</div>
-										)}
-										<div>
-											<p className="font-semibold">
-												{addOn.menu_item.name_burmese}
-											</p>
-											{addOn.menu_item.name_english && (
-												<p className="text-sm text-base-content/70">
-													{addOn.menu_item.name_english}
-												</p>
-											)}
-											<p className="text-sm font-medium text-primary">
-												฿{addOn.menu_item.price}
-											</p>
-										</div>
-									</div>
-									<div className="flex items-center space-x-2">
-										<div className="flex items-center space-x-1 bg-base-300 rounded-full px-2 py-1">
-											<button
-												type="button"
-												onClick={() => onAddOnQuantityChange(addOn.id, -1)}
-												className="w-6 h-6 rounded-full bg-base-100 border border-base-300 flex items-center justify-center hover:bg-base-200 transition-colors">
-												-
-											</button>
-											<span className="min-w-6 text-center font-semibold">
-												{addOn.quantity}
-											</span>
-											<button
-												type="button"
-												onClick={() => onAddOnQuantityChange(addOn.id, 1)}
-												className="w-6 h-6 rounded-full bg-base-100 border border-base-300 flex items-center justify-center hover:bg-base-200 transition-colors">
-												+
-											</button>
-										</div>
-									</div>
-								</div>
-							</div>
+								addOn={addOn}
+								onQuantityChange={onAddOnQuantityChange}
+								allPaid={allAddOnsPaid}
+							/>
 						))}
 					</div>
 				</div>
@@ -224,10 +196,14 @@ const AddOnCard = ({ item, quantity, onQuantityChange }) => {
 					</div>
 				)}
 
-				{/* Category Badge */}
-				<div className="absolute top-3 left-3">
-					<span className="badge badge-neutral badge-sm">{item.category}</span>
-				</div>
+				{/* Category Badge - Only show for regular items, not for daily specials */}
+				{item.category && item.category.startsWith("Regular") && (
+					<div className="absolute top-3 left-3">
+						<span className="badge badge-neutral badge-sm">
+							{item.category}
+						</span>
+					</div>
+				)}
 			</div>
 
 			{/* Content Section */}
@@ -282,6 +258,65 @@ const AddOnCard = ({ item, quantity, onQuantityChange }) => {
 							Add to Order
 						</button>
 					)}
+				</div>
+			</div>
+		</div>
+	);
+};
+
+const SelectedAddOnCard = ({ addOn, onQuantityChange, allPaid }) => {
+	return (
+		<div className="bg-base-100 p-4 rounded-lg border border-base-300">
+			<div className="flex items-center justify-between">
+				<div className="flex items-center space-x-3">
+					{addOn.menu_item.image_url ? (
+						<img
+							src={addOn.menu_item.image_url}
+							alt={addOn.menu_item.name_burmese}
+							className="w-12 h-12 rounded-lg object-cover"
+						/>
+					) : (
+						<div className="w-12 h-12 bg-base-300 rounded-lg flex items-center justify-center text-base-content/50">
+							<span className="text-2xl">🍽️</span>
+						</div>
+					)}
+					<div>
+						<p className="font-semibold">{addOn.menu_item.name_burmese}</p>
+						{addOn.menu_item.name_english && (
+							<p className="text-sm text-base-content/70">
+								{addOn.menu_item.name_english}
+							</p>
+						)}
+						<p className="text-sm font-medium text-primary">
+							฿{addOn.menu_item.price} × {addOn.quantity}
+						</p>
+						{/* Show payment status */}
+						<span
+							className={`badge badge-sm ${
+								allPaid ? "badge-success" : "badge-warning"
+							}`}>
+							{allPaid ? "Paid" : "Unpaid"}
+						</span>
+					</div>
+				</div>
+
+				{/* Quantity Controls */}
+				<div className="flex items-center space-x-1 bg-base-300 rounded-full px-2 py-1">
+					<button
+						type="button"
+						onClick={() => onQuantityChange(addOn.id, -1)}
+						className="w-6 h-6 rounded-full bg-base-100 border border-base-300 flex items-center justify-center hover:bg-base-200 transition-colors">
+						-
+					</button>
+					<span className="min-w-6 text-center font-semibold">
+						{addOn.quantity}
+					</span>
+					<button
+						type="button"
+						onClick={() => onQuantityChange(addOn.id, 1)}
+						className="w-6 h-6 rounded-full bg-base-100 border border-base-300 flex items-center justify-center hover:bg-base-200 transition-colors">
+						+
+					</button>
 				</div>
 			</div>
 		</div>
