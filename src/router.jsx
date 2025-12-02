@@ -13,6 +13,7 @@ import { MenuStatusManagement } from "./pages/MenuStatusManagement";
 import { SubscriberOrder } from "./pages/SubscriberOrder";
 import RegularMenu from "./pages/RegularMenu";
 import { ArchivedOrders } from "./pages/ArchivedOrders";
+import Orders from "./pages/Orders";
 
 // 1. Root route
 const rootRoute = createRootRoute({ component: App });
@@ -67,6 +68,12 @@ const subscriberOrderRoute = createRoute({
 	component: SubscriberOrder,
 });
 
+const OrdersRoute = createRoute({
+	path: "/orders",
+	getParentRoute: () => rootRoute,
+	component: Orders,
+});
+
 const archivedOrdersRoute = createRoute({
 	path: "/subscriber-orders/archived-orders",
 	getParentRoute: () => rootRoute,
@@ -84,6 +91,7 @@ const routeTree = rootRoute.addChildren([
 	subscriberOrderRoute,
 	archivedOrdersRoute,
 	regularMenuRoute,
+	OrdersRoute,
 ]);
 
 // 4. Create and export router
