@@ -1,3 +1,4 @@
+// pages/SubscriberOrder.jsx
 import React, { useState, useEffect } from "react";
 import { Plus, Archive } from "lucide-react";
 import { useOrderCreationStore } from "../stores/subscriberOrderStore";
@@ -5,6 +6,7 @@ import useSubscribersStore from "../stores/useSubscriberStore";
 import { CreateOrderModal } from "../components/SubscriberOrders/CreateOrderModal/CreateOrderModal";
 import { OrdersGrid } from "../components/SubscriberOrders/OrdersGrid";
 import { PageHeader } from "../components/common/PageHeader";
+import { OrderSummaryStats } from "../components/SubscriberOrders/OrderSummaryStats";
 
 export const SubscriberOrder = () => {
 	const { orders, loadingOrders, fetchSubscriberOrders, resetSelections } =
@@ -51,6 +53,9 @@ export const SubscriberOrder = () => {
 					},
 				]}
 			/>
+
+			<OrderSummaryStats orders={activeOrders} />
+
 			<OrdersGrid loading={loadingOrders} orders={activeOrders} />
 
 			<CreateOrderModal

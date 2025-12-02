@@ -94,6 +94,7 @@ export const Orders = () => {
 				item_notes: itemNotes,
 			};
 
+			// eslint-disable-next-line no-unused-vars
 			const { data, error } = await supabase
 				.from("orders")
 				.insert([orderData])
