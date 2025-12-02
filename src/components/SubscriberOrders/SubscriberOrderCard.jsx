@@ -117,7 +117,7 @@ export const SubscriberOrderCard = ({ order, onStatusUpdate }) => {
 								disabled={updating}
 								className={`btn btn-sm gap-2 ${
 									currentStatus?.badge
-								} text-base-100 ${updating ? "loading" : ""}`}>
+								} text-primary ${updating ? "loading" : ""}`}>
 								{updating ? (
 									"Updating..."
 								) : (
