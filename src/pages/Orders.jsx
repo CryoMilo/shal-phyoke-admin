@@ -2,7 +2,7 @@
 import { useState } from "react";
 import NewOrderTab from "../components/orders/NewOrderTab";
 import ActiveOrdersTab from "../components/orders/ActiveOrdersTab";
-import TableSelectionModal from "../components/orders/tableSelectionModal";
+import TableSelectionModal from "../components/orders/TableSelectionModal";
 import { supabase } from "../services/supabase";
 import OrderHistoryTab from "../components/orders/OrderHistoryTab";
 
