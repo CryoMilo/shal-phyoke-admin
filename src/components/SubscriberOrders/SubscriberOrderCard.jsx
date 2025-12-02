@@ -85,7 +85,7 @@ export const SubscriberOrderCard = ({ order, onStatusUpdate }) => {
 	return (
 		<div className="card bg-base-100 shadow-xl border border-base-300 hover:shadow-2xl transition-all duration-300">
 			{/* Header Section */}
-			<div className="bg-gradient-to-r from-base-200 to-base-300 p-4 border-b border-base-300">
+			<div className="p-4 border-b border-base-300 bg-base-200 rounded-t-2xl">
 				<div className="flex items-center justify-between">
 					{/* Subscriber Info */}
 					<div className="flex items-center space-x-3">
