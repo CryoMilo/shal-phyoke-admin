@@ -417,9 +417,6 @@ export const WeeklyMenuBuilder = ({ weeklyMenu, onBack }) => {
 												<span className="badge badge-outline">
 													{itemsInCategory.length} items
 												</span>
-												<span className="text-xs text-gray-500">
-													Click to filter
-												</span>
 											</div>
 										</div>
 

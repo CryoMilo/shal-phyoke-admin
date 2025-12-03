@@ -273,6 +273,8 @@ export const CreateOrderModal = ({ showModal, onClose, onOrderCreated }) => {
 							watchSubscriberPlanId={watchSubscriberPlanId}
 							selectedSubscriberPlan={selectedSubscriberPlan}
 							hasMultipleActivePlans={hasMultipleActivePlans?.()}
+							todayMenuItems={todayMenuItems}
+							tomorrowMenuItems={tomorrowMenuItems}
 						/>
 
 						<MenuSelection
