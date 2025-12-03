@@ -25,8 +25,6 @@ export const SubscriberOrderCard = ({ order, onStatusUpdate }) => {
 	const totalAddOnPrice = calculateAddOnTotal(addOns);
 	const hasAddOns = addOns.length > 0;
 
-	console.log(order);
-
 	// Determine payment status for add-ons
 	const getAddOnPaymentStatus = () => {
 		if (!hasAddOns) return null;
@@ -79,8 +77,6 @@ export const SubscriberOrderCard = ({ order, onStatusUpdate }) => {
 			hour12: true,
 		});
 	};
-
-	console.log(order);
 
 	return (
 		<div className="card bg-base-100 shadow-xl border border-base-300 hover:shadow-2xl transition-all duration-300">

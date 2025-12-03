@@ -121,16 +121,13 @@ const WeeklyMenuGrid = ({ currentWeeklyMenu, weeklyMenu, onEdit }) => {
 	return (
 		<div className="bg-base-200 rounded-lg p-6">
 			<PageHeader
-				// description={`${new Date(
-				// 	weeklyMenu.week_from
-				// ).toLocaleDateString()} to ${new Date(
-				// 	weeklyMenu.week_to
-				// ).toLocaleDateString()}`}
 				buttons={[
 					{
 						type: "custom",
 						component: (
-							<WeeklyMenuPublishControl currentWeeklyMenu={currentWeeklyMenu} />
+							<WeeklyMenuPublishControl
+								currentWeeklyMenu={currentWeeklyMenu || weeklyMenu} // Pass whichever exists
+							/>
 						),
 					},
 					{

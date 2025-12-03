@@ -45,11 +45,6 @@ const NewOrderTab = ({
 
 			if (error) throw error;
 
-			console.log("Fetched menu items:", data); // Debug log
-			console.log("Available categories:", [
-				...new Set(data?.map((item) => item.category)),
-			]); // Debug log
-
 			setMenuItems(data || []);
 		} catch (error) {
 			console.error("Error fetching menu items:", error);
@@ -61,7 +56,6 @@ const NewOrderTab = ({
 		if (!menuItems.length) return ["Regular"];
 
 		const allCategories = [...new Set(menuItems.map((item) => item.category))];
-		console.log("Available categories for buttons:", allCategories); // Debug log
 
 		// Ensure we have at least the basic categories
 		const baseCategories = ["Regular", "Regular_Drinks", "Regular_Extras"];

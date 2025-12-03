@@ -1,16 +1,17 @@
+// components/WeeklyMenu/WeeklyMenuPublishControl.jsx
 import { useState, useEffect } from "react";
 import { useWeeklyMenuStore } from "../../stores/weeklyMenuStore";
 
 export const WeeklyMenuPublishControl = ({ currentWeeklyMenu }) => {
-	console.log(currentWeeklyMenu);
-
 	const { updateWeeklyMenuStatus, weeklyMenus } = useWeeklyMenuStore();
-	const [status, setStatus] = useState(currentWeeklyMenu.status);
+	const [status, setStatus] = useState(currentWeeklyMenu?.status || "Draft");
 	const [loading, setLoading] = useState(false);
 
 	useEffect(() => {
-		setStatus(currentWeeklyMenu.status);
-	}, [currentWeeklyMenu.status]);
+		if (currentWeeklyMenu?.status) {
+			setStatus(currentWeeklyMenu.status);
+		}
+	}, [currentWeeklyMenu?.status]);
 
 	const handleChange = async (e) => {
 		const newStatus = e.target.value;
@@ -21,7 +22,7 @@ export const WeeklyMenuPublishControl = ({ currentWeeklyMenu }) => {
 			newStatus === "Published" &&
 			weeklyMenus.some(
 				(menu) =>
-					menu.id !== currentWeeklyMenu.id && menu.status === "Published"
+					menu.id !== currentWeeklyMenu?.id && menu.status === "Published"
 			)
 		) {
 			alert("Only one Weekly Menu can be Published at a time.");
@@ -31,7 +32,12 @@ export const WeeklyMenuPublishControl = ({ currentWeeklyMenu }) => {
 		setStatus(newStatus);
 		setLoading(true);
 		try {
-			await updateWeeklyMenuStatus(currentWeeklyMenu.id, newStatus);
+			if (currentWeeklyMenu?.id) {
+				await updateWeeklyMenuStatus(currentWeeklyMenu.id, newStatus);
+			} else {
+				alert("No weekly menu selected to update.");
+				setStatus(previous);
+			}
 		} catch (err) {
 			console.error(err);
 			setStatus(previous);
@@ -39,6 +45,21 @@ export const WeeklyMenuPublishControl = ({ currentWeeklyMenu }) => {
 			setLoading(false);
 		}
 	};
+
+	// If no current weekly menu, show disabled state
+	if (!currentWeeklyMenu) {
+		return (
+			<div className="flex flex-col gap-2">
+				<select
+					className="select select-bordered w-40 opacity-50"
+					disabled={true}
+					value="Draft">
+					<option value="Draft">No Menu</option>
+				</select>
+				<p className="text-xs text-gray-500">Create a weekly menu first</p>
+			</div>
+		);
+	}
 
 	return (
 		<div className="flex flex-col gap-2">
@@ -51,6 +72,7 @@ export const WeeklyMenuPublishControl = ({ currentWeeklyMenu }) => {
 				<option value="Published">Published</option>
 				<option value="Archived">Archived</option>
 			</select>
+			{loading && <div className="text-xs text-gray-500">Updating...</div>}
 		</div>
 	);
 };
