@@ -33,7 +33,7 @@ export const useRegularMenuStore = create(
 				return state.menus.filter(
 					(menu) =>
 						menu.category === "Regular" ||
-						menu.category === "Regular_Extra" ||
+						menu.category === "Regular_Extras" ||
 						menu.category === "Regular_Drink"
 				);
 			},

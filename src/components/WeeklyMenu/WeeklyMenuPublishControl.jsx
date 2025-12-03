@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { useWeeklyMenuStore } from "../../stores/weeklyMenuStore";
 
 export const WeeklyMenuPublishControl = ({ currentWeeklyMenu }) => {
+	console.log(currentWeeklyMenu);
+
 	const { updateWeeklyMenuStatus, weeklyMenus } = useWeeklyMenuStore();
 	const [status, setStatus] = useState(currentWeeklyMenu.status);
 	const [loading, setLoading] = useState(false);

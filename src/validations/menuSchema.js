@@ -6,7 +6,6 @@ export const menuSchema = z.object({
 	name_english: z.string().min(1, "English name is required"),
 	name_thai: z.string().optional(),
 	price: z.number().min(0, "Price must be positive"),
-	class: z.enum(["A", "B", "C", "S", "FOC"]),
 	taste_profile: z.string().optional(),
 	category: z.enum([
 		"Chicken",

@@ -64,7 +64,6 @@ export const useWeeklyMenuStore = create(
                   name_english,
                   name_thai,
                   price,
-                  class,
                   category,
                   image_url
                 )
