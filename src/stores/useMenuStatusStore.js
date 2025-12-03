@@ -5,7 +5,7 @@ import { supabase } from "../services/supabase";
 // Zustand Store for Menu Status Management
 export const useMenuStatusStore = create(
 	persist(
-		(set, get) => ({
+		(set) => ({
 			todayItems: [],
 			tomorrowItems: [],
 			loading: false,

@@ -34,7 +34,7 @@ export const useRegularMenuStore = create(
 					(menu) =>
 						menu.category === "Regular" ||
 						menu.category === "Regular_Extras" ||
-						menu.category === "Regular_Drink"
+						menu.category === "Regular_Drinks"
 				);
 			},
 
@@ -44,7 +44,7 @@ export const useRegularMenuStore = create(
 					const { data, error } = await supabase
 						.from("menu_items")
 						.select("*")
-						.in("category", ["Regular", "Regular_Extra", "Regular_Drink"])
+						.in("category", ["Regular", "Regular_Extras", "Regular_Drinks"])
 						.order("category", { ascending: true })
 						.order("name_english", { ascending: true });
 
@@ -137,6 +137,28 @@ export const useRegularMenuStore = create(
 				} catch (error) {
 					console.error("Error deleting menu:", error);
 					return { error };
+				}
+			},
+
+			// Toggle menu status (active/inactive)
+			toggleMenuStatus: async (id) => {
+				try {
+					const menu = get().menus.find((m) => m.id === id);
+					if (!menu) throw new Error("Menu not found");
+
+					const newStatus = !menu.is_active;
+					const { error } = await supabase
+						.from("menu_items")
+						.update({ is_active: newStatus })
+						.eq("id", id);
+
+					if (error) throw error;
+
+					get().updateMenu(id, { is_active: newStatus });
+					return { success: true };
+				} catch (error) {
+					console.error("Error toggling menu status:", error);
+					return { success: false, error };
 				}
 			},
 

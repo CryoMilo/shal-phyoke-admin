@@ -7,7 +7,6 @@ const useSubscribersStore = create(
 	persist(
 		(set, get) => ({
 			subscribers: [],
-			activeSubscribers: [],
 			loading: false,
 			error: null,
 
@@ -481,7 +480,6 @@ const useSubscribersStore = create(
 			name: "subscribers-store",
 			partialize: (state) => ({
 				subscribers: state.subscribers,
-				activeSubscribers: state.activeSubscribers,
 			}),
 		}
 	)

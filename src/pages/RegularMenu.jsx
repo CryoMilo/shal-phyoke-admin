@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { Plus, Edit, Trash2, Eye, X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRegularMenuStore } from "../stores/regularMenuStore";
 import { regularMenuSchema } from "../validations/regularMenuSchema";
 import { PageHeader } from "../components/common/PageHeader";
+import RegularMenuCard from "../components/menu/RegularMenuCard";
 
 const RegularMenuPage = () => {
 	const {
@@ -15,13 +16,14 @@ const RegularMenuPage = () => {
 		updateMenuById,
 		deleteMenuById,
 		getMenusByCategory,
+		toggleMenuStatus,
 	} = useRegularMenuStore();
 
 	const [showModal, setShowModal] = useState(false);
 	const [showDetailsModal, setShowDetailsModal] = useState(false);
 	const [editingMenu, setEditingMenu] = useState(null);
 	const [selectedMenu, setSelectedMenu] = useState(null);
-	const [activeCategory, setActiveCategory] = useState("all"); // "all", "Regular", "Regular_Extra", "Regular_Drink"
+	const [activeCategory, setActiveCategory] = useState("all"); // "all", "Regular", "Regular_Extras", "Regular_Drinks"
 
 	const {
 		register,
@@ -114,18 +116,13 @@ const RegularMenuPage = () => {
 		}
 	};
 
-	const getCategoryBadgeColor = (category) => {
-		switch (category) {
-			case "Regular":
-				return "badge-primary";
-			case "Regular_Extra":
-				return "badge-secondary";
-			case "Regular_Drink":
-				return "badge-accent";
-			default:
-				return "badge-outline";
+	const handleToggleStatus = async (id) => {
+		const result = await toggleMenuStatus(id);
+		if (!result.success) {
+			alert("Error updating menu status");
 		}
 	};
+
 
 	if (loading) {
 		return (
@@ -157,7 +154,7 @@ const RegularMenuPage = () => {
 				<button
 					className={`tab ${activeCategory === "all" ? "tab-active" : ""}`}
 					onClick={() => setActiveCategory("all")}>
-					All Items ({menus.length})
+					All ({menus.length})
 				</button>
 				<button
 					className={`tab ${activeCategory === "Regular" ? "tab-active" : ""}`}
@@ -166,88 +163,38 @@ const RegularMenuPage = () => {
 				</button>
 				<button
 					className={`tab ${
-						activeCategory === "Regular_Extra" ? "tab-active" : ""
+						activeCategory === "Regular_Extras" ? "tab-active" : ""
 					}`}
-					onClick={() => setActiveCategory("Regular_Extra")}>
-					Extras ({getMenusByCategory("Regular_Extra").length})
+					onClick={() => setActiveCategory("Regular_Extras")}>
+					AddOns ({getMenusByCategory("Regular_Extras").length})
 				</button>
 				<button
 					className={`tab ${
-						activeCategory === "Regular_Drink" ? "tab-active" : ""
+						activeCategory === "Regular_Drinks" ? "tab-active" : ""
 					}`}
-					onClick={() => setActiveCategory("Regular_Drink")}>
-					Drinks ({getMenusByCategory("Regular_Drink").length})
+					onClick={() => setActiveCategory("Regular_Drinks")}>
+					Drinks ({getMenusByCategory("Regular_Drinks").length})
 				</button>
 			</div>
 
-			{/* Table */}
-			<div className="overflow-x-auto bg-base-100 rounded-lg shadow">
-				<table className="table table-zebra w-full">
-					<thead>
-						<tr>
-							<th>Name (English)</th>
-							<th>Name (Burmese)</th>
-							<th>Category</th>
-							<th>Price</th>
-							<th>Status</th>
-							<th>Actions</th>
-						</tr>
-					</thead>
-					<tbody>
-						{filteredMenus.map((menu) => (
-							<tr key={menu.id}>
-								<td>
-									<div className="font-medium">{menu.name_english || "-"}</div>
-									{/* <div className="text-sm text-gray-500">
-										{menu.name_thai || "-"}
-									</div> */}
-								</td>
-								<td className="font-medium">{menu.name_burmese}</td>
-								<td>
-									<span
-										className={`badge ${getCategoryBadgeColor(menu.category)}`}>
-										{menu.category}
-									</span>
-								</td>
-								<td>฿{menu.price}</td>
-								<td>
-									<span
-										className={`badge ${
-											menu.is_active ? "badge-success" : "badge-error"
-										}`}>
-										{menu.is_active ? "Active" : "Inactive"}
-									</span>
-								</td>
-								<td>
-									<div className="flex gap-2">
-										<button
-											className="btn btn-sm btn-ghost"
-											onClick={() => openDetailsModal(menu)}
-											title="View Details">
-											<Eye className="w-4 h-4" />
-										</button>
-										<button
-											className="btn btn-sm btn-ghost"
-											onClick={() => openEditModal(menu)}
-											title="Edit">
-											<Edit className="w-4 h-4" />
-										</button>
-										<button
-											className="btn btn-sm btn-ghost text-red-600"
-											onClick={() => handleDelete(menu.id)}
-											title="Delete">
-											<Trash2 className="w-4 h-4" />
-										</button>
-									</div>
-								</td>
-							</tr>
-						))}
-					</tbody>
-				</table>
-			</div>
+			{/* Card Grid */}
+			{filteredMenus.length > 0 ? (
+				<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+					{filteredMenus.map((menu) => (
+						<RegularMenuCard
+							key={menu.id}
+							menu={menu}
+							onEdit={openEditModal}
+							onDelete={handleDelete}
+							onViewDetails={openDetailsModal}
+							onToggleStatus={handleToggleStatus}
+						/>
+					))}
+				</div>
+			) : null}
 
 			{filteredMenus.length === 0 && (
-				<div className="text-center py-12 bg-base-100 rounded-lg">
+				<div className="text-center py-12 bg-base-100 rounded-lg shadow">
 					<p className="text-gray-500 text-lg mb-4">
 						{activeCategory === "all"
 							? "No menu items found"
@@ -340,13 +287,13 @@ const RegularMenuPage = () => {
 									<label className="label">
 										<span className="label-text">Category *</span>
 									</label>
-									<select
-										{...register("category")}
-										className="select select-bordered w-full">
-										<option value="Regular">Regular</option>
-										<option value="Regular_Extra">Extra</option>
-										<option value="Regular_Drink">Drink</option>
-									</select>
+								<select
+									{...register("category")}
+									className="select select-bordered w-full">
+									<option value="Regular">Regular</option>
+									<option value="Regular_Extras">AddOns</option>
+									<option value="Regular_Drinks">Drinks</option>
+								</select>
 									{errors.category && (
 										<span className="text-red-500 text-sm">
 											{errors.category.message}
