@@ -2,7 +2,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { supabase } from "../services/supabase";
-import { useRegularMenuStore } from "./regularMenuStore";
+import useMenuStore from "./menuStore";
 
 const useOrderCreationStore = create(
 	persist(
@@ -154,9 +154,7 @@ const useOrderCreationStore = create(
 					.filter(Boolean);
 
 				// Get regular menu items
-				const regularMenuItems = useRegularMenuStore
-					.getState()
-					.getAllRegularItems();
+				const regularMenuItems = useMenuStore.getState().getAllRegularItems();
 
 				// Combine and remove duplicates
 				const allItems = [...rotatingMenuItems, ...regularMenuItems];

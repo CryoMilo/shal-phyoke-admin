@@ -2,28 +2,29 @@ import React, { useState, useEffect } from "react";
 import { Plus, X } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRegularMenuStore } from "../stores/regularMenuStore";
+import useMenuStore from "../stores/menuStore";
 import { regularMenuSchema } from "../validations/regularMenuSchema";
 import { PageHeader } from "../components/common/PageHeader";
 import RegularMenuCard from "../components/menu/RegularMenuCard";
 
 const RegularMenuPage = () => {
 	const {
-		menus,
+		allMenuItems,
 		loading,
-		fetchMenus,
-		createMenu,
-		updateMenuById,
-		deleteMenuById,
-		getMenusByCategory,
+		fetchRegularMenuItems,
+		createMenuItem,
+		updateMenuItemById,
+		deleteMenuItemById,
+		getRegularItemsByCategory,
 		toggleMenuStatus,
-	} = useRegularMenuStore();
+		getRegularCategories,
+	} = useMenuStore();
 
 	const [showModal, setShowModal] = useState(false);
 	const [showDetailsModal, setShowDetailsModal] = useState(false);
 	const [editingMenu, setEditingMenu] = useState(null);
 	const [selectedMenu, setSelectedMenu] = useState(null);
-	const [activeCategory, setActiveCategory] = useState("all"); // "all", "Regular", "Regular_Extras", "Regular_Drinks"
+	const [activeCategory, setActiveCategory] = useState("all");
 
 	const {
 		register,
@@ -39,12 +40,40 @@ const RegularMenuPage = () => {
 	const watchImageUrl = watch("image_url");
 
 	useEffect(() => {
-		fetchMenus();
+		fetchRegularMenuItems();
 	}, []);
+
+	// Get regular items only (filtered from all items)
+	const regularItems = allMenuItems.filter((item) => item.is_regular);
 
 	// Filter menus based on active category
 	const filteredMenus =
-		activeCategory === "all" ? menus : getMenusByCategory(activeCategory);
+		activeCategory === "all"
+			? regularItems
+			: getRegularItemsByCategory(activeCategory);
+
+	// Get all regular categories
+	const regularCategories = getRegularCategories();
+
+	// Category display names
+	const categoryDisplayNames = {
+		Drink: "Drinks",
+		Extra: "Extras & Sides",
+		Rice: "Rice Dishes",
+		Noodles: "Noodles",
+		Combo: "Combos",
+		Other: "Others",
+	};
+
+	// Available categories for form
+	const availableCategories = [
+		"Drink",
+		"Extra",
+		"Rice",
+		"Noodles",
+		"Combo",
+		"Other",
+	];
 
 	const openCreateModal = () => {
 		setEditingMenu(null);
@@ -53,11 +82,12 @@ const RegularMenuPage = () => {
 			name_english: "",
 			name_thai: "",
 			price: 0,
-			category: "Regular", // Default to Regular
+			category: "Drink", // Default
 			taste_profile: "",
 			description: "",
 			image_url: "",
 			is_active: true,
+			is_regular: true, // Always true for regular menu page
 		});
 		setShowModal(true);
 	};
@@ -73,6 +103,7 @@ const RegularMenuPage = () => {
 		setValue("description", menu.description || "");
 		setValue("image_url", menu.image_url || "");
 		setValue("is_active", menu.is_active);
+		setValue("is_regular", true);
 		setShowModal(true);
 	};
 
@@ -83,11 +114,14 @@ const RegularMenuPage = () => {
 
 	const onSubmit = async (data) => {
 		try {
+			// Ensure is_regular is always true for this page
+			data.is_regular = true;
+
 			let result;
 			if (editingMenu) {
-				result = await updateMenuById(editingMenu.id, data);
+				result = await updateMenuItemById(editingMenu.id, data);
 			} else {
-				result = await createMenu(data);
+				result = await createMenuItem(data);
 			}
 
 			if (result.error) {
@@ -96,19 +130,23 @@ const RegularMenuPage = () => {
 
 			setShowModal(false);
 			reset();
+			// Refresh the data
+			await fetchRegularMenuItems();
 		} catch (error) {
 			console.error("Error saving menu:", error);
-			alert("Error saving menu item");
+			alert("Error saving menu item: " + error.message);
 		}
 	};
 
 	const handleDelete = async (id) => {
 		if (confirm("Are you sure you want to delete this menu item?")) {
 			try {
-				const result = await deleteMenuById(id);
+				const result = await deleteMenuItemById(id);
 				if (result.error) {
 					throw result.error;
 				}
+				// Refresh the data
+				await fetchRegularMenuItems();
 			} catch (error) {
 				console.error("Error deleting menu:", error);
 				alert("Error deleting menu item");
@@ -121,8 +159,9 @@ const RegularMenuPage = () => {
 		if (!result.success) {
 			alert("Error updating menu status");
 		}
+		// Refresh the data
+		await fetchRegularMenuItems();
 	};
-
 
 	if (loading) {
 		return (
@@ -150,31 +189,21 @@ const RegularMenuPage = () => {
 			/>
 
 			{/* Category Filter Tabs */}
-			<div className="tabs tabs-boxed mb-6 justify-center">
+			<div className="tabs tabs-boxed mb-6 justify-center flex-wrap">
 				<button
 					className={`tab ${activeCategory === "all" ? "tab-active" : ""}`}
 					onClick={() => setActiveCategory("all")}>
-					All ({menus.length})
+					All ({regularItems.length})
 				</button>
-				<button
-					className={`tab ${activeCategory === "Regular" ? "tab-active" : ""}`}
-					onClick={() => setActiveCategory("Regular")}>
-					Regular ({getMenusByCategory("Regular").length})
-				</button>
-				<button
-					className={`tab ${
-						activeCategory === "Regular_Extras" ? "tab-active" : ""
-					}`}
-					onClick={() => setActiveCategory("Regular_Extras")}>
-					AddOns ({getMenusByCategory("Regular_Extras").length})
-				</button>
-				<button
-					className={`tab ${
-						activeCategory === "Regular_Drinks" ? "tab-active" : ""
-					}`}
-					onClick={() => setActiveCategory("Regular_Drinks")}>
-					Drinks ({getMenusByCategory("Regular_Drinks").length})
-				</button>
+				{regularCategories.map((category) => (
+					<button
+						key={category}
+						className={`tab ${activeCategory === category ? "tab-active" : ""}`}
+						onClick={() => setActiveCategory(category)}>
+						{categoryDisplayNames[category] || category} (
+						{getRegularItemsByCategory(category).length})
+					</button>
+				))}
 			</div>
 
 			{/* Card Grid */}
@@ -197,10 +226,10 @@ const RegularMenuPage = () => {
 				<div className="text-center py-12 bg-base-100 rounded-lg shadow">
 					<p className="text-gray-500 text-lg mb-4">
 						{activeCategory === "all"
-							? "No menu items found"
-							: `No ${activeCategory
-									.replace("Regular_", "")
-									.toLowerCase()} items found`}
+							? "No regular menu items found"
+							: `No ${
+									categoryDisplayNames[activeCategory] || activeCategory
+							  } items found`}
 					</p>
 					<button className="btn btn-primary" onClick={openCreateModal}>
 						<Plus className="w-4 h-4 mr-2" />
@@ -254,9 +283,9 @@ const RegularMenuPage = () => {
 										className="input input-bordered"
 										placeholder="Enter Burmese name"
 									/>
-									{errors.name && (
+									{errors.name_burmese && (
 										<span className="text-red-500 text-sm">
-											{errors.name.message}
+											{errors.name_burmese.message}
 										</span>
 									)}
 								</div>
@@ -287,13 +316,15 @@ const RegularMenuPage = () => {
 									<label className="label">
 										<span className="label-text">Category *</span>
 									</label>
-								<select
-									{...register("category")}
-									className="select select-bordered w-full">
-									<option value="Regular">Regular</option>
-									<option value="Regular_Extras">AddOns</option>
-									<option value="Regular_Drinks">Drinks</option>
-								</select>
+									<select
+										{...register("category")}
+										className="select select-bordered w-full">
+										{availableCategories.map((category) => (
+											<option key={category} value={category}>
+												{categoryDisplayNames[category] || category}
+											</option>
+										))}
+									</select>
 									{errors.category && (
 										<span className="text-red-500 text-sm">
 											{errors.category.message}
@@ -367,6 +398,9 @@ const RegularMenuPage = () => {
 								</div>
 							</div>
 
+							{/* Hidden is_regular field */}
+							<input type="hidden" {...register("is_regular")} value="true" />
+
 							<div className="modal-action">
 								<button
 									type="button"
@@ -423,7 +457,8 @@ const RegularMenuPage = () => {
 							<div>
 								<strong>Category:</strong>
 								<span className="badge badge-outline ml-2">
-									{selectedMenu.category}
+									{categoryDisplayNames[selectedMenu.category] ||
+										selectedMenu.category}
 								</span>
 							</div>
 							<div>
@@ -439,6 +474,14 @@ const RegularMenuPage = () => {
 									<strong>Description:</strong> {selectedMenu.description}
 								</div>
 							)}
+							<div>
+								<strong>Type:</strong>
+								<span className="badge badge-primary ml-2">
+									{selectedMenu.is_regular
+										? "Regular (Always Available)"
+										: "Rotating"}
+								</span>
+							</div>
 							<div>
 								<strong>Status:</strong>
 								<span

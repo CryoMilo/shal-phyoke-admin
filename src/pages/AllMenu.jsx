@@ -14,20 +14,24 @@ import MenuDetailsModal from "../components/menu/MenuDetailsModal";
 
 const AllMenuPage = () => {
 	const {
-		menus,
+		allMenuItems: menus,
 		loading,
 		filteredMenus,
 		searchQuery,
 		activeCategory,
 		showActiveOnly,
-		fetchMenus,
-		addMenu,
-		updateMenu,
-		deleteMenu,
+		showRegularOnly,
+		fetchAllMenuItems,
+		addMenuItem,
+		updateMenuItem,
+		deleteMenuItem,
 		setSearchQuery,
 		setActiveCategory,
 		setShowActiveOnly,
-		quickFilterRegularItems,
+		setShowRegularOnly,
+		showOnlyRegularItems,
+		showOnlyRotatingItems,
+		resetFilters,
 		toggleMenuStatus,
 	} = useMenuStore();
 
@@ -41,8 +45,8 @@ const AllMenuPage = () => {
 	});
 
 	useEffect(() => {
-		fetchMenus();
-	}, [fetchMenus]);
+		fetchAllMenuItems();
+	}, [fetchAllMenuItems]);
 
 	// Extract unique categories
 	const categories = [...new Set(menus.map((menu) => menu.category))].sort();
@@ -60,6 +64,7 @@ const AllMenuPage = () => {
 			description: "",
 			sensitive_ingredients: "",
 			is_active: true,
+			is_regular: true, // Added is_regular field
 		});
 		setShowModal(true);
 	};
@@ -81,6 +86,7 @@ const AllMenuPage = () => {
 				: ""
 		);
 		setValue("is_active", menu.is_active);
+		setValue("is_regular", menu.is_regular); // Added is_regular field
 		setShowModal(true);
 	};
 
@@ -105,14 +111,14 @@ const AllMenuPage = () => {
 					.eq("id", editingMenu.id);
 
 				if (error) throw error;
-				updateMenu(editingMenu.id, menuData);
+				updateMenuItem(editingMenu.id, menuData);
 			} else {
 				const { data: newMenu, error } = await supabase
 					.from("menu_items")
 					.insert([menuData]);
 
 				if (error) throw error;
-				addMenu(newMenu[0]);
+				addMenuItem(newMenu[0]);
 			}
 
 			setShowModal(false);
@@ -132,7 +138,7 @@ const AllMenuPage = () => {
 					.eq("id", id);
 
 				if (error) throw error;
-				deleteMenu(id);
+				deleteMenuItem(id);
 			} catch (error) {
 				console.error("Error deleting menu:", error);
 				alert("Error deleting menu item");
@@ -145,6 +151,10 @@ const AllMenuPage = () => {
 		if (!result.success) {
 			alert("Error updating menu status");
 		}
+	};
+
+	const handleClearFilters = () => {
+		resetFilters();
 	};
 
 	if (loading && menus.length === 0) {
@@ -168,7 +178,7 @@ const AllMenuPage = () => {
 				]}
 			/>
 
-			{/* Filters */}
+			{/* Filters - Updated with new props */}
 			<MenuFilters
 				searchQuery={searchQuery}
 				setSearchQuery={setSearchQuery}
@@ -176,7 +186,10 @@ const AllMenuPage = () => {
 				setActiveCategory={setActiveCategory}
 				showActiveOnly={showActiveOnly}
 				setShowActiveOnly={setShowActiveOnly}
-				quickFilterRegularItems={quickFilterRegularItems}
+				showRegularOnly={showRegularOnly}
+				setShowRegularOnly={setShowRegularOnly}
+				showOnlyRegularItems={showOnlyRegularItems}
+				showOnlyRotatingItems={showOnlyRotatingItems}
 				categories={categories}
 				filteredCount={filteredMenus.length}
 				totalCount={menus.length}
@@ -203,14 +216,8 @@ const AllMenuPage = () => {
 							Create Your First Menu Item
 						</button>
 					) : (
-						<button
-							className="btn btn-outline"
-							onClick={() => {
-								setSearchQuery("");
-								setActiveCategory("all");
-								setShowActiveOnly(true);
-							}}>
-							Clear Filters
+						<button className="btn btn-outline" onClick={handleClearFilters}>
+							Clear All Filters
 						</button>
 					)}
 				</div>

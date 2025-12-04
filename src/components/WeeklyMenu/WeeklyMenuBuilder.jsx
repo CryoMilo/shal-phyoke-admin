@@ -5,7 +5,7 @@ import {
 	useWeeklyMenuStore,
 } from "../../stores/weeklyMenuStore";
 import { supabase } from "../../services/supabase";
-import { ChevronLeft, ChevronRight, Plus, Save, X } from "lucide-react";
+import { ChevronLeft, Plus, Save, X } from "lucide-react";
 import { PageHeader } from "../common/PageHeader";
 
 export const WeeklyMenuBuilder = ({ weeklyMenu, onBack }) => {
@@ -37,10 +37,8 @@ export const WeeklyMenuBuilder = ({ weeklyMenu, onBack }) => {
 	// Filter out regular categories and extract unique rotating categories
 	useEffect(() => {
 		if (menuItems.length > 0) {
-			// Filter out regular menu items
-			const filteredItems = menuItems.filter(
-				(item) => !REGULAR_CATEGORIES.includes(item.category)
-			);
+			// Filter out regular menu items (only show rotating items)
+			const filteredItems = menuItems.filter((item) => !item.is_regular);
 
 			setRotatingMenuItems(filteredItems);
 

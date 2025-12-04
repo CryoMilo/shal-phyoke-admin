@@ -15,8 +15,12 @@ export const AddOnsStep = ({
 		return addOn ? addOn.quantity : 0;
 	};
 
-	// Group items by category
-	const groupedItems = availableAddOnItems.reduce((acc, item) => {
+	// Separate regular items from rotating items
+	const regularItems = availableAddOnItems.filter((item) => item.is_regular);
+	const rotatingItems = availableAddOnItems.filter((item) => !item.is_regular);
+
+	// Group regular items by category
+	const groupedRegularItems = regularItems.reduce((acc, item) => {
 		const category = item.category || "Other";
 		if (!acc[category]) {
 			acc[category] = [];
@@ -25,17 +29,27 @@ export const AddOnsStep = ({
 		return acc;
 	}, {});
 
-	// Define category order and display names for regular items
-	const categoryOrder = {
-		Regular_Extra: "Extras & Sides",
-		Regular_Drink: "Drinks & Beverages",
-		Regular: "Regular Menu Items",
+	// Define display order for regular categories
+	const regularCategoryOrder = {
+		Drink: "Drinks",
+		Extra: "Extras & Sides",
+		Rice: "Rice Dishes",
+		Noodles: "Noodles",
+		Combo: "Combos",
+		Other: "Others",
 	};
 
-	// Get rotating menu items (all categories not in categoryOrder)
-	const rotatingMenuItems = Object.keys(groupedItems)
-		.filter((category) => !categoryOrder[category])
-		.flatMap((category) => groupedItems[category]);
+	// Get categories in display order
+	const sortedRegularCategories = Object.keys(groupedRegularItems).sort(
+		(a, b) => {
+			const orderA = Object.keys(regularCategoryOrder).indexOf(a);
+			const orderB = Object.keys(regularCategoryOrder).indexOf(b);
+			if (orderA !== -1 && orderB !== -1) return orderA - orderB;
+			if (orderA !== -1) return -1;
+			if (orderB !== -1) return 1;
+			return a.localeCompare(b);
+		}
+	);
 
 	// Calculate total add-ons price
 	const totalAddOnsPrice = selectedAddOns.reduce((total, addOn) => {
@@ -53,26 +67,26 @@ export const AddOnsStep = ({
 
 			{/* Available Add-Ons by Category */}
 			<div className="space-y-8">
-				{/* Display regular categories in specified order */}
-				{Object.entries(categoryOrder).map(
-					([categoryKey, displayName]) =>
-						groupedItems[categoryKey]?.length > 0 && (
+				{/* Regular Items by Category */}
+				{sortedRegularCategories.map(
+					(category) =>
+						groupedRegularItems[category].length > 0 && (
 							<CategorySection
-								key={categoryKey}
-								categoryName={displayName}
-								items={groupedItems[categoryKey]}
+								key={`regular-${category}`}
+								categoryName={regularCategoryOrder[category] || category}
+								items={groupedRegularItems[category]}
 								getQuantity={getAddOnQuantity}
 								onQuantityChange={onAddOnQuantityChange}
 							/>
 						)
 				)}
 
-				{/* Display rotating menu items under "Daily Special Menu" */}
-				{rotatingMenuItems.length > 0 && (
+				{/* Rotating Items under "Today's Special Menu" */}
+				{rotatingItems.length > 0 && (
 					<CategorySection
 						key="daily-special"
-						categoryName="Daily Special Menu"
-						items={rotatingMenuItems}
+						categoryName="Tomorrow's Special Menu"
+						items={rotatingItems}
 						getQuantity={getAddOnQuantity}
 						onQuantityChange={onAddOnQuantityChange}
 					/>

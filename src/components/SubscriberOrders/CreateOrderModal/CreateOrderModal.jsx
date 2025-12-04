@@ -10,7 +10,7 @@ import { AddOnsStep } from "./AddOnsStep";
 import { subscriberOrderSchema } from "../../../validations/subscriberOrderSchema";
 import { useOrderCreationStore } from "../../../stores/subscriberOrderStore";
 import useSubscribersStore from "../../../stores/useSubscriberStore";
-import { useRegularMenuStore } from "../../../stores/regularMenuStore";
+import useMenuStore from "../../../stores/menuStore";
 
 export const CreateOrderModal = ({ showModal, onClose, onOrderCreated }) => {
 	const {
@@ -43,7 +43,7 @@ export const CreateOrderModal = ({ showModal, onClose, onOrderCreated }) => {
 	} = useOrderCreationStore();
 
 	const { subscribers } = useSubscribersStore();
-	const { getAllRegularItems } = useRegularMenuStore();
+	const { getAllRegularItems } = useMenuStore();
 
 	// Fetch menu items when modal opens
 	React.useEffect(() => {
