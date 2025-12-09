@@ -1,16 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { Plus, X } from "lucide-react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { supabase } from "../services/supabase";
-import { menuSchema } from "../validations/menuSchema";
+import { Plus } from "lucide-react";
 import useMenuStore from "../stores/menuStore";
 import Loading from "../components/common/Loading";
 import { PageHeader } from "../components/common/PageHeader";
 import MenuFilters from "../components/menu/MenuFilters";
 import MenuTable from "../components/menu/MenuTable";
 import MenuFormModal from "../components/menu/MenuFormModal";
-import MenuDetailsModal from "../components/menu/MenuDetailsModal";
 
 const AllMenuPage = () => {
 	const {
@@ -22,9 +17,9 @@ const AllMenuPage = () => {
 		showActiveOnly,
 		showRegularOnly,
 		fetchAllMenuItems,
-		addMenuItem,
-		updateMenuItem,
-		deleteMenuItem,
+		createMenuItem,
+		updateMenuItemById,
+		deleteMenuItemById,
 		setSearchQuery,
 		setActiveCategory,
 		setShowActiveOnly,
@@ -33,60 +28,28 @@ const AllMenuPage = () => {
 		showOnlyRotatingItems,
 		resetFilters,
 		toggleMenuStatus,
+		getAllCategories,
 	} = useMenuStore();
 
 	const [showModal, setShowModal] = useState(false);
-	const [showDetailsModal, setShowDetailsModal] = useState(false);
 	const [editingMenu, setEditingMenu] = useState(null);
+	const [formLoading, setFormLoading] = useState(false);
 	const [selectedMenu, setSelectedMenu] = useState(null);
-
-	const { reset, setValue } = useForm({
-		resolver: zodResolver(menuSchema),
-	});
+	const [showDetailsModal, setShowDetailsModal] = useState(false);
 
 	useEffect(() => {
 		fetchAllMenuItems();
 	}, [fetchAllMenuItems]);
 
-	// Extract unique categories
-	const categories = [...new Set(menus.map((menu) => menu.category))].sort();
+	const categories = getAllCategories();
 
 	const openCreateModal = () => {
 		setEditingMenu(null);
-		reset({
-			name_burmese: "",
-			name_english: "",
-			name_thai: "",
-			price: 0,
-			taste_profile: "",
-			category: "Chicken",
-			image_url: "",
-			description: "",
-			sensitive_ingredients: "",
-			is_active: true,
-			is_regular: true, // Added is_regular field
-		});
 		setShowModal(true);
 	};
 
 	const openEditModal = (menu) => {
 		setEditingMenu(menu);
-		setValue("name_burmese", menu.name_burmese);
-		setValue("name_english", menu.name_english);
-		setValue("name_thai", menu.name_thai || "");
-		setValue("price", menu.price);
-		setValue("taste_profile", menu.taste_profile || "");
-		setValue("category", menu.category);
-		setValue("image_url", menu.image_url || "");
-		setValue("description", menu.description || "");
-		setValue(
-			"sensitive_ingredients",
-			Array.isArray(menu.sensitive_ingredients)
-				? menu.sensitive_ingredients.join(", ")
-				: ""
-		);
-		setValue("is_active", menu.is_active);
-		setValue("is_regular", menu.is_regular); // Added is_regular field
 		setShowModal(true);
 	};
 
@@ -95,50 +58,39 @@ const AllMenuPage = () => {
 		setShowDetailsModal(true);
 	};
 
-	const handleSubmit = async (data) => {
+	const handleFormSubmit = async (data) => {
 		try {
-			const menuData = {
-				...data,
-				sensitive_ingredients: data.sensitive_ingredients
-					? data.sensitive_ingredients.split(",").map((s) => s.trim())
-					: [],
-			};
+			setFormLoading(true);
 
+			let result;
 			if (editingMenu) {
-				const { error } = await supabase
-					.from("menu_items")
-					.update(menuData)
-					.eq("id", editingMenu.id);
-
-				if (error) throw error;
-				updateMenuItem(editingMenu.id, menuData);
+				result = await updateMenuItemById(editingMenu.id, data);
 			} else {
-				const { data: newMenu, error } = await supabase
-					.from("menu_items")
-					.insert([menuData]);
+				result = await createMenuItem(data);
+			}
 
-				if (error) throw error;
-				addMenuItem(newMenu[0]);
+			if (result.error) {
+				throw result.error;
 			}
 
 			setShowModal(false);
-			reset();
+			setEditingMenu(null);
+			await fetchAllMenuItems();
 		} catch (error) {
 			console.error("Error saving menu:", error);
-			alert("Error saving menu item");
+			alert("Error saving menu item: " + error.message);
+		} finally {
+			setFormLoading(false);
 		}
 	};
 
 	const handleDelete = async (id) => {
 		if (confirm("Are you sure you want to delete this menu item?")) {
 			try {
-				const { error } = await supabase
-					.from("menu_items")
-					.delete()
-					.eq("id", id);
-
-				if (error) throw error;
-				deleteMenuItem(id);
+				const result = await deleteMenuItemById(id);
+				if (result.error) {
+					throw result.error;
+				}
 			} catch (error) {
 				console.error("Error deleting menu:", error);
 				alert("Error deleting menu item");
@@ -162,15 +114,16 @@ const AllMenuPage = () => {
 	}
 
 	return (
-		<div className="container mx-auto p-6">
+		<div className="container mx-auto p-3 md:p-6">
 			{/* Header */}
 			<PageHeader
 				title="All Menu Items"
+				description="Manage both regular and rotating menu items"
 				buttons={[
 					{
 						type: "button",
-						label: "Create Menu Item",
-						shortLabel: "Create Menu Item",
+						label: "Add Item",
+						shortLabel: "Add",
 						icon: Plus,
 						onClick: openCreateModal,
 						variant: "primary",
@@ -178,7 +131,7 @@ const AllMenuPage = () => {
 				]}
 			/>
 
-			{/* Filters - Updated with new props */}
+			{/* Filters */}
 			<MenuFilters
 				searchQuery={searchQuery}
 				setSearchQuery={setSearchQuery}
@@ -197,15 +150,17 @@ const AllMenuPage = () => {
 
 			{/* Table */}
 			{filteredMenus.length > 0 ? (
-				<MenuTable
-					menus={filteredMenus}
-					openEditModal={openEditModal}
-					openDetailsModal={openDetailsModal}
-					handleDelete={handleDelete}
-					toggleMenuStatus={handleToggleStatus}
-				/>
+				<div className="overflow-x-auto">
+					<MenuTable
+						menus={filteredMenus}
+						openEditModal={openEditModal}
+						openDetailsModal={openDetailsModal}
+						handleDelete={handleDelete}
+						toggleMenuStatus={handleToggleStatus}
+					/>
+				</div>
 			) : (
-				<div className="text-center py-12 bg-base-100 rounded-lg">
+				<div className="text-center py-8 md:py-12 bg-base-100 rounded-lg shadow-sm border border-base-200">
 					<p className="text-gray-500 text-lg mb-4">
 						{menus.length === 0
 							? "No menu items found"
@@ -213,6 +168,7 @@ const AllMenuPage = () => {
 					</p>
 					{menus.length === 0 ? (
 						<button className="btn btn-primary" onClick={openCreateModal}>
+							<Plus className="w-4 h-4 mr-2" />
 							Create Your First Menu Item
 						</button>
 					) : (
@@ -228,16 +184,37 @@ const AllMenuPage = () => {
 				showModal={showModal}
 				setShowModal={setShowModal}
 				editingMenu={editingMenu}
-				handleSubmit={handleSubmit}
+				handleSubmit={handleFormSubmit}
+				loading={formLoading}
+				isRegularOnly={false}
 			/>
 
-			{/* Details Modal */}
+			{/* Details Modal - You'll need to create this component */}
 			{showDetailsModal && selectedMenu && (
-				<MenuDetailsModal
-					selectedMenu={selectedMenu}
-					setShowDetailsModal={setShowDetailsModal}
-				/>
+				<div className="modal modal-open">
+					<div className="modal-box">
+						<h3 className="font-bold text-lg">{selectedMenu.name_english}</h3>
+						<p className="py-4">Details content here</p>
+						<div className="modal-action">
+							<button
+								className="btn"
+								onClick={() => setShowDetailsModal(false)}>
+								Close
+							</button>
+						</div>
+					</div>
+				</div>
 			)}
+
+			{/* Floating Action Button for Mobile */}
+			<div className="fixed bottom-6 right-6 z-30 sm:hidden">
+				<button
+					className="btn btn-primary btn-circle shadow-lg"
+					onClick={openCreateModal}
+					aria-label="Add menu item">
+					<Plus className="w-6 h-6" />
+				</button>
+			</div>
 		</div>
 	);
 };

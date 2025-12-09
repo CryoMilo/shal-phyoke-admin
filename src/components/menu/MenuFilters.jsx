@@ -8,7 +8,6 @@ const MenuFilters = ({
 	setActiveCategory,
 	showActiveOnly,
 	setShowActiveOnly,
-	quickFilterRegularItems,
 	categories,
 	filteredCount,
 	totalCount,
@@ -45,13 +44,6 @@ const MenuFilters = ({
 						))}
 					</select>
 				</div>
-
-				{/* Quick Filter Button */}
-				<button
-					onClick={quickFilterRegularItems}
-					className="btn btn-sm btn-outline">
-					Regular Menu Items
-				</button>
 
 				{/* Active/Inactive Toggle */}
 				<div className="flex items-center gap-2">
