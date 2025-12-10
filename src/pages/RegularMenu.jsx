@@ -4,24 +4,7 @@ import useMenuStore from "../stores/menuStore";
 import { PageHeader } from "../components/common/PageHeader";
 import RegularMenuCard from "../components/menu/RegularMenuCard";
 import MenuFormModal from "../components/menu/MenuFormModal";
-
-// Category display names
-const CATEGORY_DISPLAY_NAMES = {
-	Chicken: "Chicken 🍗",
-	Pork: "Pork 🐷",
-	Beef: "Beef 🥩",
-	Vege: "Vegetarian 🥬",
-	Salad: "Salad 🥗",
-	Seafood: "Seafood 🐟",
-	Soup: "Soup 🍲",
-	Side: "Side Dishes",
-	Rice: "Rice Dishes",
-	Noodles: "Noodles",
-	Drink: "Drinks 🥤",
-	Extra: "Extras",
-	Combo: "Combos 🍱",
-	Other: "Others",
-};
+import { CATEGORY_DISPLAY_NAMES } from "../constants";
 
 const RegularMenuPage = () => {
 	const {

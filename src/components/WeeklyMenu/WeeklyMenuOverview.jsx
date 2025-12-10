@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { Plus, Edit } from "lucide-react";
+import { Plus, Edit, Image } from "lucide-react";
 import { useWeeklyMenuStore } from "../../stores/weeklyMenuStore";
 import { formatDateRange } from "../../utils/formatDateRange";
 import Loading from "../common/Loading";
 import { WeeklyMenuPublishControl } from "./WeeklyMenuPublishControl";
 import { PageHeader } from "../common/PageHeader";
+import DailyMenuImageModal from "./DayMenuEditor";
 
 export const WeeklyMenuOverview = ({ currentWeeklyMenu, onEditWeek }) => {
 	const { weeklyMenus, weeklyMenusLoading, fetchWeeklyMenus } =
@@ -94,6 +95,8 @@ export const WeeklyMenuOverview = ({ currentWeeklyMenu, onEditWeek }) => {
 const WeeklyMenuGrid = ({ currentWeeklyMenu, weeklyMenu, onEdit }) => {
 	const { fetchWeeklyMenuWithItems } = useWeeklyMenuStore();
 	const [menuData, setMenuData] = useState(null);
+	const [selectedDay, setSelectedDay] = useState(null);
+	const [showEditorModal, setShowEditorModal] = useState(false);
 
 	useEffect(() => {
 		if (weeklyMenu?.id) {
@@ -118,6 +121,11 @@ const WeeklyMenuGrid = ({ currentWeeklyMenu, weeklyMenu, onEdit }) => {
 			?.filter((item) => item.weekday === day)
 			.map((item) => item.menu_items) || [];
 
+	const handleOpenEditor = (day) => {
+		setSelectedDay(day);
+		setShowEditorModal(true);
+	};
+
 	return (
 		<div className="bg-base-200 rounded-lg p-6">
 			<PageHeader
@@ -126,7 +134,7 @@ const WeeklyMenuGrid = ({ currentWeeklyMenu, weeklyMenu, onEdit }) => {
 						type: "custom",
 						component: (
 							<WeeklyMenuPublishControl
-								currentWeeklyMenu={currentWeeklyMenu || weeklyMenu} // Pass whichever exists
+								currentWeeklyMenu={currentWeeklyMenu || weeklyMenu}
 							/>
 						),
 					},
@@ -146,8 +154,16 @@ const WeeklyMenuGrid = ({ currentWeeklyMenu, weeklyMenu, onEdit }) => {
 				{days.map((day) => (
 					<div
 						key={day}
-						className="bg-base-100 rounded-lg p-4 border-2 border-gray-300">
-						<h3 className="font-bold text-lg mb-3 text-center">{day}</h3>
+						className="bg-base-100 rounded-lg p-4 border-2 border-gray-300 relative">
+						{/* Mini Image Editor Button */}
+						<button
+							className="absolute top-2 right-2 btn btn-circle btn-xs btn-ghost hover:bg-base-300"
+							title="Create Menu Image"
+							onClick={() => handleOpenEditor(day)}>
+							<Image className="w-4 h-4" />
+						</button>
+
+						<h3 className="font-bold text-lg mb-3 text-center pr-8">{day}</h3>
 						<div className="space-y-2 min-h-[200px]">
 							{getItemsForDay(day).map((item) => (
 								<div key={item.id} className="text-sm p-2 rounded">
@@ -161,6 +177,20 @@ const WeeklyMenuGrid = ({ currentWeeklyMenu, weeklyMenu, onEdit }) => {
 					</div>
 				))}
 			</div>
+
+			{/* Day Menu Editor Modal */}
+			{showEditorModal && selectedDay && (
+				<DailyMenuImageModal
+					day={selectedDay}
+					menuItems={getItemsForDay(selectedDay)}
+					weekRange={`${formatDateRange(
+						weeklyMenu.week_from,
+						weeklyMenu.week_to
+					)}`}
+					isOpen={showEditorModal}
+					onClose={() => setShowEditorModal(false)}
+				/>
+			)}
 		</div>
 	);
 };

@@ -2,41 +2,7 @@ import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { menuSchema } from "../../validations/menuSchema";
 import { zodResolver } from "@hookform/resolvers/zod";
-
-// Category display names for better UX
-const CATEGORY_DISPLAY_NAMES = {
-	Chicken: "Chicken 🍗",
-	Pork: "Pork 🐷",
-	Beef: "Beef 🥩",
-	Vege: "Vegetarian 🥬",
-	Salad: "Salad 🥗",
-	Seafood: "Seafood 🐟",
-	Soup: "Soup 🍲",
-	Side: "Side Dishes 🍚",
-	Rice: "Rice Dishes 🍚",
-	Noodles: "Noodles 🍜",
-	Drink: "Drinks 🥤",
-	Extra: "Extras & Sides",
-	Combo: "Combos 🍱",
-	Other: "Others",
-};
-
-const ALL_CATEGORIES = [
-	"Chicken",
-	"Pork",
-	"Beef",
-	"Vege",
-	"Salad",
-	"Seafood",
-	"Soup",
-	"Side",
-	"Rice",
-	"Noodles",
-	"Drink",
-	"Extra",
-	"Combo",
-	"Other",
-];
+import { ALL_CATEGORIES, CATEGORY_DISPLAY_NAMES } from "../../constants";
 
 const MenuForm = ({
 	editingMenu,
