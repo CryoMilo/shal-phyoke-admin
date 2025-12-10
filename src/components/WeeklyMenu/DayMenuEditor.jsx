@@ -336,7 +336,7 @@ const DailyMenuImageModal = ({
 												<div className="grid grid-cols-2 gap-3">
 													{focItems.map((item) => (
 														<div key={item.id} className="text-center">
-															<div className="text-lg font-bold">
+															<div className="text-sm md:text-lg font-bold">
 																{item.name_burmese}
 															</div>
 															{item.name_english && (
@@ -351,7 +351,7 @@ const DailyMenuImageModal = ({
 										)}
 
 										{/* Footer - Restaurant Name */}
-										<div className="text-center pt-4 mt-4 border-t border-white/20">
+										{/* <div className="text-center pt-4 mt-4 border-t border-white/20">
 											<p
 												className="text-lg font-bold"
 												style={{
@@ -359,9 +359,9 @@ const DailyMenuImageModal = ({
 													color: "#fff",
 													textShadow: "1px 1px 3px rgba(0,0,0,0.8)",
 												}}>
-												Authentic Burmese Cuisine
+												Shal 
 											</p>
-										</div>
+										</div> */}
 									</div>
 								</div>
 							</div>
