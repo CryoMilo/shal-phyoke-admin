@@ -5,7 +5,7 @@ import { formatDateRange } from "../../utils/formatDateRange";
 import Loading from "../common/Loading";
 import { WeeklyMenuPublishControl } from "./WeeklyMenuPublishControl";
 import { PageHeader } from "../common/PageHeader";
-import DailyMenuImageModal from "./DayMenuEditor";
+import DailyMenuImageModal from "./DailyMenuImageModal";
 
 export const WeeklyMenuOverview = ({ currentWeeklyMenu, onEditWeek }) => {
 	const { weeklyMenus, weeklyMenusLoading, fetchWeeklyMenus } =
