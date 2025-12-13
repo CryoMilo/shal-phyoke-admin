@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { X, Camera, Type } from "lucide-react";
+import { X, Type } from "lucide-react";
 import { getTomorrowDate } from "../../utils/getTomorrowDate";
+import logo from "../../assets/logo.png";
 
 const DailyMenuImageModal = ({
 	day,
@@ -205,7 +206,7 @@ const DailyMenuImageModal = ({
 											}}>
 											<p className="text-xl font-bold">{day.toUpperCase()}</p>
 
-											<img className="w-2/3" src="/public/logo.png" />
+											<img className="w-2/3" src={logo} />
 
 											<p className="text-xl font-bold">{getTomorrowDate()}</p>
 										</div>
