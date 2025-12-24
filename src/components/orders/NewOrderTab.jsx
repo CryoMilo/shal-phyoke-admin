@@ -2,6 +2,19 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "../../services/supabase";
 
+const getTodayWeekday = () => {
+	const d = new Date();
+	const weekday = new Array(7);
+	weekday[0] = "Sunday";
+	weekday[1] = "Monday";
+	weekday[2] = "Tuesday";
+	weekday[3] = "Wednesday";
+	weekday[4] = "Thursday";
+	weekday[5] = "Friday";
+	weekday[6] = "Saturday";
+	return weekday[d.getDay()];
+};
+
 const NewOrderTab = ({
 	cart,
 	orderType,
@@ -27,69 +40,100 @@ const NewOrderTab = ({
 	processOrder,
 }) => {
 	const [menuItems, setMenuItems] = useState([]);
-	const [activeCategory, setActiveCategory] = useState("Regular");
-
-	useEffect(() => {
-		fetchMenuItems();
-	}, []);
+	const [todaysSpecialItems, setTodaysSpecialItems] = useState([]);
+	const [activeCategory, setActiveCategory] = useState("Today's Special");
 
 	const fetchMenuItems = async () => {
 		try {
-			// First, let's fetch ALL active menu items to see what categories we have
 			const { data, error } = await supabase
 				.from("menu_items")
 				.select("*")
 				.eq("is_active", true)
+				.eq("is_regular", true) // Only fetch regular menu items
 				.order("category")
 				.order("name_burmese");
-
 			if (error) throw error;
-
 			setMenuItems(data || []);
 		} catch (error) {
-			console.error("Error fetching menu items:", error);
+			console.error("Error fetching regular menu items:", error);
 		}
 	};
 
+	const fetchTodaysSpecialItems = async () => {
+		const today = getTodayWeekday();
+		try {
+			// 1. Find the latest published weekly menu
+			const { data: weeklyMenu, error: menuError } = await supabase
+				.from("weekly_menu")
+				.select("id")
+				.eq("status", "Published")
+				.order("created_at", { ascending: false })
+				.limit(1)
+				.single();
+
+			if (menuError || !weeklyMenu) {
+				if (menuError.code !== "PGRST116") {
+					// PGRST116: no rows found, which is fine
+					console.error("Error fetching weekly menu:", menuError);
+				}
+				return;
+			}
+
+			// 2. Fetch today's items from that menu
+			const { data: items, error: itemsError } = await supabase
+				.from("weekly_menu_items")
+				.select(
+					`
+          menu_items (
+            id,
+            name_burmese,
+            name_english,
+            name_thai,
+            price,
+            category,
+            image_url
+          )
+        `
+				)
+				.eq("weekly_menu_id", weeklyMenu.id)
+				.eq("weekday", today);
+
+			if (itemsError) throw itemsError;
+
+			// Flatten the data to get an array of menu_items
+			const specialItems = items.map((item) => item.menu_items);
+			setTodaysSpecialItems(specialItems);
+		} catch (error) {
+			console.error("Error fetching today's special items:", error);
+		}
+	};
+
+	useEffect(() => {
+		fetchMenuItems();
+		fetchTodaysSpecialItems();
+	}, []);
+
 	// Dynamically get categories from the actual data
 	const categories = React.useMemo(() => {
-		if (!menuItems.length) return ["Regular"];
+		const regularCategories = [
+			...new Set(menuItems.map((item) => item.category)),
+		];
 
-		const allCategories = [...new Set(menuItems.map((item) => item.category))];
+		const allCategories = [];
 
-		// Ensure we have at least the basic categories
-		const baseCategories = ["Regular", "Regular_Drinks", "Regular_Extras"];
-		const todaySpecial = "Today's Special";
-
-		// Combine base categories that exist in data with Today's Special
-		const availableCategories = baseCategories.filter((cat) =>
-			allCategories.includes(cat)
-		);
-
-		// Add Today's Special if there are any non-regular items
-		const hasNonRegular = menuItems.some(
-			(item) => !baseCategories.includes(item.category)
-		);
-
-		if (hasNonRegular) {
-			availableCategories.push(todaySpecial);
+		if (todaysSpecialItems.length > 0) {
+			allCategories.push("Today's Special");
 		}
 
-		return availableCategories.length > 0 ? availableCategories : allCategories;
-	}, [menuItems]);
+		return [...allCategories, ...regularCategories];
+	}, [menuItems, todaysSpecialItems]);
 
 	const filteredItems = React.useMemo(() => {
 		if (activeCategory === "Today's Special") {
-			// Show items that are NOT in the regular categories
-			return menuItems.filter(
-				(item) =>
-					!["Regular", "Regular_Drinks", "Regular_Extras"].includes(
-						item.category
-					)
-			);
+			return todaysSpecialItems;
 		}
 		return menuItems.filter((item) => item.category === activeCategory);
-	}, [menuItems, activeCategory]);
+	}, [menuItems, todaysSpecialItems, activeCategory]);
 
 	// Set default category to the first available one
 	React.useEffect(() => {
