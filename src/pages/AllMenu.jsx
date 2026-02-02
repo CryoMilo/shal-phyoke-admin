@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Plus } from "lucide-react";
 import useMenuStore from "../stores/menuStore";
-import Loading from "../components/common/Loading";
+import { Loading } from "../components/common/Loading";
 import { PageHeader } from "../components/common/PageHeader";
 import MenuFilters from "../components/menu/MenuFilters";
 import MenuTable from "../components/menu/MenuTable";

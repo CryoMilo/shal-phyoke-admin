@@ -13,7 +13,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { planSchema } from "../validations/subscriberSchema";
 import useSubscriptionPlansStore from "../stores/useSubscriptionPlanStore";
-import Loading from "../components/common/Loading";
+import { Loading } from "../components/common/Loading";
 import { PageHeader } from "../components/common/PageHeader";
 
 const SubscriptionPlansPage = () => {

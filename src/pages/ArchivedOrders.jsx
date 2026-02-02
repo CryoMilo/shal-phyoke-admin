@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { ArrowLeft, Search, Filter, RotateCcw } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { useOrderCreationStore } from "../stores/subscriberOrderStore";
-import Loading from "../components/common/Loading";
+import { Loading } from "../components/common/Loading";
 import { PageHeader } from "../components/common/PageHeader";
 
 export const ArchivedOrders = () => {

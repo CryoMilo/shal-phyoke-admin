@@ -14,7 +14,7 @@ const OrderHistoryTab = () => {
 			const { data, error } = await supabase
 				.from("orders")
 				.select("*")
-				.in("order_status", ["completed", "cancelled"])
+				.in("pos_order_status", ["completed", "cancelled"])
 				.order("created_at", { ascending: false })
 				.limit(50);
 
@@ -59,13 +59,13 @@ const OrderHistoryTab = () => {
 								<td>
 									<span
 										className={`badge ${
-											order.order_status === "completed"
+											order.pos_order_status === "completed"
 												? "badge-success"
-												: order.order_status === "cancelled"
+												: order.pos_order_status === "cancelled"
 												? "badge-error"
 												: "badge-warning"
 										}`}>
-										{order.order_status}
+										{order.pos_order_status}
 									</span>
 								</td>
 								<td>

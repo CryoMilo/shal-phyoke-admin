@@ -4,7 +4,7 @@ import {
 	createRoute,
 } from "@tanstack/react-router";
 import App from "./App";
-import Home from "./pages/Home";
+import Dashboard from "./pages/Dashboard";
 import AllMenu from "./pages/AllMenu";
 import { SubscribersPage } from "./pages/Subscribers";
 import SubscriptionPlansPage from "./pages/SubscriptionPlans";
@@ -19,10 +19,10 @@ import Orders from "./pages/Orders";
 const rootRoute = createRootRoute({ component: App });
 
 // 2. Child routes
-const homeRoute = createRoute({
+const dashboardRoute = createRoute({
 	path: "/",
 	getParentRoute: () => rootRoute,
-	component: Home,
+	component: Dashboard,
 });
 
 const allMenuRoute = createRoute({
@@ -82,7 +82,7 @@ const archivedOrdersRoute = createRoute({
 
 // 3. Combine all routes
 const routeTree = rootRoute.addChildren([
-	homeRoute,
+	dashboardRoute,
 	allMenuRoute,
 	subscriberListRoute,
 	subscriptionPlansRoute,

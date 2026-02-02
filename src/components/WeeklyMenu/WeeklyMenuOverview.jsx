@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Plus, Edit, Image } from "lucide-react";
 import { useWeeklyMenuStore } from "../../stores/weeklyMenuStore";
 import { formatDateRange } from "../../utils/formatDateRange";
-import Loading from "../common/Loading";
+import { Loading } from "../common/Loading";
 import { WeeklyMenuPublishControl } from "./WeeklyMenuPublishControl";
 import { PageHeader } from "../common/PageHeader";
 import DailyMenuImageModal from "./DailyMenuImageModal";

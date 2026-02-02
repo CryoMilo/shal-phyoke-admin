@@ -3,7 +3,7 @@ import { RefreshCw } from "lucide-react";
 import { useMenuStatusStore } from "../stores/useMenuStatusStore";
 import { getDayInfo } from "../utils/getDayInfo";
 import { formatDateRange } from "../utils/formatDateRange";
-import Loading from "../components/common/Loading";
+import { Loading } from "../components/common/Loading";
 
 export const MenuStatusManagement = () => {
 	const {

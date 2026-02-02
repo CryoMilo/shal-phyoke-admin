@@ -4,7 +4,7 @@ import useSubscriptionPlansStore from "../stores/useSubscriptionPlanStore";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus, UserPlus } from "lucide-react";
-import Loading from "../components/common/Loading";
+import { Loading } from "../components/common/Loading";
 import { SubscribersTable } from "../components/Subscribers/SubscribersTable";
 import { SubscriberModal } from "../components/Subscribers/SubscriberModal";
 import { subscriberSchema } from "../validations/subscriberSchema";
