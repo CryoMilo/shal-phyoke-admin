@@ -1,17 +1,17 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Link, useLocation, Outlet } from "@tanstack/react-router";
 import {
 	Home,
 	UtensilsCrossed,
-	Users,
-	CreditCard,
 	Calendar,
-	CheckCheck,
-	ListOrdered,
 	Menu,
 	ChevronLeft,
 	ChevronRight,
 	ShoppingBasket,
+	DollarSign,
+	TrendingUp,
+	FileText,
+	Package,
 } from "lucide-react";
 
 const Sidebar = () => {
@@ -23,6 +23,26 @@ const Sidebar = () => {
 			name: "Dashboard",
 			path: "/",
 			icon: Home,
+		},
+		{
+			name: "Daily Cash",
+			path: "/daily-cash",
+			icon: DollarSign,
+		},
+		{
+			name: "Daily Expenses",
+			path: "/daily-expenses",
+			icon: TrendingUp,
+		},
+		{
+			name: "Monthly Overheads",
+			path: "/monthly-overheads",
+			icon: FileText,
+		},
+		{
+			name: "Procurement",
+			path: "/procurement",
+			icon: Package,
 		},
 		{
 			name: "All Menu Items",
@@ -38,26 +58,6 @@ const Sidebar = () => {
 			name: "Weekly Menu",
 			path: "/weekly-menu",
 			icon: Calendar,
-		},
-		{
-			name: "Menu Status",
-			path: "/menu-status",
-			icon: CheckCheck,
-		},
-		{
-			name: "Subscribers",
-			path: "/subscribers",
-			icon: Users,
-		},
-		{
-			name: "Subscription Plans",
-			path: "/subscription-plans",
-			icon: CreditCard,
-		},
-		{
-			name: "Subscriber Orders",
-			path: "/subscriber-orders",
-			icon: ListOrdered,
 		},
 		{
 			name: "Orders",
@@ -191,3 +191,24 @@ const Sidebar = () => {
 };
 
 export default Sidebar;
+
+// {
+// 	name: "Menu Status",
+// 	path: "/menu-status",
+// 	icon: CheckCheck,
+// },
+// {
+// 	name: "Subscribers",
+// 	path: "/subscribers",
+// 	icon: Users,
+// },
+// {
+// 	name: "Subscription Plans",
+// 	path: "/subscription-plans",
+// 	icon: CreditCard,
+// },
+// {
+// 	name: "Subscriber Orders",
+// 	path: "/subscriber-orders",
+// 	icon: ListOrdered,
+// },

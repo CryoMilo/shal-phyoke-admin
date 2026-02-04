@@ -14,6 +14,9 @@ import { SubscriberOrder } from "./pages/SubscriberOrder";
 import RegularMenu from "./pages/RegularMenu";
 import { ArchivedOrders } from "./pages/ArchivedOrders";
 import Orders from "./pages/Orders";
+import DailyCash from "./pages/DailyCash";
+import DailyExpenses from "./pages/DailyExpenses";
+import MonthlyOverheads from "./pages/MonthlyOverheads";
 
 // 1. Root route
 const rootRoute = createRootRoute({ component: App });
@@ -80,6 +83,25 @@ const archivedOrdersRoute = createRoute({
 	component: ArchivedOrders,
 });
 
+// Income & Expense Routes
+const dailyCashRoute = createRoute({
+	path: "/daily-cash",
+	getParentRoute: () => rootRoute,
+	component: DailyCash,
+});
+
+const dailyExpensesRoute = createRoute({
+	path: "/daily-expenses",
+	getParentRoute: () => rootRoute,
+	component: DailyExpenses,
+});
+
+const monthlyOverheadsRoute = createRoute({
+	path: "/monthly-overheads",
+	getParentRoute: () => rootRoute,
+	component: MonthlyOverheads,
+});
+
 // 3. Combine all routes
 const routeTree = rootRoute.addChildren([
 	dashboardRoute,
@@ -92,6 +114,9 @@ const routeTree = rootRoute.addChildren([
 	archivedOrdersRoute,
 	regularMenuRoute,
 	OrdersRoute,
+	dailyCashRoute,
+	dailyExpensesRoute,
+	monthlyOverheadsRoute,
 ]);
 
 // 4. Create and export router
