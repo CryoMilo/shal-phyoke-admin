@@ -1,19 +1,28 @@
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
-import { Plus, Trash2, Edit, Save } from "lucide-react";
+import { Plus, Trash2, Edit, Save, X } from "lucide-react";
+import { useForm } from "react-hook-form";
 import { supabase } from "../services/supabase";
 
+// Expense Categories - matching your enum
 const expenseCategories = [
 	{ value: "ingredients", label: "Ingredients", color: "bg-green-500" },
 	{ value: "utilities", label: "Utilities", color: "bg-blue-500" },
-	{ value: "rent", label: "Rent", color: "bg-red-500" },
-	{ value: "salaries", label: "Salaries", color: "bg-purple-500" },
 	{ value: "equipment", label: "Equipment", color: "bg-yellow-500" },
 	{ value: "packaging", label: "Packaging", color: "bg-pink-500" },
 	{ value: "delivery", label: "Delivery", color: "bg-indigo-500" },
 	{ value: "marketing", label: "Marketing", color: "bg-teal-500" },
 	{ value: "maintenance", label: "Maintenance", color: "bg-orange-500" },
 	{ value: "other", label: "Other", color: "bg-gray-500" },
+];
+
+// Paid By options
+const paidByOptions = [
+	{ value: "cash_drawer", label: "Cash Drawer", color: "badge-primary" },
+	{ value: "oak", label: "Oak", color: "badge-secondary" },
+	{ value: "ei", label: "Ei", color: "badge-accent" },
+	{ value: "bank", label: "Bank Account", color: "badge-info" },
+	{ value: "other", label: "Other", color: "badge-neutral" },
 ];
 
 const DailyExpenses = () => {
@@ -26,16 +35,29 @@ const DailyExpenses = () => {
 	);
 	const [selectedCategory, setSelectedCategory] = useState("all");
 	const [total, setTotal] = useState(0);
+	// eslint-disable-next-line no-unused-vars
+	const [otherCategoryInput, setOtherCategoryInput] = useState("");
 
-	const [formData, setFormData] = useState({
-		date: format(new Date(), "yyyy-MM-dd"),
-		category: "ingredients",
-		description: "",
-		amount: "",
-		payment_method: "cash",
-		receipt_url: "",
-		notes: "",
+	const {
+		register,
+		handleSubmit,
+		reset,
+		setValue,
+		watch,
+		formState: { errors },
+	} = useForm({
+		defaultValues: {
+			date: format(new Date(), "yyyy-MM-dd"),
+			category: "ingredients",
+			description: "",
+			amount: "",
+			paid_by: "cash_drawer",
+			notes: "",
+			other_category: "",
+		},
 	});
+
+	const selectedCategoryWatch = watch("category");
 
 	const fetchExpenses = async () => {
 		setLoading(true);
@@ -43,7 +65,7 @@ const DailyExpenses = () => {
 			let query = supabase
 				.from("daily_expenses")
 				.select("*")
-				.order("date", { ascending: false });
+				.order("created_at", { ascending: false });
 
 			if (selectedDate) {
 				query = query.eq("date", selectedDate);
@@ -75,13 +97,18 @@ const DailyExpenses = () => {
 		fetchExpenses();
 	}, [selectedDate, selectedCategory]);
 
-	const handleSubmit = async (e) => {
-		e.preventDefault();
-
+	const onSubmit = async (data) => {
 		try {
 			const expenseData = {
-				...formData,
-				amount: parseFloat(formData.amount),
+				date: data.date,
+				category:
+					data.category === "other" && data.other_category
+						? data.other_category
+						: data.category,
+				description: data.description || "No description provided",
+				amount: parseFloat(data.amount),
+				paid_by: data.paid_by,
+				notes: data.notes,
 				recorded_by: (await supabase.auth.getUser()).data.user?.id,
 			};
 
@@ -101,15 +128,7 @@ const DailyExpenses = () => {
 				if (error) throw error;
 			}
 
-			setFormData({
-				date: format(new Date(), "yyyy-MM-dd"),
-				category: "ingredients",
-				description: "",
-				amount: "",
-				payment_method: "cash",
-				receipt_url: "",
-				notes: "",
-			});
+			resetForm();
 			setShowForm(false);
 			fetchExpenses();
 		} catch (error) {
@@ -117,16 +136,43 @@ const DailyExpenses = () => {
 		}
 	};
 
+	const resetForm = () => {
+		reset({
+			date: format(new Date(), "yyyy-MM-dd"),
+			category: "ingredients",
+			description: "",
+			amount: "",
+			paid_by: "cash_drawer",
+			notes: "",
+			other_category: "",
+		});
+		setOtherCategoryInput("");
+	};
+
 	const handleEdit = (expense) => {
-		setFormData({
+		const category = expenseCategories.find((c) => c.value === expense.category)
+			? expense.category
+			: "other";
+		const otherCategory = expenseCategories.find(
+			(c) => c.value === expense.category
+		)
+			? ""
+			: expense.category;
+
+		reset({
 			date: expense.date,
-			category: expense.category,
+			category: category,
 			description: expense.description,
 			amount: expense.amount,
-			payment_method: expense.payment_method,
-			receipt_url: expense.receipt_url || "",
+			paid_by: expense.paid_by || "cash_drawer",
 			notes: expense.notes || "",
+			other_category: otherCategory,
 		});
+
+		if (category === "other") {
+			setOtherCategoryInput(otherCategory);
+		}
+
 		setEditingId(expense.id);
 		setShowForm(true);
 	};
@@ -157,6 +203,16 @@ const DailyExpenses = () => {
 		return category ? category.color : "bg-gray-500";
 	};
 
+	const getPaidByLabel = (paidByValue) => {
+		const paidBy = paidByOptions.find((p) => p.value === paidByValue);
+		return paidBy ? paidBy.label : paidByValue;
+	};
+
+	const getPaidByColor = (paidByValue) => {
+		const paidBy = paidByOptions.find((p) => p.value === paidByValue);
+		return paidBy ? paidBy.color : "badge-neutral";
+	};
+
 	return (
 		<div className="p-4">
 			{/* Header */}
@@ -166,7 +222,12 @@ const DailyExpenses = () => {
 					<p className="text-gray-600">Track daily operational expenses</p>
 				</div>
 				<div className="flex items-center gap-2">
-					<button onClick={() => setShowForm(true)} className="btn btn-primary">
+					<button
+						onClick={() => {
+							resetForm();
+							setShowForm(true);
+						}}
+						className="btn btn-primary">
 						<Plus className="w-4 h-4 mr-2" />
 						Add Expense
 					</button>
@@ -219,124 +280,176 @@ const DailyExpenses = () => {
 			{/* Expense Form Modal */}
 			{showForm && (
 				<div className="modal modal-open">
-					<div className="modal-box">
-						<h3 className="font-bold text-lg mb-4">
-							{editingId ? "Edit Expense" : "Add New Expense"}
-						</h3>
-						<form onSubmit={handleSubmit}>
+					<div className="modal-box max-w-2xl">
+						<div className="flex justify-between items-center mb-4">
+							<h3 className="font-bold text-lg">
+								{editingId ? "Edit Expense" : "Add New Expense"}
+							</h3>
+							<button
+								onClick={() => {
+									setShowForm(false);
+									setEditingId(null);
+									resetForm();
+								}}
+								className="btn btn-ghost btn-sm btn-circle">
+								<X className="w-4 h-4" />
+							</button>
+						</div>
+
+						<form onSubmit={handleSubmit(onSubmit)}>
 							<div className="space-y-4">
-								<div className="grid grid-cols-2 gap-4">
+								{/* Date and Amount */}
+								<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 									<div className="form-control">
 										<label className="label">
-											<span className="label-text">Date</span>
+											<span className="label-text">Date *</span>
 										</label>
 										<input
 											type="date"
-											value={formData.date}
-											onChange={(e) =>
-												setFormData({ ...formData, date: e.target.value })
-											}
+											{...register("date", { required: "Date is required" })}
 											className="input input-bordered"
-											required
 										/>
+										{errors.date && (
+											<span className="label-text-alt text-error">
+												{errors.date.message}
+											</span>
+										)}
 									</div>
+
 									<div className="form-control">
 										<label className="label">
-											<span className="label-text">Amount ($)</span>
+											<span className="label-text">Amount ($) *</span>
 										</label>
 										<input
 											type="number"
 											step="0.01"
-											value={formData.amount}
-											onChange={(e) =>
-												setFormData({ ...formData, amount: e.target.value })
-											}
+											min="0.01"
+											{...register("amount", {
+												required: "Amount is required",
+												min: {
+													value: 0.01,
+													message: "Amount must be greater than 0",
+												},
+											})}
 											className="input input-bordered"
-											required
 										/>
+										{errors.amount && (
+											<span className="label-text-alt text-error">
+												{errors.amount.message}
+											</span>
+										)}
 									</div>
 								</div>
 
+								{/* Category Selection */}
 								<div className="form-control">
 									<label className="label">
-										<span className="label-text">Category</span>
+										<span className="label-text">Category *</span>
 									</label>
-									<select
-										value={formData.category}
-										onChange={(e) =>
-											setFormData({ ...formData, category: e.target.value })
-										}
-										className="select select-bordered"
-										required>
+									<div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
 										{expenseCategories.map((category) => (
-											<option key={category.value} value={category.value}>
+											<button
+												key={category.value}
+												type="button"
+												onClick={() => setValue("category", category.value)}
+												className={`btn btn-outline btn-sm ${
+													selectedCategoryWatch === category.value
+														? "btn-active"
+														: ""
+												}`}>
 												{category.label}
-											</option>
+											</button>
 										))}
-									</select>
+									</div>
+									<input
+										type="hidden"
+										{...register("category", {
+											required: "Category is required",
+										})}
+									/>
+									{errors.category && (
+										<span className="label-text-alt text-error">
+											{errors.category.message}
+										</span>
+									)}
+
+									{/* Other Category Input */}
+									{selectedCategoryWatch === "other" && (
+										<div className="mt-2">
+											<label className="label">
+												<span className="label-text">Specify Category *</span>
+											</label>
+											<input
+												type="text"
+												{...register("other_category", {
+													required: "Please specify the category",
+												})}
+												className="input input-bordered w-full"
+												placeholder="Enter custom category..."
+											/>
+											{errors.other_category && (
+												<span className="label-text-alt text-error">
+													{errors.other_category.message}
+												</span>
+											)}
+										</div>
+									)}
 								</div>
 
+								{/* Description (Optional) */}
 								<div className="form-control">
 									<label className="label">
-										<span className="label-text">Description</span>
+										<span className="label-text">Description (Optional)</span>
 									</label>
 									<input
 										type="text"
-										value={formData.description}
-										onChange={(e) =>
-											setFormData({ ...formData, description: e.target.value })
-										}
+										{...register("description")}
 										className="input input-bordered"
 										placeholder="What was this expense for?"
-										required
 									/>
 								</div>
 
+								{/* Paid By Selection */}
 								<div className="form-control">
 									<label className="label">
-										<span className="label-text">Payment Method</span>
+										<span className="label-text">Paid By *</span>
 									</label>
-									<select
-										value={formData.payment_method}
-										onChange={(e) =>
-											setFormData({
-												...formData,
-												payment_method: e.target.value,
-											})
-										}
-										className="select select-bordered">
-										<option value="cash">Cash</option>
-										<option value="card">Card</option>
-										<option value="online">Online</option>
-									</select>
+									<div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+										{paidByOptions.map((option) => (
+											<button
+												key={option.value}
+												type="button"
+												onClick={() => setValue("paid_by", option.value)}
+												className={`btn btn-outline btn-sm ${
+													watch("paid_by") === option.value ? "btn-active" : ""
+												}`}>
+												{option.label}
+											</button>
+										))}
+									</div>
+									<input
+										type="hidden"
+										{...register("paid_by", {
+											required: "Paid by is required",
+										})}
+									/>
+									{errors.paid_by && (
+										<span className="label-text-alt text-error">
+											{errors.paid_by.message}
+										</span>
+									)}
 								</div>
 
+								{/* Notes (Optional) */}
 								<div className="form-control">
 									<label className="label">
 										<span className="label-text">Notes (Optional)</span>
 									</label>
 									<textarea
-										value={formData.notes}
-										onChange={(e) =>
-											setFormData({ ...formData, notes: e.target.value })
-										}
+										{...register("notes")}
 										className="textarea textarea-bordered"
 										placeholder="Additional details..."
-									/>
-								</div>
-
-								<div className="form-control">
-									<label className="label">
-										<span className="label-text">Receipt URL (Optional)</span>
-									</label>
-									<input
-										type="text"
-										value={formData.receipt_url}
-										onChange={(e) =>
-											setFormData({ ...formData, receipt_url: e.target.value })
-										}
-										className="input input-bordered"
-										placeholder="Link to receipt image"
+										rows="3"
 									/>
 								</div>
 							</div>
@@ -347,6 +460,7 @@ const DailyExpenses = () => {
 									onClick={() => {
 										setShowForm(false);
 										setEditingId(null);
+										resetForm();
 									}}
 									className="btn btn-ghost">
 									Cancel
@@ -383,7 +497,7 @@ const DailyExpenses = () => {
 										<th>Category</th>
 										<th>Description</th>
 										<th>Amount</th>
-										<th>Payment Method</th>
+										<th>Paid By</th>
 										<th>Actions</th>
 									</tr>
 								</thead>
@@ -399,7 +513,9 @@ const DailyExpenses = () => {
 											</td>
 											<td>
 												<div>
-													<p className="font-medium">{expense.description}</p>
+													<p className="font-medium">
+														{expense.description || "No description"}
+													</p>
 													{expense.notes && (
 														<p className="text-sm text-gray-600">
 															{expense.notes}
@@ -411,8 +527,9 @@ const DailyExpenses = () => {
 												${parseFloat(expense.amount).toFixed(2)}
 											</td>
 											<td>
-												<span className="badge badge-outline">
-													{expense.payment_method}
+												<span
+													className={`badge ${getPaidByColor(expense.paid_by)}`}>
+													{getPaidByLabel(expense.paid_by)}
 												</span>
 											</td>
 											<td>
@@ -443,7 +560,7 @@ const DailyExpenses = () => {
 			{/* Category Breakdown */}
 			<div className="mt-6">
 				<h2 className="text-lg font-bold mb-4">Category Breakdown</h2>
-				<div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+				<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
 					{expenseCategories.map((category) => {
 						const categoryTotal = expenses
 							.filter((e) => e.category === category.value)

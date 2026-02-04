@@ -83,22 +83,47 @@ export const Dashboard = () => {
 				.from("monthly_sales")
 				.select(
 					`
-          menu_item_id,
-          menu_item_name_burmese,
-          menu_item_name_english,
-          menu_item_category,
-          menu_item_price,
-          quantity_sold,
-          total_revenue,
-          order_id,
-          payment_method
-        `
+        menu_item_id,
+        menu_item_name_burmese,
+        menu_item_name_english,
+        menu_item_category,
+        menu_item_price,
+        quantity_sold,
+        total_revenue,
+        order_id,
+        payment_method
+      `
 				)
 				.eq("sale_date", bangkokDateStr);
 
 			if (salesError) throw salesError;
 
-			processData(orders || [], aggregatedSales || [], bangkokDateStr);
+			// 3. Fetch daily expenses for the selected date
+			const { data: dailyExpenses, error: expensesError } = await supabase
+				.from("daily_expenses")
+				.select("id, amount, category, paid_by, description")
+				.eq("date", bangkokDateStr);
+
+			if (expensesError) throw expensesError;
+
+			// 4. Fetch daily cash record if exists
+			const { data: dailyCash, error: cashError } = await supabase
+				.from("daily_cash")
+				.select("cash_collected, cash_deposited, opening_balance")
+				.eq("date", bangkokDateStr)
+				.single();
+
+			if (cashError && cashError.code !== "PGRST116") {
+				console.error("Error fetching daily cash:", cashError);
+			}
+
+			processData(
+				orders || [],
+				aggregatedSales || [],
+				dailyExpenses || [],
+				dailyCash,
+				bangkokDateStr
+			);
 		} catch (error) {
 			console.error("Dashboard Fetch Error:", error);
 		} finally {
@@ -107,7 +132,13 @@ export const Dashboard = () => {
 		}
 	};
 
-	const processData = (orders, aggregatedSales, dateStr) => {
+	const processData = (
+		orders,
+		aggregatedSales,
+		dailyExpenses,
+		dailyCash,
+		dateStr
+	) => {
 		const totalIncome = orders.reduce((sum, o) => sum + o.total_amount, 0);
 		const totalOrders = orders.length;
 		const totalItems = orders.reduce(
@@ -120,6 +151,28 @@ export const Dashboard = () => {
 			.reduce((sum, o) => sum + o.total_amount, 0);
 
 		const qrSales = totalIncome - cashSales;
+
+		// Calculate total expenses
+		const totalExpenses = dailyExpenses.reduce(
+			(sum, expense) => sum + parseFloat(expense.amount || 0),
+			0
+		);
+
+		// Categorize expenses
+		const expenseByCategory = dailyExpenses.reduce((acc, expense) => {
+			const category = expense.category || "other";
+			if (!acc[category]) acc[category] = 0;
+			acc[category] += parseFloat(expense.amount || 0);
+			return acc;
+		}, {});
+
+		// Expenses by payment source
+		const expenseByPaidBy = dailyExpenses.reduce((acc, expense) => {
+			const paidBy = expense.paid_by || "cash_drawer";
+			if (!acc[paidBy]) acc[paidBy] = 0;
+			acc[paidBy] += parseFloat(expense.amount || 0);
+			return acc;
+		}, {});
 
 		// Aggregate items
 		const itemSalesMap = {};
@@ -175,6 +228,13 @@ export const Dashboard = () => {
 			sale_date: dateStr,
 		}));
 
+		// Calculate cash variance if daily cash exists
+		const cashVariance = dailyCash
+			? (dailyCash.cash_collected || 0) -
+				(dailyCash.opening_balance || 0) -
+				cashSales
+			: 0;
+
 		setSalesData({
 			dailySales: itemDetailsList.slice(0, 8).map((i) => ({
 				name: i.item_name,
@@ -182,12 +242,23 @@ export const Dashboard = () => {
 				percentage: i.percentage,
 			})),
 			totalIncome,
-			totalExpenses: 0,
+			totalExpenses,
 			cashSales,
 			qrSales,
 			totalOrders,
 			totalItems,
 			avgOrderValue: totalOrders > 0 ? totalIncome / totalOrders : 0,
+			// New data for expanded dashboard
+			dailyExpenses: dailyExpenses,
+			expenseByCategory,
+			expenseByPaidBy,
+			dailyCash: dailyCash || {},
+			cashVariance,
+			netProfit: totalIncome - totalExpenses,
+			profitMargin:
+				totalIncome > 0
+					? ((totalIncome - totalExpenses) / totalIncome) * 100
+					: 0,
 		});
 
 		setItemDetails(itemDetailsList);

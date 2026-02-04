@@ -12,17 +12,23 @@ import {
 	TrendingUp,
 	FileText,
 	Package,
+	DollarSign as DollarIcon,
+	TrendingDown,
 } from "lucide-react";
 
 const Sidebar = () => {
 	const location = useLocation();
 	const [isCollapsed, setIsCollapsed] = useState(false);
 
-	const menuItems = [
+	const menuStructure = [
 		{
 			name: "Dashboard",
 			path: "/",
 			icon: Home,
+		},
+		{
+			type: "divider",
+			label: "Finance",
 		},
 		{
 			name: "Daily Cash",
@@ -32,7 +38,7 @@ const Sidebar = () => {
 		{
 			name: "Daily Expenses",
 			path: "/daily-expenses",
-			icon: TrendingUp,
+			icon: TrendingDown,
 		},
 		{
 			name: "Monthly Overheads",
@@ -45,6 +51,10 @@ const Sidebar = () => {
 			icon: Package,
 		},
 		{
+			type: "divider",
+			label: "Menu",
+		},
+		{
 			name: "All Menu Items",
 			path: "/all-menu",
 			icon: UtensilsCrossed,
@@ -53,6 +63,10 @@ const Sidebar = () => {
 			name: "Regular Menu Items",
 			path: "/regular-menu",
 			icon: Menu,
+		},
+		{
+			type: "divider",
+			label: "Operations",
 		},
 		{
 			name: "Weekly Menu",
@@ -117,7 +131,7 @@ const Sidebar = () => {
 
 				<aside
 					className={`min-h-full bg-base-200 transition-all duration-300 ${
-						isCollapsed ? "w-16" : "w-60"
+						isCollapsed ? "w-16" : "w-64"
 					}`}>
 					{/* Sidebar Header */}
 					<div className="p-4 border-b border-base-300">
@@ -142,8 +156,20 @@ const Sidebar = () => {
 					</div>
 
 					{/* Navigation Menu */}
-					<ul className="menu p-4 space-y-2">
-						{menuItems.map((item) => {
+					<ul className="menu p-4 space-y-1">
+						{menuStructure.map((item, index) => {
+							if (item.type === "divider") {
+								if (isCollapsed) return null;
+								return (
+									<div key={`divider-${index}`} className="py-2">
+										<div className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-3">
+											{item.label}
+										</div>
+										<div className="divider my-1"></div>
+									</div>
+								);
+							}
+
 							const Icon = item.icon;
 							return (
 								<li key={item.path}>
@@ -167,21 +193,11 @@ const Sidebar = () => {
 
 					{/* Sidebar Footer */}
 					<div className="absolute bottom-0 left-0 right-0 p-4 border-t border-base-300">
-						{/* Optional: Add collapsed version of footer content if needed */}
 						{!isCollapsed && (
-							<>
-								{/* <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-base-300 cursor-pointer">
-									<Settings className="w-5 h-5" />
-									<span className="font-medium">Settings</span>
-								</div> */}
-
-								{/* <div className="mt-2 p-3 bg-base-300 rounded-lg">
-									<div className="flex items-center gap-2 text-sm">
-										<div className="w-2 h-2 bg-green-500 rounded-full"></div>
-										<span>System Online</span>
-									</div>
-								</div> */}
-							</>
+							<div className="text-xs text-gray-500">
+								<p>© {new Date().getFullYear()} Shal Phyoke</p>
+								<p className="mt-1">Restaurant Management</p>
+							</div>
 						)}
 					</div>
 				</aside>
@@ -191,24 +207,3 @@ const Sidebar = () => {
 };
 
 export default Sidebar;
-
-// {
-// 	name: "Menu Status",
-// 	path: "/menu-status",
-// 	icon: CheckCheck,
-// },
-// {
-// 	name: "Subscribers",
-// 	path: "/subscribers",
-// 	icon: Users,
-// },
-// {
-// 	name: "Subscription Plans",
-// 	path: "/subscription-plans",
-// 	icon: CreditCard,
-// },
-// {
-// 	name: "Subscriber Orders",
-// 	path: "/subscriber-orders",
-// 	icon: ListOrdered,
-// },
