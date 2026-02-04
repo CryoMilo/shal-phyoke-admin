@@ -1,61 +1,31 @@
 import {
 	PieChart,
 	Pie,
-	Cell,
 	ResponsiveContainer,
 	Tooltip,
 	Legend,
+	Cell,
 } from "recharts";
-import { useState } from "react";
+import { Calendar } from "lucide-react";
 
-export const PieChartCard = ({ dailySales, totalItems, onChartClick }) => {
-	const [activeIndex, setActiveIndex] = useState(null);
-
+export const PieChartCard = ({
+	dailySales,
+	totalItems,
+	onChartClick,
+	date,
+}) => {
 	const COLORS = [
-		"#3B82F6", // blue-500
-		"#8B5CF6", // violet-500
-		"#10B981", // emerald-500
-		"#F59E0B", // amber-500
-		"#EF4444", // red-500
-		"#06B6D4", // cyan-500
-		"#8B5CF6", // purple-500
-		"#64748B", // slate-500
+		"#3B82F6",
+		"#8B5CF6",
+		"#10B981",
+		"#F59E0B",
+		"#EF4444",
+		"#06B6D4",
+		"#8B5CF6",
+		"#64748B",
 	];
 
-	const handlePieEnter = (_, index) => {
-		setActiveIndex(index);
-	};
-
-	const handlePieLeave = () => {
-		setActiveIndex(null);
-	};
-
-	const renderCustomizedLabel = ({
-		cx,
-		cy,
-		midAngle,
-		innerRadius,
-		outerRadius,
-		percent,
-	}) => {
-		const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
-		const x = cx + radius * Math.cos((-midAngle * Math.PI) / 180);
-		const y = cy + radius * Math.sin((-midAngle * Math.PI) / 180);
-
-		if (percent < 0.05) return null; // Don't show label for tiny slices
-
-		return (
-			<text
-				x={x}
-				y={y}
-				fill="white"
-				textAnchor="middle"
-				dominantBaseline="central"
-				className="text-xs font-bold">
-				{`${(percent * 100).toFixed(0)}%`}
-			</text>
-		);
-	};
+	const isToday = date.toDateString() === new Date().toDateString();
 
 	const CustomTooltip = ({ active, payload }) => {
 		if (active && payload && payload.length) {
@@ -81,7 +51,22 @@ export const PieChartCard = ({ dailySales, totalItems, onChartClick }) => {
 		<div className="card bg-base-200">
 			<div className="card-body">
 				<div className="flex justify-between items-center mb-4">
-					<h2 className="card-title">Top Selling Items (Today)</h2>
+					<div>
+						<h2 className="card-title">Top Selling Items</h2>
+						<div className="flex items-center gap-2 mt-1">
+							<Calendar className="w-4 h-4 text-base-content/70" />
+							<span className="text-sm text-base-content/70">
+								{date.toLocaleDateString("en-US", {
+									weekday: "long",
+									month: "short",
+									day: "numeric",
+								})}
+							</span>
+							{!isToday && (
+								<span className="badge badge-xs badge-warning">Historical</span>
+							)}
+						</div>
+					</div>
 					<span className="badge badge-primary">{totalItems} items sold</span>
 				</div>
 
@@ -94,51 +79,10 @@ export const PieChartCard = ({ dailySales, totalItems, onChartClick }) => {
 									cx="50%"
 									cy="50%"
 									labelLine={false}
-									label={renderCustomizedLabel}
 									outerRadius={80}
 									fill="#8884d8"
 									dataKey="value"
-									nameKey="name"
-									onMouseEnter={handlePieEnter}
-									onMouseLeave={handlePieLeave}
-									activeIndex={activeIndex}
-									activeShape={(props) => {
-										const {
-											cx,
-											cy,
-
-											outerRadius,
-											startAngle,
-											endAngle,
-											fill,
-										} = props;
-										return (
-											<g>
-												<path
-													d={`M${cx},${cy} L${
-														cx +
-														outerRadius *
-															Math.cos((-startAngle * Math.PI) / 180)
-													},${
-														cy +
-														outerRadius *
-															Math.sin((-startAngle * Math.PI) / 180)
-													} A${outerRadius},${outerRadius} 0 ${
-														endAngle - startAngle > 180 ? 1 : 0
-													},1 ${
-														cx +
-														outerRadius * Math.cos((-endAngle * Math.PI) / 180)
-													},${
-														cy +
-														outerRadius * Math.sin((-endAngle * Math.PI) / 180)
-													} Z`}
-													fill={fill}
-													stroke="#fff"
-													strokeWidth={2}
-												/>
-											</g>
-										);
-									}}>
+									nameKey="name">
 									{dailySales.map((entry, index) => (
 										<Cell
 											key={`cell-${index}`}
@@ -147,6 +91,12 @@ export const PieChartCard = ({ dailySales, totalItems, onChartClick }) => {
 											strokeWidth={1}
 										/>
 									))}
+									{/* {testData.map((entry, index) => (
+										<Cell
+											key={`cell-${index}`}
+											fill={COLORS[index % COLORS.length]}
+										/>
+									))} */}
 								</Pie>
 								<Tooltip content={<CustomTooltip />} />
 								<Legend
@@ -161,8 +111,12 @@ export const PieChartCard = ({ dailySales, totalItems, onChartClick }) => {
 						<div className="h-full flex items-center justify-center text-base-content/50">
 							<div className="text-center">
 								<div className="text-4xl mb-2">📊</div>
-								<p>No sales data for today</p>
-								<p className="text-sm">Start taking orders to see analytics</p>
+								<p>No sales data for this date</p>
+								<p className="text-sm">
+									{isToday
+										? "Start taking orders to see analytics"
+										: "No sales recorded on this date"}
+								</p>
 							</div>
 						</div>
 					)}

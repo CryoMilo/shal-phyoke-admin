@@ -1,4 +1,5 @@
-import { Download, X } from "lucide-react";
+// src/components/dashboard/ItemDetailsModal.jsx
+import { Download, X, FileSpreadsheet, Calendar, Database } from "lucide-react";
 import { useState } from "react";
 
 export const ItemDetailsModal = ({
@@ -29,23 +30,72 @@ export const ItemDetailsModal = ({
 		(sum, item) => sum + item.total_revenue,
 		0
 	);
+	const avgItemPrice = totalQuantity > 0 ? totalRevenue / totalQuantity : 0;
+
+	const currentMonthItems = itemDetails.filter(
+		(item) => item.month_source === "current"
+	);
+	const previousMonthItems = itemDetails.filter(
+		(item) => item.month_source === "previous"
+	);
+
+	const isHistorical =
+		currentMonthItems.length === 0 && previousMonthItems.length > 0;
 
 	return (
 		<div className="modal modal-open">
 			<div className="modal-box max-w-6xl max-h-[90vh] flex flex-col">
 				<div className="flex justify-between items-center mb-4">
-					<div>
-						<h3 className="font-bold text-xl">
-							Today's Item Sales Details
-							<span className="ml-3 badge badge-primary badge-lg">{date}</span>
-						</h3>
-						<p className="text-sm text-base-content/70 mt-1">
-							{itemDetails.length} items sold • {totalQuantity} total quantity
-						</p>
+					<div className="flex items-center gap-3">
+						<div className="p-2 bg-primary/10 rounded-lg">
+							<FileSpreadsheet className="w-6 h-6 text-primary" />
+						</div>
+						<div>
+							<h3 className="font-bold text-xl">
+								Sales Report -{" "}
+								{date.toLocaleDateString("en-US", {
+									weekday: "long",
+									year: "numeric",
+									month: "long",
+									day: "numeric",
+								})}
+							</h3>
+							<div className="flex items-center gap-2 mt-1">
+								<Calendar className="w-4 h-4 text-base-content/70" />
+								<span className="text-sm text-base-content/70">
+									{itemDetails.length} items • {totalQuantity} total quantity •
+									฿{totalRevenue.toFixed(2)} total revenue
+								</span>
+								{isHistorical && (
+									<span className="badge badge-sm badge-warning">
+										<Database className="w-3 h-3 mr-1" />
+										Historical Data
+									</span>
+								)}
+							</div>
+						</div>
 					</div>
 					<button className="btn btn-circle btn-ghost btn-sm" onClick={onClose}>
 						<X className="w-5 h-5" />
 					</button>
+				</div>
+
+				{/* Data Source Info */}
+				<div className="mb-4">
+					<div className="flex gap-3">
+						{currentMonthItems.length > 0 && (
+							<div className="badge badge-success gap-1">
+								<Database className="w-3 h-3" />
+								Current Month: {currentMonthItems.length} items
+							</div>
+						)}
+						{previousMonthItems.length > 0 && (
+							<div className="badge badge-info gap-1">
+								<Database className="w-3 h-3" />
+								Previous Month: {previousMonthItems.length} items
+							</div>
+						)}
+					</div>
 				</div>
 
 				<div className="flex-1 overflow-hidden">
@@ -62,6 +112,7 @@ export const ItemDetailsModal = ({
 									<th className="text-right">Total Value</th>
 									<th className="text-right">Avg Price</th>
 									<th className="text-right">% of Total</th>
+									<th className="text-center">Source</th>
 								</tr>
 							</thead>
 							<tbody>
@@ -102,7 +153,29 @@ export const ItemDetailsModal = ({
 												<span className="font-mono mr-2">
 													{item.percentage.toFixed(1)}%
 												</span>
+												<div
+													className="w-16 h-2 bg-base-300 rounded-full overflow-hidden"
+													title={`${item.percentage.toFixed(
+														1
+													)}% of total sales`}>
+													{/* <div
+														className="h-full bg-primary"
+														style={{
+															width: `${Math.min(item.percentage, 100)}%`,
+														}}
+													/> */}
+												</div>
 											</div>
+										</td>
+										<td className="text-center">
+											<span
+												className={`badge badge-xs ${
+													item.month_source === "current"
+														? "badge-success"
+														: "badge-info"
+												}`}>
+												{item.month_source}
+											</span>
 										</td>
 									</tr>
 								))}
@@ -116,10 +189,11 @@ export const ItemDetailsModal = ({
 									<td className="text-right text-lg text-primary">
 										฿{totalRevenue.toFixed(2)}
 									</td>
-									<td className="text-right">
-										฿{(totalRevenue / totalQuantity).toFixed(2)}
+									<td className="text-right font-mono">
+										฿{avgItemPrice.toFixed(2)}
 									</td>
 									<td className="text-right">100%</td>
+									<td></td>
 								</tr>
 							</tfoot>
 						</table>
@@ -128,9 +202,15 @@ export const ItemDetailsModal = ({
 
 				<div className="modal-action mt-4">
 					<div className="flex-1 text-sm text-base-content/70">
-						Showing {itemDetails.length} items • Export includes all data
+						<div className="flex items-center gap-2">
+							<FileSpreadsheet className="w-4 h-4" />
+							<span>Export includes all {itemDetails.length} items shown</span>
+						</div>
 					</div>
 					<div className="flex gap-2">
+						<button className="btn btn-outline" onClick={onClose}>
+							Close
+						</button>
 						<button
 							className="btn btn-primary"
 							onClick={handleExport}
@@ -143,12 +223,9 @@ export const ItemDetailsModal = ({
 							) : (
 								<>
 									<Download className="w-4 h-4 mr-2" />
-									Export to CSV
+									Download CSV
 								</>
 							)}
-						</button>
-						<button className="btn btn-ghost" onClick={onClose}>
-							Close
 						</button>
 					</div>
 				</div>

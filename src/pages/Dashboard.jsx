@@ -1,16 +1,23 @@
 // pages/Dashboard.jsx
 import React, { useState, useEffect } from "react";
 import { supabase } from "../services/supabase";
-import { RefreshCw, Download } from "lucide-react";
+import {
+	Calendar,
+	Download,
+	RefreshCw,
+	ChevronLeft,
+	ChevronRight,
+} from "lucide-react";
+import { PageHeader } from "../components/common/PageHeader";
+import { Loading } from "../components/common/Loading";
 import {
 	SummaryCards,
 	PieChartCard,
 	PerformanceCard,
-	StatsCard,
+	// StatsCard,
 	ItemDetailsModal,
 } from "../components/dashboard";
-import { Loading } from "../components/common/Loading";
-import { PageHeader } from "../components/common/PageHeader";
+import { getBangkokDateRange } from "../utils/dateUtils";
 
 export const Dashboard = () => {
 	const [salesData, setSalesData] = useState({
@@ -23,14 +30,44 @@ export const Dashboard = () => {
 		totalItems: 0,
 		avgOrderValue: 0,
 	});
+
 	const [loading, setLoading] = useState(true);
 	const [refreshing, setRefreshing] = useState(false);
 	const [showItemDetails, setShowItemDetails] = useState(false);
 	const [itemDetails, setItemDetails] = useState([]);
 
+	// Date selection state
+	const [selectedDate, setSelectedDate] = useState(new Date());
+	const [showDatePicker, setShowDatePicker] = useState(false);
+	const [dateRange, setDateRange] = useState({
+		minDate: null,
+		maxDate: new Date(),
+	});
+
 	useEffect(() => {
 		fetchDashboardData();
-	}, []);
+		fetchDateRange();
+	}, [selectedDate]);
+
+	const fetchDateRange = async () => {
+		try {
+			// Get min and max dates from sales data
+			const { data, error } = await supabase
+				.from("current_month_sales")
+				.select("sale_date")
+				.order("sale_date", { ascending: true })
+				.limit(1);
+
+			if (!error && data && data.length > 0) {
+				setDateRange((prev) => ({
+					...prev,
+					minDate: new Date(data[0].sale_date),
+				}));
+			}
+		} catch (error) {
+			console.error("Error fetching date range:", error);
+		}
+	};
 
 	const fetchDashboardData = async (isRefresh = false) => {
 		try {
@@ -40,35 +77,31 @@ export const Dashboard = () => {
 				setLoading(true);
 			}
 
-			// Get today's date boundaries (Bangkok time)
-			const today = new Date();
-			const startOfDay = new Date(today);
-			startOfDay.setHours(0, 0, 0, 0);
+			// Get Bangkok date range
+			const { start, end, dateStr } = getBangkokDateRange(selectedDate);
 
-			const endOfDay = new Date(today);
-			endOfDay.setHours(23, 59, 59, 999);
-
-			// 1. Fetch today's completed orders
+			// 1. Fetch orders for selected date
 			const { data: orders, error: ordersError } = await supabase
 				.from("orders")
 				.select("id, created_at, total_amount, payment_method, order_items")
 				.eq("pos_order_status", "completed")
 				.eq("payment_status", "paid")
-				.gte("created_at", startOfDay.toISOString())
-				.lte("created_at", endOfDay.toISOString());
+				.gte("created_at", start)
+				.lte("created_at", end);
 
 			if (ordersError) throw ordersError;
 
-			// 2. Fetch aggregated item data from the view
-			const { data: itemSales, error: itemsError } = await supabase
-				.from("today_sales_dashboard")
+			// 2. Fetch sales analytics for Bangkok date
+			const { data: dailyAnalytics, error: analyticsError } = await supabase
+				.from("daily_sales_analytics")
 				.select("*")
+				.eq("sale_date", dateStr)
 				.order("quantity_sold", { ascending: false });
 
-			if (itemsError) throw itemsError;
+			if (analyticsError) throw analyticsError;
 
-			// 3. Process data in frontend
-			processData(orders || [], itemSales || []);
+			// 3. Process the data
+			processData(orders || [], dailyAnalytics || [], dateStr);
 		} catch (error) {
 			console.error("Error fetching dashboard data:", error);
 		} finally {
@@ -76,8 +109,7 @@ export const Dashboard = () => {
 			setRefreshing(false);
 		}
 	};
-
-	const processData = (orders, itemSales) => {
+	const processData = (orders, dailyAnalytics) => {
 		// Calculate totals from orders
 		const totalIncome = orders.reduce(
 			(sum, order) => sum + order.total_amount,
@@ -102,35 +134,35 @@ export const Dashboard = () => {
 		const avgOrderValue = totalOrders > 0 ? totalIncome / totalOrders : 0;
 
 		// Process pie chart data (top 8 items)
-		const topItems = itemSales.slice(0, 8);
+		const topItems = dailyAnalytics.slice(0, 8);
 		const totalQuantity = topItems.reduce(
 			(sum, item) => sum + item.quantity_sold,
 			0
 		);
 
 		const dailySales = topItems.map((item) => ({
-			name: item.item_name_burmese,
+			name: item.menu_item_name_burmese,
 			value: item.quantity_sold,
 			percentage:
 				totalQuantity > 0 ? (item.quantity_sold / totalQuantity) * 100 : 0,
 		}));
 
 		// Prepare item details for modal
-		const allItemsTotalQty = itemSales.reduce(
+		const allItemsTotalQty = dailyAnalytics.reduce(
 			(sum, item) => sum + item.quantity_sold,
 			0
 		);
-		const itemDetailsList = itemSales.map((item) => ({
-			item_name: item.item_name_burmese,
-			item_english_name: item.item_name_english,
-			category: item.category,
-			price: item.price,
+		const itemDetailsList = dailyAnalytics.map((item) => ({
+			item_name: item.menu_item_name_burmese,
+			item_english_name: item.menu_item_name_english,
+			category: item.menu_item_category,
+			price: item.menu_item_price,
 			quantity_sold: item.quantity_sold,
 			total_revenue: item.total_revenue,
 			avg_price:
 				item.quantity_sold > 0
 					? item.total_revenue / item.quantity_sold
-					: item.price,
+					: item.menu_item_price,
 			order_count: item.order_count,
 			cash_orders: item.cash_orders,
 			qr_orders: item.qr_orders,
@@ -138,8 +170,8 @@ export const Dashboard = () => {
 				allItemsTotalQty > 0
 					? (item.quantity_sold / allItemsTotalQty) * 100
 					: 0,
-			first_sale_time: item.first_sale_time,
-			last_sale_time: item.last_sale_time,
+			month_source: item.month_source,
+			sale_date: item.sale_date,
 		}));
 
 		setSalesData({
@@ -159,6 +191,7 @@ export const Dashboard = () => {
 	const exportToCSV = () => {
 		try {
 			const headers = [
+				"Date",
 				"Item Name (Burmese)",
 				"Item Name (English)",
 				"Category",
@@ -170,14 +203,14 @@ export const Dashboard = () => {
 				"Cash Orders",
 				"QR Orders",
 				"Percentage of Total",
-				"First Sale Time",
-				"Last Sale Time",
+				"Data Source",
 			];
 
 			const csvContent = [
 				headers.join(","),
 				...itemDetails.map((item) =>
 					[
+						`"${item.sale_date}"`,
 						`"${item.item_name || ""}"`,
 						`"${item.item_english_name || ""}"`,
 						`"${item.category || ""}"`,
@@ -189,16 +222,7 @@ export const Dashboard = () => {
 						item.cash_orders,
 						item.qr_orders,
 						item.percentage.toFixed(1),
-						`"${
-							item.first_sale_time
-								? new Date(item.first_sale_time).toLocaleTimeString()
-								: ""
-						}"`,
-						`"${
-							item.last_sale_time
-								? new Date(item.last_sale_time).toLocaleTimeString()
-								: ""
-						}"`,
+						`"${item.month_source}"`,
 					].join(",")
 				),
 			].join("\n");
@@ -208,11 +232,9 @@ export const Dashboard = () => {
 			const link = document.createElement("a");
 			const url = URL.createObjectURL(blob);
 
+			const dateStr = selectedDate.toISOString().split("T")[0];
 			link.setAttribute("href", url);
-			link.setAttribute(
-				"download",
-				`sales_${new Date().toISOString().split("T")[0]}.csv`
-			);
+			link.setAttribute("download", `sales_report_${dateStr}.csv`);
 			link.style.visibility = "hidden";
 
 			document.body.appendChild(link);
@@ -230,13 +252,50 @@ export const Dashboard = () => {
 		fetchDashboardData(true);
 	};
 
-	const today = new Date();
-	const formattedDate = today.toLocaleDateString("en-US", {
-		weekday: "long",
-		year: "numeric",
-		month: "long",
-		day: "numeric",
-	});
+	const handleDateChange = (daysOffset = 0) => {
+		const newDate = new Date(selectedDate);
+		newDate.setDate(newDate.getDate() + daysOffset);
+
+		// Don't allow future dates
+		const today = new Date();
+		if (newDate > today) return;
+
+		// Don't go before min date
+		if (dateRange.minDate && newDate < dateRange.minDate) return;
+
+		setSelectedDate(newDate);
+	};
+
+	const formatDate = (date) => {
+		const bangkokDate = new Date(date);
+		bangkokDate.setHours(bangkokDate.getHours() + 7);
+
+		return bangkokDate.toLocaleDateString("en-US", {
+			weekday: "short",
+			year: "numeric",
+			month: "short",
+			day: "numeric",
+			timeZone: "Asia/Bangkok",
+		});
+	};
+
+	// For the isToday check
+	const isToday = () => {
+		const today = new Date();
+		const todayBangkok = new Date(today);
+		todayBangkok.setHours(todayBangkok.getHours() + 7);
+
+		const selectedBangkok = new Date(selectedDate);
+		selectedBangkok.setHours(selectedBangkok.getHours() + 7);
+
+		return selectedBangkok.toDateString() === todayBangkok.toDateString();
+	};
+
+	const isYesterday = () => {
+		const yesterday = new Date();
+		yesterday.setDate(yesterday.getDate() - 1);
+		return selectedDate.toDateString() === yesterday.toDateString();
+	};
 
 	if (loading) {
 		return <Loading message="Loading dashboard data..." />;
@@ -248,11 +307,28 @@ export const Dashboard = () => {
 				{/* Header */}
 				<PageHeader
 					title="Dashboard Analytics"
-					description={formattedDate}
+					description={
+						<div className="flex items-center gap-2">
+							<span>{formatDate(selectedDate)}</span>
+							{!isToday && (
+								<span className="badge badge-sm badge-warning">
+									Historical View
+								</span>
+							)}
+						</div>
+					}
 					buttons={[
 						{
 							type: "button",
-							label: "Refresh Data",
+							label: "Calendar",
+							shortLabel: "Calendar",
+							icon: Calendar,
+							onClick: () => setShowDatePicker(true),
+							variant: "outline",
+						},
+						{
+							type: "button",
+							label: "Refresh",
 							shortLabel: "Refresh",
 							icon: RefreshCw,
 							onClick: handleRefresh,
@@ -261,7 +337,7 @@ export const Dashboard = () => {
 						},
 						{
 							type: "button",
-							label: "Export Full Report",
+							label: "Export Report",
 							shortLabel: "Export",
 							icon: Download,
 							onClick: () => setShowItemDetails(true),
@@ -269,6 +345,69 @@ export const Dashboard = () => {
 						},
 					]}
 				/>
+
+				{/* Date Navigation */}
+				<div className="mb-6">
+					<div className="flex items-center justify-between bg-base-200 rounded-lg p-3">
+						<div className="flex items-center gap-2">
+							<button
+								className="btn btn-circle btn-sm"
+								onClick={() => handleDateChange(-1)}
+								disabled={
+									dateRange.minDate && selectedDate <= dateRange.minDate
+								}>
+								<ChevronLeft className="w-4 h-4" />
+							</button>
+
+							<button
+								className="btn btn-ghost btn-sm"
+								onClick={() => setShowDatePicker(true)}>
+								{formatDate(selectedDate)}
+							</button>
+
+							<button
+								className="btn btn-circle btn-sm"
+								onClick={() => handleDateChange(1)}
+								disabled={
+									selectedDate.toDateString() === new Date().toDateString()
+								}>
+								<ChevronRight className="w-4 h-4" />
+							</button>
+						</div>
+
+						<div className="flex gap-2">
+							<button
+								className={`btn btn-sm ${
+									isYesterday() ? "btn-primary" : "btn-ghost"
+								}`}
+								onClick={() => {
+									const yesterday = new Date();
+									yesterday.setDate(yesterday.getDate() - 1);
+									setSelectedDate(yesterday);
+								}}>
+								Yesterday
+							</button>
+
+							<button
+								className={`btn btn-sm ${
+									isToday ? "btn-primary" : "btn-ghost"
+								}`}
+								onClick={() => setSelectedDate(new Date())}>
+								Today
+							</button>
+						</div>
+					</div>
+
+					{!isToday && (
+						<div className="mt-2 text-center">
+							<div className="alert alert-warning alert-sm">
+								<span>
+									Viewing historical data. Today's data is not included.
+								</span>
+							</div>
+						</div>
+					)}
+				</div>
 
 				{/* Summary Cards */}
 				<SummaryCards salesData={salesData} />
@@ -279,6 +418,7 @@ export const Dashboard = () => {
 						dailySales={salesData.dailySales}
 						totalItems={salesData.totalItems}
 						onChartClick={() => setShowItemDetails(true)}
+						date={selectedDate}
 					/>
 
 					<PerformanceCard salesData={salesData} />
@@ -288,12 +428,51 @@ export const Dashboard = () => {
 				{/* <StatsCard salesData={salesData} /> */}
 			</div>
 
+			{/* Date Picker Modal */}
+			{showDatePicker && (
+				<div className="modal modal-open">
+					<div className="modal-box">
+						<h3 className="font-bold text-lg mb-4">Select Date</h3>
+						<input
+							type="date"
+							className="input input-bordered w-full"
+							value={selectedDate.toISOString().split("T")[0]}
+							max={new Date().toISOString().split("T")[0]}
+							min={
+								dateRange.minDate
+									? dateRange.minDate.toISOString().split("T")[0]
+									: undefined
+							}
+							onChange={(e) => {
+								setSelectedDate(new Date(e.target.value));
+								setShowDatePicker(false);
+							}}
+						/>
+						<div className="modal-action">
+							<button
+								className="btn btn-ghost"
+								onClick={() => setShowDatePicker(false)}>
+								Cancel
+							</button>
+							<button
+								className="btn btn-primary"
+								onClick={() => {
+									setShowDatePicker(false);
+									fetchDashboardData();
+								}}>
+								View Analytics
+							</button>
+						</div>
+					</div>
+				</div>
+			)}
+
 			{/* Item Details Modal */}
 			<ItemDetailsModal
 				isOpen={showItemDetails}
 				onClose={() => setShowItemDetails(false)}
 				itemDetails={itemDetails}
-				date={today.toLocaleDateString()}
+				date={selectedDate}
 				onExportCSV={exportToCSV}
 			/>
 		</div>
