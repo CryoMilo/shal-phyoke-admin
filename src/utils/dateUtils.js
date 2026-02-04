@@ -1,41 +1,42 @@
 // utils/dateUtils.js
-export const toBangkokDate = (date) => {
-	// Convert any date to Bangkok time (UTC+7)
-	const bangkokDate = new Date(date);
-	bangkokDate.setHours(bangkokDate.getHours() + 7);
-	return bangkokDate;
+
+/**
+ * Returns a YYYY-MM-DD string for Bangkok time.
+ */
+export const toBangkokDateString = (date = new Date()) => {
+	return new Intl.DateTimeFormat("en-CA", {
+		timeZone: "Asia/Bangkok",
+	}).format(new Date(date));
 };
 
-export const toBangkokDateString = (date) => {
-	// Create date in Bangkok timezone
-	const bangkokDate = new Date(
-		date.toLocaleString("en-US", {
-			timeZone: "Asia/Bangkok",
-		})
-	);
+/**
+ * Returns the exact UTC ISO strings for the start and end of a Bangkok day.
+ * Essential for Supabase/Database queries.
+ */
+export const getBangkokDayRange = (date = new Date()) => {
+	const dateStr = toBangkokDateString(date);
 
-	// Format as YYYY-MM-DD
-	const year = bangkokDate.getFullYear();
-	const month = String(bangkokDate.getMonth() + 1).padStart(2, "0");
-	const day = String(bangkokDate.getDate()).padStart(2, "0");
-
-	return `${year}-${month}-${day}`;
-};
-
-export const getBangkokDateRange = (date) => {
-	const bangkokDate = toBangkokDate(date);
-
-	// Start of day in Bangkok
-	const startOfDay = new Date(bangkokDate);
-	startOfDay.setHours(0, 0, 0, 0);
-
-	// End of day in Bangkok
-	const endOfDay = new Date(bangkokDate);
-	endOfDay.setHours(23, 59, 59, 999);
+	// We create dates by specifying the Bangkok offset (+07:00)
+	// to ensure JS parses them exactly as intended.
+	const start = new Date(`${dateStr}T00:00:00+07:00`);
+	const end = new Date(`${dateStr}T23:59:59.999+07:00`);
 
 	return {
-		start: startOfDay.toISOString(),
-		end: endOfDay.toISOString(),
-		dateStr: bangkokDate.toISOString().split("T")[0],
+		start: start.toISOString(),
+		end: end.toISOString(),
+		dateStr: dateStr,
 	};
+};
+
+/**
+ * Format date for UI display (e.g., Thu, Feb 5, 2026)
+ */
+export const formatDisplayDate = (date) => {
+	return new Intl.DateTimeFormat("en-US", {
+		timeZone: "Asia/Bangkok",
+		weekday: "short",
+		year: "numeric",
+		month: "short",
+		day: "numeric",
+	}).format(new Date(date));
 };

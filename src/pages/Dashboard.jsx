@@ -1,5 +1,4 @@
-// pages/Dashboard.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { supabase } from "../services/supabase";
 import {
 	Calendar,
@@ -8,6 +7,8 @@ import {
 	ChevronLeft,
 	ChevronRight,
 } from "lucide-react";
+
+// Components
 import { PageHeader } from "../components/common/PageHeader";
 import { Loading } from "../components/common/Loading";
 import {
@@ -17,6 +18,11 @@ import {
 	StatsCard,
 	ItemDetailsModal,
 } from "../components/dashboard";
+import { formatDisplayDate, getBangkokDayRange } from "../utils/dateUtils";
+
+// Consistent YYYY-MM-DD for Bangkok
+const getBangkokISO = (date) =>
+	new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok" }).format(date);
 
 export const Dashboard = () => {
 	const [salesData, setSalesData] = useState({
@@ -34,55 +40,45 @@ export const Dashboard = () => {
 	const [refreshing, setRefreshing] = useState(false);
 	const [showItemDetails, setShowItemDetails] = useState(false);
 	const [itemDetails, setItemDetails] = useState([]);
-
-	// Date selection
 	const [selectedDate, setSelectedDate] = useState(new Date());
 	const [showDatePicker, setShowDatePicker] = useState(false);
 
+	// Constants for navigation logic
+	const today = new Date();
+	const yesterday = new Date();
+	yesterday.setDate(yesterday.getDate() - 1);
+
+	// Derived state: Is the selected date "Today" in Bangkok?
+	const isTodaySelected = useMemo(
+		() => getBangkokISO(selectedDate) === getBangkokISO(today),
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+		[selectedDate]
+	);
+
 	useEffect(() => {
 		fetchDashboardData();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [selectedDate]);
-
-	// Convert to Bangkok date string
-	const toBangkokDateStr = (date) => {
-		const bangkokDate = new Date(date);
-		bangkokDate.setHours(bangkokDate.getHours() + 7); // UTC+7
-		return bangkokDate.toISOString().split("T")[0];
-	};
 
 	const fetchDashboardData = async (isRefresh = false) => {
 		try {
-			if (isRefresh) {
-				setRefreshing(true);
-			} else {
-				setLoading(true);
-			}
+			isRefresh ? setRefreshing(true) : setLoading(true);
 
-			const bangkokDateStr = toBangkokDateStr(selectedDate);
-			console.log("📅 Fetching data for Bangkok date:", bangkokDateStr);
+			const bangkokDateStr = getBangkokISO(selectedDate);
+			const { start, end } = getBangkokDayRange(selectedDate);
 
-			console.log("selected", selectedDate);
-
-			// Get date range for filtering orders (Bangkok time)
-			const bangkokDate = new Date(selectedDate);
-			bangkokDate.setHours(bangkokDate.getHours() + 7);
-			const startOfDay = new Date(bangkokDate);
-			startOfDay.setHours(0, 0, 0, 0);
-			const endOfDay = new Date(bangkokDate);
-			endOfDay.setHours(23, 59, 59, 999);
-
-			// 1. Fetch orders for the selected date
+			// 1. Fetch orders using exact UTC window
 			const { data: orders, error: ordersError } = await supabase
 				.from("orders")
 				.select("id, created_at, total_amount, payment_method, order_items")
 				.eq("pos_order_status", "completed")
 				.eq("payment_status", "paid")
-				.gte("created_at", startOfDay.toISOString())
-				.lte("created_at", endOfDay.toISOString());
+				.gte("created_at", start)
+				.lte("created_at", end);
 
 			if (ordersError) throw ordersError;
 
-			// 2. Fetch aggregated sales data from monthly_sales table
+			// 2. Fetch aggregated sales from monthly_sales table
 			const { data: aggregatedSales, error: salesError } = await supabase
 				.from("monthly_sales")
 				.select(
@@ -102,10 +98,9 @@ export const Dashboard = () => {
 
 			if (salesError) throw salesError;
 
-			// 3. Process the data
 			processData(orders || [], aggregatedSales || [], bangkokDateStr);
 		} catch (error) {
-			console.error("Error fetching dashboard data:", error);
+			console.error("Dashboard Fetch Error:", error);
 		} finally {
 			setLoading(false);
 			setRefreshing(false);
@@ -113,36 +108,21 @@ export const Dashboard = () => {
 	};
 
 	const processData = (orders, aggregatedSales, dateStr) => {
-		console.log("🔄 Processing data for:", dateStr);
-		console.log("📦 Orders:", orders.length);
-		console.log("📊 Aggregated sales items:", aggregatedSales.length);
-
-		// Calculate totals from orders
-		const totalIncome = orders.reduce(
-			(sum, order) => sum + order.total_amount,
-			0
-		);
+		const totalIncome = orders.reduce((sum, o) => sum + o.total_amount, 0);
 		const totalOrders = orders.length;
 		const totalItems = orders.reduce(
-			(sum, order) => sum + (order.order_items?.length || 0),
+			(sum, o) => sum + (o.order_items?.length || 0),
 			0
 		);
 
-		// Calculate payment breakdown
 		const cashSales = orders
-			.filter((order) => order.payment_method === "cash")
-			.reduce((sum, order) => sum + order.total_amount, 0);
+			.filter((o) => o.payment_method === "cash")
+			.reduce((sum, o) => sum + o.total_amount, 0);
 
-		const qrSales = orders
-			.filter((order) => order.payment_method === "qr")
-			.reduce((sum, order) => sum + order.total_amount, 0);
+		const qrSales = totalIncome - cashSales;
 
-		// Calculate avg order value
-		const avgOrderValue = totalOrders > 0 ? totalIncome / totalOrders : 0;
-
-		// Aggregate item sales manually from the raw data
+		// Aggregate items
 		const itemSalesMap = {};
-
 		aggregatedSales.forEach((sale) => {
 			const key = sale.menu_item_name_burmese;
 			if (!itemSalesMap[key]) {
@@ -162,41 +142,20 @@ export const Dashboard = () => {
 			itemSalesMap[key].quantitySold += sale.quantity_sold;
 			itemSalesMap[key].totalRevenue += sale.total_revenue;
 			itemSalesMap[key].orderIds.add(sale.order_id);
-
-			if (sale.payment_method === "cash") {
-				itemSalesMap[key].cashOrders++;
-			} else if (sale.payment_method === "qr") {
-				itemSalesMap[key].qrOrders++;
-			}
+			sale.payment_method === "cash"
+				? itemSalesMap[key].cashOrders++
+				: itemSalesMap[key].qrOrders++;
 		});
 
-		// Convert to array and sort by quantity
-		const itemSalesArray = Object.values(itemSalesMap)
-			.map((item) => ({
-				...item,
-				orderCount: item.orderIds.size,
-			}))
-			.sort((a, b) => b.quantitySold - a.quantitySold);
-
-		// Prepare pie chart data (top 8 items)
-		const topItems = itemSalesArray.slice(0, 8);
-		const totalQuantity = topItems.reduce(
-			(sum, item) => sum + item.quantitySold,
-			0
+		const itemSalesArray = Object.values(itemSalesMap).sort(
+			(a, b) => b.quantitySold - a.quantitySold
 		);
-
-		const dailySales = topItems.map((item) => ({
-			name: item.name,
-			value: item.quantitySold,
-			percentage:
-				totalQuantity > 0 ? (item.quantitySold / totalQuantity) * 100 : 0,
-		}));
-
-		// Prepare item details for modal
 		const allItemsTotalQty = itemSalesArray.reduce(
-			(sum, item) => sum + item.quantitySold,
+			(sum, i) => sum + i.quantitySold,
 			0
 		);
+
+		// Format for display and modals
 		const itemDetailsList = itemSalesArray.map((item) => ({
 			item_name: item.name,
 			item_english_name: item.englishName,
@@ -208,7 +167,7 @@ export const Dashboard = () => {
 				item.quantitySold > 0
 					? item.totalRevenue / item.quantitySold
 					: item.price,
-			order_count: item.orderCount,
+			order_count: item.orderIds.size,
 			cash_orders: item.cashOrders,
 			qr_orders: item.qrOrders,
 			percentage:
@@ -216,152 +175,84 @@ export const Dashboard = () => {
 			sale_date: dateStr,
 		}));
 
-		console.log("✅ Processed dailySales:", dailySales.length, "items");
-		console.log("✅ Total items in details:", itemDetailsList.length);
-
 		setSalesData({
-			dailySales,
+			dailySales: itemDetailsList.slice(0, 8).map((i) => ({
+				name: i.item_name,
+				value: i.quantity_sold,
+				percentage: i.percentage,
+			})),
 			totalIncome,
-			totalExpenses: 0, // Will come from daily_cash_management
+			totalExpenses: 0,
 			cashSales,
 			qrSales,
 			totalOrders,
 			totalItems,
-			avgOrderValue,
+			avgOrderValue: totalOrders > 0 ? totalIncome / totalOrders : 0,
 		});
 
 		setItemDetails(itemDetailsList);
 	};
 
 	const exportToCSV = () => {
-		try {
-			const headers = [
-				"Date",
-				"Item Name (Burmese)",
-				"Item Name (English)",
-				"Category",
-				"Price",
-				"Quantity Sold",
-				"Total Revenue",
-				"Average Price",
-				"Orders Containing Item",
-				"Cash Orders",
-				"QR Orders",
-				"Percentage of Total",
-			];
+		const headers = [
+			"Date",
+			"Item (MM)",
+			"Item (EN)",
+			"Category",
+			"Price",
+			"Qty",
+			"Revenue",
+			"Avg Price",
+			"Orders",
+			"Cash",
+			"QR",
+			"%",
+		];
+		const csvRows = [
+			headers.join(","),
+			...itemDetails.map((i) =>
+				[
+					`"${i.sale_date}"`,
+					`"${i.item_name}"`,
+					`"${i.item_english_name}"`,
+					`"${i.category}"`,
+					i.price,
+					i.quantity_sold,
+					i.total_revenue,
+					i.avg_price.toFixed(2),
+					i.order_count,
+					i.cash_orders,
+					i.qr_orders,
+					i.percentage.toFixed(1),
+				].join(",")
+			),
+		].join("\n");
 
-			const csvContent = [
-				headers.join(","),
-				...itemDetails.map((item) =>
-					[
-						`"${item.sale_date}"`,
-						`"${item.item_name || ""}"`,
-						`"${item.item_english_name || ""}"`,
-						`"${item.category || ""}"`,
-						item.price,
-						item.quantity_sold,
-						item.total_revenue,
-						item.avg_price.toFixed(2),
-						item.order_count,
-						item.cash_orders,
-						item.qr_orders,
-						item.percentage.toFixed(1),
-					].join(",")
-				),
-			].join("\n");
-
-			// Create download link
-			const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-			const link = document.createElement("a");
-			const url = URL.createObjectURL(blob);
-
-			const dateStr = toBangkokDateStr(selectedDate);
-			link.setAttribute("href", url);
-			link.setAttribute("download", `sales_report_${dateStr}.csv`);
-			link.style.visibility = "hidden";
-
-			document.body.appendChild(link);
-			link.click();
-			document.body.removeChild(link);
-
-			alert("CSV exported successfully!");
-		} catch (error) {
-			console.error("Error exporting CSV:", error);
-			alert("Failed to export CSV");
-		}
+		const blob = new Blob([csvRows], { type: "text/csv;charset=utf-8;" });
+		const link = document.createElement("a");
+		link.href = URL.createObjectURL(blob);
+		link.download = `sales_${getBangkokISO(selectedDate)}.csv`;
+		link.click();
 	};
 
-	const handleRefresh = () => {
-		fetchDashboardData(true);
-	};
-
-	const handleDateChange = (daysOffset = 0) => {
+	const handleDateChange = (offset) => {
 		const newDate = new Date(selectedDate);
-		newDate.setDate(newDate.getDate() + daysOffset);
-
-		// Don't allow future dates
-		const today = new Date();
+		newDate.setDate(newDate.getDate() + offset);
 		if (newDate > today) return;
-
 		setSelectedDate(newDate);
 	};
 
-	// Fixed date formatting
-	const formatDate = (date) => {
-		// Convert to Bangkok time for display
-		const bangkokDate = new Date(
-			date.toLocaleString("en-US", {
-				timeZone: "Asia/Bangkok",
-			})
-		);
-
-		return bangkokDate.toLocaleDateString("en-US", {
-			weekday: "short",
-			year: "numeric",
-			month: "short",
-			day: "numeric",
-		});
-	};
-
-	const isToday = () => {
-		const today = new Date();
-		const todayBangkok = new Date(
-			today.toLocaleString("en-US", {
-				timeZone: "Asia/Bangkok",
-			})
-		);
-
-		const selectedBangkok = new Date(
-			selectedDate.toLocaleString("en-US", {
-				timeZone: "Asia/Bangkok",
-			})
-		);
-
-		return (
-			selectedBangkok.getDate() === todayBangkok.getDate() &&
-			selectedBangkok.getMonth() === todayBangkok.getMonth() &&
-			selectedBangkok.getFullYear() === todayBangkok.getFullYear()
-		);
-	};
-
-	if (loading) {
-		return <Loading message="Loading dashboard data..." />;
-	}
-
-	const today = new Date();
-	const yesterday = new Date(today);
-	yesterday.setDate(yesterday.getDate() - 1);
+	if (loading) return <Loading message="Syncing with Bangkok data..." />;
 
 	return (
 		<div className="min-h-screen bg-base-100">
 			<div className="container mx-auto p-4 md:p-6">
-				{/* Header */}
 				<PageHeader
 					title="Dashboard Analytics"
 					description={
 						<div className="flex items-center gap-2">
-							<span>{formatDate(selectedDate)}</span>
-							{!isToday() && (
+							<span>{formatDisplayDate(selectedDate)}</span>
+							{!isTodaySelected && (
 								<span className="badge badge-sm badge-warning">
 									Historical View
 								</span>
@@ -370,26 +261,20 @@ export const Dashboard = () => {
 					}
 					buttons={[
 						{
-							type: "button",
 							label: "Calendar",
-							shortLabel: "Calendar",
 							icon: Calendar,
 							onClick: () => setShowDatePicker(true),
 							variant: "outline",
 						},
 						{
-							type: "button",
 							label: "Refresh",
-							shortLabel: "Refresh",
 							icon: RefreshCw,
-							onClick: handleRefresh,
+							onClick: () => fetchDashboardData(true),
 							variant: "outline",
 							loading: refreshing,
 						},
 						{
-							type: "button",
 							label: "Export Report",
-							shortLabel: "Export",
 							icon: Download,
 							onClick: () => setShowItemDetails(true),
 							variant: "primary",
@@ -398,55 +283,47 @@ export const Dashboard = () => {
 				/>
 
 				{/* Date Navigation */}
-				<div className="mb-6">
-					<div className="flex items-center justify-between bg-base-200 rounded-lg p-3">
-						<div className="flex items-center gap-2">
-							<button
-								className="btn btn-circle btn-sm"
-								onClick={() => handleDateChange(-1)}>
-								<ChevronLeft className="w-4 h-4" />
-							</button>
-
-							<button
-								className="btn btn-ghost btn-sm"
-								onClick={() => setShowDatePicker(true)}>
-								{formatDate(selectedDate)}
-							</button>
-
-							<button
-								className="btn btn-circle btn-sm"
-								onClick={() => handleDateChange(1)}
-								disabled={selectedDate.toDateString() === today.toDateString()}>
-								<ChevronRight className="w-4 h-4" />
-							</button>
-						</div>
-
-						<div className="flex gap-2">
-							<button
-								className={`btn btn-sm ${
-									selectedDate.toDateString() === yesterday.toDateString()
-										? "btn-primary"
-										: "btn-ghost"
-								}`}
-								onClick={() => setSelectedDate(yesterday)}>
-								Yesterday
-							</button>
-
-							<button
-								className={`btn btn-sm ${
-									isToday() ? "btn-primary" : "btn-ghost"
-								}`}
-								onClick={() => setSelectedDate(today)}>
-								Today
-							</button>
-						</div>
+				<div className="mb-6 flex items-center justify-between bg-base-200 rounded-lg p-3">
+					<div className="flex items-center gap-2">
+						<button
+							className="btn btn-circle btn-sm"
+							onClick={() => handleDateChange(-1)}>
+							<ChevronLeft size={16} />
+						</button>
+						<button
+							className="btn btn-ghost btn-sm font-bold"
+							onClick={() => setShowDatePicker(true)}>
+							{formatDisplayDate(selectedDate)}
+						</button>
+						<button
+							className="btn btn-circle btn-sm"
+							onClick={() => handleDateChange(1)}
+							disabled={isTodaySelected}>
+							<ChevronRight size={16} />
+						</button>
+					</div>
+					<div className="flex gap-2">
+						<button
+							className={`btn btn-sm ${
+								getBangkokISO(selectedDate) === getBangkokISO(yesterday)
+									? "btn-primary"
+									: "btn-ghost"
+							}`}
+							onClick={() => setSelectedDate(yesterday)}>
+							Yesterday
+						</button>
+						<button
+							className={`btn btn-sm ${
+								isTodaySelected ? "btn-primary" : "btn-ghost"
+							}`}
+							onClick={() => setSelectedDate(today)}>
+							Today
+						</button>
 					</div>
 				</div>
 
-				{/* Summary Cards */}
 				<SummaryCards salesData={salesData} />
 
-				{/* Charts Section */}
 				<div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
 					<PieChartCard
 						dailySales={salesData.dailySales}
@@ -454,11 +331,9 @@ export const Dashboard = () => {
 						onChartClick={() => setShowItemDetails(true)}
 						date={selectedDate}
 					/>
-
 					<PerformanceCard salesData={salesData} />
 				</div>
 
-				{/* Stats Card */}
 				<StatsCard salesData={salesData} />
 			</div>
 
@@ -470,8 +345,8 @@ export const Dashboard = () => {
 						<input
 							type="date"
 							className="input input-bordered w-full"
-							value={selectedDate.toISOString().split("T")[0]}
-							max={today.toISOString().split("T")[0]}
+							value={getBangkokISO(selectedDate)}
+							max={getBangkokISO(today)}
 							onChange={(e) => {
 								setSelectedDate(new Date(e.target.value));
 								setShowDatePicker(false);
@@ -483,20 +358,11 @@ export const Dashboard = () => {
 								onClick={() => setShowDatePicker(false)}>
 								Cancel
 							</button>
-							<button
-								className="btn btn-primary"
-								onClick={() => {
-									setShowDatePicker(false);
-									fetchDashboardData();
-								}}>
-								View Analytics
-							</button>
 						</div>
 					</div>
 				</div>
 			)}
 
-			{/* Item Details Modal */}
 			<ItemDetailsModal
 				isOpen={showItemDetails}
 				onClose={() => setShowItemDetails(false)}
