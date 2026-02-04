@@ -14,10 +14,9 @@ import {
 	SummaryCards,
 	PieChartCard,
 	PerformanceCard,
-	// StatsCard,
+	StatsCard,
 	ItemDetailsModal,
 } from "../components/dashboard";
-import { getBangkokDateRange } from "../utils/dateUtils";
 
 export const Dashboard = () => {
 	const [salesData, setSalesData] = useState({
@@ -36,37 +35,19 @@ export const Dashboard = () => {
 	const [showItemDetails, setShowItemDetails] = useState(false);
 	const [itemDetails, setItemDetails] = useState([]);
 
-	// Date selection state
+	// Date selection
 	const [selectedDate, setSelectedDate] = useState(new Date());
 	const [showDatePicker, setShowDatePicker] = useState(false);
-	const [dateRange, setDateRange] = useState({
-		minDate: null,
-		maxDate: new Date(),
-	});
 
 	useEffect(() => {
 		fetchDashboardData();
-		fetchDateRange();
 	}, [selectedDate]);
 
-	const fetchDateRange = async () => {
-		try {
-			// Get min and max dates from sales data
-			const { data, error } = await supabase
-				.from("current_month_sales")
-				.select("sale_date")
-				.order("sale_date", { ascending: true })
-				.limit(1);
-
-			if (!error && data && data.length > 0) {
-				setDateRange((prev) => ({
-					...prev,
-					minDate: new Date(data[0].sale_date),
-				}));
-			}
-		} catch (error) {
-			console.error("Error fetching date range:", error);
-		}
+	// Convert to Bangkok date string
+	const toBangkokDateStr = (date) => {
+		const bangkokDate = new Date(date);
+		bangkokDate.setHours(bangkokDate.getHours() + 7); // UTC+7
+		return bangkokDate.toISOString().split("T")[0];
 	};
 
 	const fetchDashboardData = async (isRefresh = false) => {
@@ -77,31 +58,52 @@ export const Dashboard = () => {
 				setLoading(true);
 			}
 
-			// Get Bangkok date range
-			const { start, end, dateStr } = getBangkokDateRange(selectedDate);
+			const bangkokDateStr = toBangkokDateStr(selectedDate);
+			console.log("📅 Fetching data for Bangkok date:", bangkokDateStr);
 
-			// 1. Fetch orders for selected date
+			console.log("selected", selectedDate);
+
+			// Get date range for filtering orders (Bangkok time)
+			const bangkokDate = new Date(selectedDate);
+			bangkokDate.setHours(bangkokDate.getHours() + 7);
+			const startOfDay = new Date(bangkokDate);
+			startOfDay.setHours(0, 0, 0, 0);
+			const endOfDay = new Date(bangkokDate);
+			endOfDay.setHours(23, 59, 59, 999);
+
+			// 1. Fetch orders for the selected date
 			const { data: orders, error: ordersError } = await supabase
 				.from("orders")
 				.select("id, created_at, total_amount, payment_method, order_items")
 				.eq("pos_order_status", "completed")
 				.eq("payment_status", "paid")
-				.gte("created_at", start)
-				.lte("created_at", end);
+				.gte("created_at", startOfDay.toISOString())
+				.lte("created_at", endOfDay.toISOString());
 
 			if (ordersError) throw ordersError;
 
-			// 2. Fetch sales analytics for Bangkok date
-			const { data: dailyAnalytics, error: analyticsError } = await supabase
-				.from("daily_sales_analytics")
-				.select("*")
-				.eq("sale_date", dateStr)
-				.order("quantity_sold", { ascending: false });
+			// 2. Fetch aggregated sales data from monthly_sales table
+			const { data: aggregatedSales, error: salesError } = await supabase
+				.from("monthly_sales")
+				.select(
+					`
+          menu_item_id,
+          menu_item_name_burmese,
+          menu_item_name_english,
+          menu_item_category,
+          menu_item_price,
+          quantity_sold,
+          total_revenue,
+          order_id,
+          payment_method
+        `
+				)
+				.eq("sale_date", bangkokDateStr);
 
-			if (analyticsError) throw analyticsError;
+			if (salesError) throw salesError;
 
 			// 3. Process the data
-			processData(orders || [], dailyAnalytics || [], dateStr);
+			processData(orders || [], aggregatedSales || [], bangkokDateStr);
 		} catch (error) {
 			console.error("Error fetching dashboard data:", error);
 		} finally {
@@ -109,7 +111,12 @@ export const Dashboard = () => {
 			setRefreshing(false);
 		}
 	};
-	const processData = (orders, dailyAnalytics) => {
+
+	const processData = (orders, aggregatedSales, dateStr) => {
+		console.log("🔄 Processing data for:", dateStr);
+		console.log("📦 Orders:", orders.length);
+		console.log("📊 Aggregated sales items:", aggregatedSales.length);
+
 		// Calculate totals from orders
 		const totalIncome = orders.reduce(
 			(sum, order) => sum + order.total_amount,
@@ -133,46 +140,84 @@ export const Dashboard = () => {
 		// Calculate avg order value
 		const avgOrderValue = totalOrders > 0 ? totalIncome / totalOrders : 0;
 
-		// Process pie chart data (top 8 items)
-		const topItems = dailyAnalytics.slice(0, 8);
+		// Aggregate item sales manually from the raw data
+		const itemSalesMap = {};
+
+		aggregatedSales.forEach((sale) => {
+			const key = sale.menu_item_name_burmese;
+			if (!itemSalesMap[key]) {
+				itemSalesMap[key] = {
+					name: sale.menu_item_name_burmese,
+					englishName: sale.menu_item_name_english,
+					category: sale.menu_item_category,
+					price: sale.menu_item_price,
+					quantitySold: 0,
+					totalRevenue: 0,
+					orderIds: new Set(),
+					cashOrders: 0,
+					qrOrders: 0,
+				};
+			}
+
+			itemSalesMap[key].quantitySold += sale.quantity_sold;
+			itemSalesMap[key].totalRevenue += sale.total_revenue;
+			itemSalesMap[key].orderIds.add(sale.order_id);
+
+			if (sale.payment_method === "cash") {
+				itemSalesMap[key].cashOrders++;
+			} else if (sale.payment_method === "qr") {
+				itemSalesMap[key].qrOrders++;
+			}
+		});
+
+		// Convert to array and sort by quantity
+		const itemSalesArray = Object.values(itemSalesMap)
+			.map((item) => ({
+				...item,
+				orderCount: item.orderIds.size,
+			}))
+			.sort((a, b) => b.quantitySold - a.quantitySold);
+
+		// Prepare pie chart data (top 8 items)
+		const topItems = itemSalesArray.slice(0, 8);
 		const totalQuantity = topItems.reduce(
-			(sum, item) => sum + item.quantity_sold,
+			(sum, item) => sum + item.quantitySold,
 			0
 		);
 
 		const dailySales = topItems.map((item) => ({
-			name: item.menu_item_name_burmese,
-			value: item.quantity_sold,
+			name: item.name,
+			value: item.quantitySold,
 			percentage:
-				totalQuantity > 0 ? (item.quantity_sold / totalQuantity) * 100 : 0,
+				totalQuantity > 0 ? (item.quantitySold / totalQuantity) * 100 : 0,
 		}));
 
 		// Prepare item details for modal
-		const allItemsTotalQty = dailyAnalytics.reduce(
-			(sum, item) => sum + item.quantity_sold,
+		const allItemsTotalQty = itemSalesArray.reduce(
+			(sum, item) => sum + item.quantitySold,
 			0
 		);
-		const itemDetailsList = dailyAnalytics.map((item) => ({
-			item_name: item.menu_item_name_burmese,
-			item_english_name: item.menu_item_name_english,
-			category: item.menu_item_category,
-			price: item.menu_item_price,
-			quantity_sold: item.quantity_sold,
-			total_revenue: item.total_revenue,
+		const itemDetailsList = itemSalesArray.map((item) => ({
+			item_name: item.name,
+			item_english_name: item.englishName,
+			category: item.category,
+			price: item.price,
+			quantity_sold: item.quantitySold,
+			total_revenue: item.totalRevenue,
 			avg_price:
-				item.quantity_sold > 0
-					? item.total_revenue / item.quantity_sold
-					: item.menu_item_price,
-			order_count: item.order_count,
-			cash_orders: item.cash_orders,
-			qr_orders: item.qr_orders,
+				item.quantitySold > 0
+					? item.totalRevenue / item.quantitySold
+					: item.price,
+			order_count: item.orderCount,
+			cash_orders: item.cashOrders,
+			qr_orders: item.qrOrders,
 			percentage:
-				allItemsTotalQty > 0
-					? (item.quantity_sold / allItemsTotalQty) * 100
-					: 0,
-			month_source: item.month_source,
-			sale_date: item.sale_date,
+				allItemsTotalQty > 0 ? (item.quantitySold / allItemsTotalQty) * 100 : 0,
+			sale_date: dateStr,
 		}));
+
+		console.log("✅ Processed dailySales:", dailySales.length, "items");
+		console.log("✅ Total items in details:", itemDetailsList.length);
 
 		setSalesData({
 			dailySales,
@@ -203,7 +248,6 @@ export const Dashboard = () => {
 				"Cash Orders",
 				"QR Orders",
 				"Percentage of Total",
-				"Data Source",
 			];
 
 			const csvContent = [
@@ -222,7 +266,6 @@ export const Dashboard = () => {
 						item.cash_orders,
 						item.qr_orders,
 						item.percentage.toFixed(1),
-						`"${item.month_source}"`,
 					].join(",")
 				),
 			].join("\n");
@@ -232,7 +275,7 @@ export const Dashboard = () => {
 			const link = document.createElement("a");
 			const url = URL.createObjectURL(blob);
 
-			const dateStr = selectedDate.toISOString().split("T")[0];
+			const dateStr = toBangkokDateStr(selectedDate);
 			link.setAttribute("href", url);
 			link.setAttribute("download", `sales_report_${dateStr}.csv`);
 			link.style.visibility = "hidden";
@@ -260,46 +303,54 @@ export const Dashboard = () => {
 		const today = new Date();
 		if (newDate > today) return;
 
-		// Don't go before min date
-		if (dateRange.minDate && newDate < dateRange.minDate) return;
-
 		setSelectedDate(newDate);
 	};
 
+	// Fixed date formatting
 	const formatDate = (date) => {
-		const bangkokDate = new Date(date);
-		bangkokDate.setHours(bangkokDate.getHours() + 7);
+		// Convert to Bangkok time for display
+		const bangkokDate = new Date(
+			date.toLocaleString("en-US", {
+				timeZone: "Asia/Bangkok",
+			})
+		);
 
 		return bangkokDate.toLocaleDateString("en-US", {
 			weekday: "short",
 			year: "numeric",
 			month: "short",
 			day: "numeric",
-			timeZone: "Asia/Bangkok",
 		});
 	};
 
-	// For the isToday check
 	const isToday = () => {
 		const today = new Date();
-		const todayBangkok = new Date(today);
-		todayBangkok.setHours(todayBangkok.getHours() + 7);
+		const todayBangkok = new Date(
+			today.toLocaleString("en-US", {
+				timeZone: "Asia/Bangkok",
+			})
+		);
 
-		const selectedBangkok = new Date(selectedDate);
-		selectedBangkok.setHours(selectedBangkok.getHours() + 7);
+		const selectedBangkok = new Date(
+			selectedDate.toLocaleString("en-US", {
+				timeZone: "Asia/Bangkok",
+			})
+		);
 
-		return selectedBangkok.toDateString() === todayBangkok.toDateString();
-	};
-
-	const isYesterday = () => {
-		const yesterday = new Date();
-		yesterday.setDate(yesterday.getDate() - 1);
-		return selectedDate.toDateString() === yesterday.toDateString();
+		return (
+			selectedBangkok.getDate() === todayBangkok.getDate() &&
+			selectedBangkok.getMonth() === todayBangkok.getMonth() &&
+			selectedBangkok.getFullYear() === todayBangkok.getFullYear()
+		);
 	};
 
 	if (loading) {
 		return <Loading message="Loading dashboard data..." />;
 	}
+
+	const today = new Date();
+	const yesterday = new Date(today);
+	yesterday.setDate(yesterday.getDate() - 1);
 
 	return (
 		<div className="min-h-screen bg-base-100">
@@ -310,7 +361,7 @@ export const Dashboard = () => {
 					description={
 						<div className="flex items-center gap-2">
 							<span>{formatDate(selectedDate)}</span>
-							{!isToday && (
+							{!isToday() && (
 								<span className="badge badge-sm badge-warning">
 									Historical View
 								</span>
@@ -352,10 +403,7 @@ export const Dashboard = () => {
 						<div className="flex items-center gap-2">
 							<button
 								className="btn btn-circle btn-sm"
-								onClick={() => handleDateChange(-1)}
-								disabled={
-									dateRange.minDate && selectedDate <= dateRange.minDate
-								}>
+								onClick={() => handleDateChange(-1)}>
 								<ChevronLeft className="w-4 h-4" />
 							</button>
 
@@ -368,9 +416,7 @@ export const Dashboard = () => {
 							<button
 								className="btn btn-circle btn-sm"
 								onClick={() => handleDateChange(1)}
-								disabled={
-									selectedDate.toDateString() === new Date().toDateString()
-								}>
+								disabled={selectedDate.toDateString() === today.toDateString()}>
 								<ChevronRight className="w-4 h-4" />
 							</button>
 						</div>
@@ -378,35 +424,23 @@ export const Dashboard = () => {
 						<div className="flex gap-2">
 							<button
 								className={`btn btn-sm ${
-									isYesterday() ? "btn-primary" : "btn-ghost"
+									selectedDate.toDateString() === yesterday.toDateString()
+										? "btn-primary"
+										: "btn-ghost"
 								}`}
-								onClick={() => {
-									const yesterday = new Date();
-									yesterday.setDate(yesterday.getDate() - 1);
-									setSelectedDate(yesterday);
-								}}>
+								onClick={() => setSelectedDate(yesterday)}>
 								Yesterday
 							</button>
 
 							<button
 								className={`btn btn-sm ${
-									isToday ? "btn-primary" : "btn-ghost"
+									isToday() ? "btn-primary" : "btn-ghost"
 								}`}
-								onClick={() => setSelectedDate(new Date())}>
+								onClick={() => setSelectedDate(today)}>
 								Today
 							</button>
 						</div>
 					</div>
-
-					{!isToday && (
-						<div className="mt-2 text-center">
-							<div className="alert alert-warning alert-sm">
-								<span>
-									Viewing historical data. Today's data is not included.
-								</span>
-							</div>
-						</div>
-					)}
 				</div>
 
 				{/* Summary Cards */}
@@ -425,7 +459,7 @@ export const Dashboard = () => {
 				</div>
 
 				{/* Stats Card */}
-				{/* <StatsCard salesData={salesData} /> */}
+				<StatsCard salesData={salesData} />
 			</div>
 
 			{/* Date Picker Modal */}
@@ -437,12 +471,7 @@ export const Dashboard = () => {
 							type="date"
 							className="input input-bordered w-full"
 							value={selectedDate.toISOString().split("T")[0]}
-							max={new Date().toISOString().split("T")[0]}
-							min={
-								dateRange.minDate
-									? dateRange.minDate.toISOString().split("T")[0]
-									: undefined
-							}
+							max={today.toISOString().split("T")[0]}
 							onChange={(e) => {
 								setSelectedDate(new Date(e.target.value));
 								setShowDatePicker(false);

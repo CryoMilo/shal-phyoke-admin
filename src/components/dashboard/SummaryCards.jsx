@@ -1,9 +1,4 @@
-import {
-	BadgeDollarSign,
-	BanknoteArrowUp,
-	DollarSign,
-	Receipt,
-} from "lucide-react";
+import { BanknoteArrowUp, DollarSign, Receipt } from "lucide-react";
 
 export const SummaryCards = ({ salesData }) => {
 	return (

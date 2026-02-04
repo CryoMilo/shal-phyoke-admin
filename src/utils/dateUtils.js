@@ -7,7 +7,19 @@ export const toBangkokDate = (date) => {
 };
 
 export const toBangkokDateString = (date) => {
-	return toBangkokDate(date).toISOString().split("T")[0];
+	// Create date in Bangkok timezone
+	const bangkokDate = new Date(
+		date.toLocaleString("en-US", {
+			timeZone: "Asia/Bangkok",
+		})
+	);
+
+	// Format as YYYY-MM-DD
+	const year = bangkokDate.getFullYear();
+	const month = String(bangkokDate.getMonth() + 1).padStart(2, "0");
+	const day = String(bangkokDate.getDate()).padStart(2, "0");
+
+	return `${year}-${month}-${day}`;
 };
 
 export const getBangkokDateRange = (date) => {
