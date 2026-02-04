@@ -1,17 +1,8 @@
-import {
-	BanknoteArrowUp,
-	DollarSign,
-	Receipt,
-	TrendingDown,
-	AlertTriangle,
-} from "lucide-react";
+import { Calendar, BanknoteArrowUp, DollarSign, Receipt } from "lucide-react";
 
 export const SummaryCards = ({ salesData }) => {
-	// Calculate expense percentage of income
-	const expensePercentage =
-		salesData.totalIncome > 0
-			? (salesData.totalExpenses / salesData.totalIncome) * 100
-			: 0;
+	// Today's overhead cost (daily portion of monthly overheads)
+	const todayOverheadCost = salesData.dailyOverheadCost || 0;
 
 	return (
 		<div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -44,7 +35,7 @@ export const SummaryCards = ({ salesData }) => {
 				</div>
 			</div>
 
-			{/* Today's Expenses */}
+			{/* Today's Daily Expenses */}
 			<div className="card bg-base-200">
 				<div className="card-body">
 					<div className="flex items-center">
@@ -55,26 +46,60 @@ export const SummaryCards = ({ salesData }) => {
 						</div>
 						<div className="ml-4">
 							<h3 className="text-sm font-medium text-base-content/70">
-								Today's Expenses
+								Daily Expenses
 							</h3>
-							<p className="text-2xl font-bold">
-								฿{salesData.totalExpenses.toFixed(2)}
+							<p className="text-2xl font-bold text-error">
+								฿{salesData.totalDailyExpenses.toFixed(2)}
 							</p>
-							<div className="flex items-center gap-1 mt-1">
-								<TrendingDown className="w-3 h-3 text-error" />
-								<span className="text-xs text-base-content/50">
-									{expensePercentage.toFixed(1)}% of income
+							<div className="flex gap-1 mt-1">
+								<span className="badge badge-xs">
+									{salesData.dailyExpenses?.length || 0} items
+								</span>
+								<span className="text-xs text-gray-500">
+									{salesData.totalIncome > 0
+										? (
+												(salesData.totalDailyExpenses / salesData.totalIncome) *
+												100
+											).toFixed(1) + "%"
+										: "0%"}{" "}
+									of income
 								</span>
 							</div>
-							{salesData.cashVariance !== 0 &&
-								Math.abs(salesData.cashVariance) > 10 && (
-									<div className="flex items-center gap-1 mt-1 text-xs">
-										<AlertTriangle className="w-3 h-3 text-warning" />
-										<span className="text-warning">
-											Cash variance: ฿{salesData.cashVariance.toFixed(2)}
-										</span>
-									</div>
-								)}
+						</div>
+					</div>
+				</div>
+			</div>
+
+			{/* Today's Overhead Cost */}
+			<div className="card bg-base-200">
+				<div className="card-body">
+					<div className="flex items-center">
+						<div className="avatar placeholder">
+							<div className="bg-warning/20 text-warning rounded-full w-12 grid place-content-center place-items-center">
+								<Calendar className="w-6 h-6" />
+							</div>
+						</div>
+						<div className="ml-4">
+							<h3 className="text-sm font-medium text-base-content/70">
+								Overhead Cost
+							</h3>
+							<p className="text-2xl font-bold text-warning">
+								฿{todayOverheadCost.toFixed(2)}
+							</p>
+							<div className="space-y-1">
+								<div className="flex justify-between text-xs">
+									<span>Monthly Total:</span>
+									<span className="font-medium">
+										฿{salesData.totalMonthlyOverheads?.toFixed(2) || "0.00"}
+									</span>
+								</div>
+								<div className="flex justify-between text-xs">
+									<span>Pending:</span>
+									<span className="font-medium">
+										฿{salesData.pendingOverheads?.toFixed(2) || "0.00"}
+									</span>
+								</div>
+							</div>
 						</div>
 					</div>
 				</div>
@@ -104,42 +129,6 @@ export const SummaryCards = ({ salesData }) => {
 								</span>
 								{salesData.netProfit < 0 && (
 									<span className="badge badge-sm badge-error">Loss</span>
-								)}
-							</div>
-						</div>
-					</div>
-				</div>
-			</div>
-
-			{/* Cash Position */}
-			<div className="card bg-base-200">
-				<div className="card-body">
-					<div className="flex items-center">
-						<div className="avatar placeholder">
-							<div
-								className={`${salesData.cashVariance === 0 ? "bg-success/20 text-success" : "bg-warning/20 text-warning"} rounded-full w-12 grid place-content-center place-items-center`}>
-								<DollarSign className="w-6 h-6" />
-							</div>
-						</div>
-						<div className="ml-4">
-							<h3 className="text-sm font-medium text-base-content/70">
-								Cash Position
-							</h3>
-							<div className="space-y-1">
-								<p className="text-lg font-bold">
-									Collected: ฿
-									{(salesData.dailyCash?.cash_collected || 0).toFixed(2)}
-								</p>
-								<p className="text-sm">
-									Deposited: ฿
-									{(salesData.dailyCash?.cash_deposited || 0).toFixed(2)}
-								</p>
-								{salesData.cashVariance !== 0 && (
-									<div
-										className={`badge badge-sm ${salesData.cashVariance < 0 ? "badge-error" : "badge-success"}`}>
-										{salesData.cashVariance < 0 ? "Short" : "Over"}: ฿
-										{Math.abs(salesData.cashVariance).toFixed(2)}
-									</div>
 								)}
 							</div>
 						</div>

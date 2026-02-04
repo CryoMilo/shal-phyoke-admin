@@ -112,7 +112,6 @@ export const ItemDetailsModal = ({
 									<th className="text-right">Total Value</th>
 									<th className="text-right">Avg Price</th>
 									<th className="text-right">% of Total</th>
-									<th className="text-center">Source</th>
 								</tr>
 							</thead>
 							<tbody>
@@ -153,29 +152,7 @@ export const ItemDetailsModal = ({
 												<span className="font-mono mr-2">
 													{item.percentage.toFixed(1)}%
 												</span>
-												<div
-													className="w-16 h-2 bg-base-300 rounded-full overflow-hidden"
-													title={`${item.percentage.toFixed(
-														1
-													)}% of total sales`}>
-													{/* <div
-														className="h-full bg-primary"
-														style={{
-															width: `${Math.min(item.percentage, 100)}%`,
-														}}
-													/> */}
-												</div>
 											</div>
-										</td>
-										<td className="text-center">
-											<span
-												className={`badge badge-xs ${
-													item.month_source === "current"
-														? "badge-success"
-														: "badge-info"
-												}`}>
-												{item.month_source}
-											</span>
 										</td>
 									</tr>
 								))}

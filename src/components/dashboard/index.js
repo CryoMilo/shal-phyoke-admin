@@ -1,5 +1,5 @@
 export { SummaryCards } from "./SummaryCards";
 export { PieChartCard } from "./PieChartCard";
 export { PerformanceCard } from "./PerformanceCard";
-export { StatsCard } from "./StatsCard";
+export { ExpenseBreakdownCard } from "./ExpenseBreakdownCard";
 export { ItemDetailsModal } from "./ItemDetailsModal";

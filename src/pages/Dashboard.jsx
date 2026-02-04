@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "../services/supabase";
 import {
 	Calendar,
@@ -15,10 +15,11 @@ import {
 	SummaryCards,
 	PieChartCard,
 	PerformanceCard,
-	StatsCard,
+	ExpenseBreakdownCard,
 	ItemDetailsModal,
 } from "../components/dashboard";
 import { formatDisplayDate, getBangkokDayRange } from "../utils/dateUtils";
+import { processDashboardData } from "../utils/processData"; // Import the refactored function
 
 // Consistent YYYY-MM-DD for Bangkok
 const getBangkokISO = (date) =>
@@ -28,12 +29,28 @@ export const Dashboard = () => {
 	const [salesData, setSalesData] = useState({
 		dailySales: [],
 		totalIncome: 0,
-		totalExpenses: 0,
+		totalDailyExpenses: 0,
+		totalMonthlyOverheads: 0,
+		dailyOverheadCost: 0,
 		cashSales: 0,
 		qrSales: 0,
 		totalOrders: 0,
 		totalItems: 0,
 		avgOrderValue: 0,
+		dailyExpenseByCategory: {},
+		monthlyOverheadByCategory: {},
+		expenseByPaidBy: {},
+		dailyCash: {},
+		cashVariance: 0,
+		netProfit: 0,
+		dailyProfit: 0,
+		profitMargin: 0,
+		expenseToIncomeRatio: 0,
+		dailyExpenseToIncomeRatio: 0,
+		overheadToIncomeRatio: 0,
+		dailyExpenses: [],
+		monthlyOverheads: [],
+		date: "",
 	});
 
 	const [loading, setLoading] = useState(true);
@@ -76,40 +93,48 @@ export const Dashboard = () => {
 				.gte("created_at", start)
 				.lte("created_at", end);
 
-			if (ordersError) throw ordersError;
+			if (ordersError) {
+				console.error("Error fetching orders:", ordersError);
+				throw ordersError;
+			}
 
 			// 2. Fetch aggregated sales from monthly_sales table
 			const { data: aggregatedSales, error: salesError } = await supabase
 				.from("monthly_sales")
 				.select(
 					`
-        menu_item_id,
-        menu_item_name_burmese,
-        menu_item_name_english,
-        menu_item_category,
-        menu_item_price,
-        quantity_sold,
-        total_revenue,
-        order_id,
-        payment_method
-      `
+          menu_item_id,
+          menu_item_name_burmese,
+          menu_item_name_english,
+          menu_item_category,
+          menu_item_price,
+          quantity_sold,
+          total_revenue,
+          order_id,
+          payment_method
+        `
 				)
 				.eq("sale_date", bangkokDateStr);
 
-			if (salesError) throw salesError;
+			if (salesError) {
+				console.error("Error fetching aggregated sales:", salesError);
+				throw salesError;
+			}
 
 			// 3. Fetch daily expenses for the selected date
 			const { data: dailyExpenses, error: expensesError } = await supabase
 				.from("daily_expenses")
-				.select("id, amount, category, paid_by, description")
+				.select("id, amount, category, paid_by, description, notes")
 				.eq("date", bangkokDateStr);
 
-			if (expensesError) throw expensesError;
+			if (expensesError && expensesError.code !== "PGRST116") {
+				console.error("Error fetching daily expenses:", expensesError);
+			}
 
-			// 4. Fetch daily cash record if exists
+			// 4. Fetch daily cash record
 			const { data: dailyCash, error: cashError } = await supabase
 				.from("daily_cash")
-				.select("cash_collected, cash_deposited, opening_balance")
+				.select("opening_balance, cash_collected, cash_deposited, notes")
 				.eq("date", bangkokDateStr)
 				.single();
 
@@ -117,151 +142,70 @@ export const Dashboard = () => {
 				console.error("Error fetching daily cash:", cashError);
 			}
 
-			processData(
+			// 5. Fetch monthly overheads for current month
+			const currentMonthStart = new Date(selectedDate);
+			currentMonthStart.setDate(1);
+			const currentMonthStr = getBangkokISO(currentMonthStart);
+
+			const { data: monthlyOverheads, error: overheadsError } = await supabase
+				.from("monthly_overheads")
+				.select(
+					"id, amount, category, description, due_date, paid_date, is_recurring, notes"
+				)
+				.eq("month", currentMonthStr)
+				.order("due_date", { ascending: true });
+
+			if (overheadsError && overheadsError.code !== "PGRST116") {
+				console.error("Error fetching monthly overheads:", overheadsError);
+			}
+
+			// Process all data using the refactored function
+			const dashboardData = processDashboardData(
 				orders || [],
 				aggregatedSales || [],
 				dailyExpenses || [],
-				dailyCash,
+				dailyCash || {},
+				monthlyOverheads || [],
+				selectedDate, // Pass selectedDate for daily overhead calculation
 				bangkokDateStr
 			);
+
+			setSalesData(dashboardData);
+			setItemDetails(dashboardData.itemDetailsList);
 		} catch (error) {
 			console.error("Dashboard Fetch Error:", error);
+			// Set default data on error
+			setSalesData({
+				dailySales: [],
+				totalIncome: 0,
+				totalDailyExpenses: 0,
+				totalMonthlyOverheads: 0,
+				dailyOverheadCost: 0,
+				cashSales: 0,
+				qrSales: 0,
+				totalOrders: 0,
+				totalItems: 0,
+				avgOrderValue: 0,
+				dailyExpenseByCategory: {},
+				monthlyOverheadByCategory: {},
+				expenseByPaidBy: {},
+				dailyCash: {},
+				cashVariance: 0,
+				netProfit: 0,
+				dailyProfit: 0,
+				profitMargin: 0,
+				expenseToIncomeRatio: 0,
+				dailyExpenseToIncomeRatio: 0,
+				overheadToIncomeRatio: 0,
+				dailyExpenses: [],
+				monthlyOverheads: [],
+				date: getBangkokISO(selectedDate),
+			});
+			setItemDetails([]);
 		} finally {
 			setLoading(false);
 			setRefreshing(false);
 		}
-	};
-
-	const processData = (
-		orders,
-		aggregatedSales,
-		dailyExpenses,
-		dailyCash,
-		dateStr
-	) => {
-		const totalIncome = orders.reduce((sum, o) => sum + o.total_amount, 0);
-		const totalOrders = orders.length;
-		const totalItems = orders.reduce(
-			(sum, o) => sum + (o.order_items?.length || 0),
-			0
-		);
-
-		const cashSales = orders
-			.filter((o) => o.payment_method === "cash")
-			.reduce((sum, o) => sum + o.total_amount, 0);
-
-		const qrSales = totalIncome - cashSales;
-
-		// Calculate total expenses
-		const totalExpenses = dailyExpenses.reduce(
-			(sum, expense) => sum + parseFloat(expense.amount || 0),
-			0
-		);
-
-		// Categorize expenses
-		const expenseByCategory = dailyExpenses.reduce((acc, expense) => {
-			const category = expense.category || "other";
-			if (!acc[category]) acc[category] = 0;
-			acc[category] += parseFloat(expense.amount || 0);
-			return acc;
-		}, {});
-
-		// Expenses by payment source
-		const expenseByPaidBy = dailyExpenses.reduce((acc, expense) => {
-			const paidBy = expense.paid_by || "cash_drawer";
-			if (!acc[paidBy]) acc[paidBy] = 0;
-			acc[paidBy] += parseFloat(expense.amount || 0);
-			return acc;
-		}, {});
-
-		// Aggregate items
-		const itemSalesMap = {};
-		aggregatedSales.forEach((sale) => {
-			const key = sale.menu_item_name_burmese;
-			if (!itemSalesMap[key]) {
-				itemSalesMap[key] = {
-					name: sale.menu_item_name_burmese,
-					englishName: sale.menu_item_name_english,
-					category: sale.menu_item_category,
-					price: sale.menu_item_price,
-					quantitySold: 0,
-					totalRevenue: 0,
-					orderIds: new Set(),
-					cashOrders: 0,
-					qrOrders: 0,
-				};
-			}
-
-			itemSalesMap[key].quantitySold += sale.quantity_sold;
-			itemSalesMap[key].totalRevenue += sale.total_revenue;
-			itemSalesMap[key].orderIds.add(sale.order_id);
-			sale.payment_method === "cash"
-				? itemSalesMap[key].cashOrders++
-				: itemSalesMap[key].qrOrders++;
-		});
-
-		const itemSalesArray = Object.values(itemSalesMap).sort(
-			(a, b) => b.quantitySold - a.quantitySold
-		);
-		const allItemsTotalQty = itemSalesArray.reduce(
-			(sum, i) => sum + i.quantitySold,
-			0
-		);
-
-		// Format for display and modals
-		const itemDetailsList = itemSalesArray.map((item) => ({
-			item_name: item.name,
-			item_english_name: item.englishName,
-			category: item.category,
-			price: item.price,
-			quantity_sold: item.quantitySold,
-			total_revenue: item.totalRevenue,
-			avg_price:
-				item.quantitySold > 0
-					? item.totalRevenue / item.quantitySold
-					: item.price,
-			order_count: item.orderIds.size,
-			cash_orders: item.cashOrders,
-			qr_orders: item.qrOrders,
-			percentage:
-				allItemsTotalQty > 0 ? (item.quantitySold / allItemsTotalQty) * 100 : 0,
-			sale_date: dateStr,
-		}));
-
-		// Calculate cash variance if daily cash exists
-		const cashVariance = dailyCash
-			? (dailyCash.cash_collected || 0) -
-				(dailyCash.opening_balance || 0) -
-				cashSales
-			: 0;
-
-		setSalesData({
-			dailySales: itemDetailsList.slice(0, 8).map((i) => ({
-				name: i.item_name,
-				value: i.quantity_sold,
-				percentage: i.percentage,
-			})),
-			totalIncome,
-			totalExpenses,
-			cashSales,
-			qrSales,
-			totalOrders,
-			totalItems,
-			avgOrderValue: totalOrders > 0 ? totalIncome / totalOrders : 0,
-			// New data for expanded dashboard
-			dailyExpenses: dailyExpenses,
-			expenseByCategory,
-			expenseByPaidBy,
-			dailyCash: dailyCash || {},
-			cashVariance,
-			netProfit: totalIncome - totalExpenses,
-			profitMargin:
-				totalIncome > 0
-					? ((totalIncome - totalExpenses) / totalIncome) * 100
-					: 0,
-		});
-
-		setItemDetails(itemDetailsList);
 	};
 
 	const exportToCSV = () => {
@@ -279,6 +223,7 @@ export const Dashboard = () => {
 			"QR",
 			"%",
 		];
+
 		const csvRows = [
 			headers.join(","),
 			...itemDetails.map((i) =>
@@ -297,12 +242,42 @@ export const Dashboard = () => {
 					i.percentage.toFixed(1),
 				].join(",")
 			),
-		].join("\n");
+		];
 
-		const blob = new Blob([csvRows], { type: "text/csv;charset=utf-8;" });
+		// Add expense summary
+		if (salesData.totalDailyExpenses > 0 || salesData.dailyOverheadCost > 0) {
+			csvRows.push("");
+			csvRows.push("Expense Summary");
+			csvRows.push(["Type", "Amount"].join(","));
+			csvRows.push(
+				["Daily Expenses", salesData.totalDailyExpenses.toFixed(2)].join(",")
+			);
+			csvRows.push(
+				[
+					"Overhead Cost (Today's portion)",
+					salesData.dailyOverheadCost.toFixed(2),
+				].join(",")
+			);
+			csvRows.push(
+				[
+					"Total Expenses",
+					(salesData.totalDailyExpenses + salesData.dailyOverheadCost).toFixed(
+						2
+					),
+				].join(",")
+			);
+			csvRows.push(["Net Profit", salesData.netProfit.toFixed(2)].join(","));
+			csvRows.push(
+				["Profit Margin", `${salesData.profitMargin.toFixed(1)}%`].join(",")
+			);
+		}
+
+		const blob = new Blob([csvRows.join("\n")], {
+			type: "text/csv;charset=utf-8;",
+		});
 		const link = document.createElement("a");
 		link.href = URL.createObjectURL(blob);
-		link.download = `sales_${getBangkokISO(selectedDate)}.csv`;
+		link.download = `dashboard_${getBangkokISO(selectedDate)}.csv`;
 		link.click();
 	};
 
@@ -405,7 +380,7 @@ export const Dashboard = () => {
 					<PerformanceCard salesData={salesData} />
 				</div>
 
-				<StatsCard salesData={salesData} />
+				<ExpenseBreakdownCard salesData={salesData} />
 			</div>
 
 			{/* Date Picker Modal */}
