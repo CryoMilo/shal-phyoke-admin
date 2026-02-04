@@ -11,7 +11,7 @@ export const PageHeader = ({
 	return (
 		<div
 			className={`flex flex-row justify-between items-start sm:items-center gap-4 mb-6 ${className}`}>
-			<div className="text-center sm:text-left">
+			<div className="text-left">
 				<h1
 					className="font-bold"
 					style={{ fontSize: "clamp(1.5rem, 4vw, 2rem)" }}>

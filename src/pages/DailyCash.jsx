@@ -6,7 +6,6 @@ import {
 	TrendingUp,
 	TrendingDown,
 	CheckCircle,
-	AlertCircle,
 	CreditCard,
 } from "lucide-react";
 import { supabase } from "../services/supabase";

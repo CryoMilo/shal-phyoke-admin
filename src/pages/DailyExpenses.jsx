@@ -3,6 +3,7 @@ import { format } from "date-fns";
 import { Plus, Trash2, Edit, Save, X } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { supabase } from "../services/supabase";
+import { PageHeader } from "../components/common/PageHeader";
 
 // Expense Categories - matching your enum
 const expenseCategories = [
@@ -216,23 +217,21 @@ const DailyExpenses = () => {
 	return (
 		<div className="p-4">
 			{/* Header */}
-			<div className="flex justify-between items-center mb-6">
-				<div>
-					<h1 className="text-2xl font-bold">Daily Expenses</h1>
-					<p className="text-gray-600">Track daily operational expenses</p>
-				</div>
-				<div className="flex items-center gap-2">
-					<button
-						onClick={() => {
+			<PageHeader
+				title="Daily Expenses"
+				description="Track daily operational expenses"
+				buttons={[
+					{
+						label: "Add Expense",
+						icon: Plus,
+						onClick: () => {
 							resetForm();
 							setShowForm(true);
-						}}
-						className="btn btn-primary">
-						<Plus className="w-4 h-4 mr-2" />
-						Add Expense
-					</button>
-				</div>
-			</div>
+						},
+						variant: "primary",
+					},
+				]}
+			/>
 
 			{/* Filters */}
 			<div className="card bg-base-100 shadow mb-6">
