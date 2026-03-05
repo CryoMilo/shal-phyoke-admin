@@ -290,7 +290,7 @@ export const SubscribersPage = () => {
 					{
 						type: "button",
 						label: "Add Subscriber",
-						shortLabel: "Add Subscriber",
+						shortlabel: "Add Subscriber",
 						icon: UserPlus,
 						onClick: () => openCreateModal(true),
 						variant: "primary",

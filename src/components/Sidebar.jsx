@@ -201,7 +201,7 @@ const Sidebar = () => {
 					</ul>
 
 					{/* Sidebar Footer */}
-					<div className="absolute bottom-0 left-0 right-0 p-4 border-t border-base-300">
+					<div className="p-4 border-t border-base-300">
 						{!isCollapsed && (
 							<div className="text-xs text-gray-500">
 								<p>© {new Date().getFullYear()} Shal Phyoke</p>

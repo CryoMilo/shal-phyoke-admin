@@ -87,7 +87,7 @@ const Procurement = () => {
 					{
 						type: "button",
 						label: `Cart (${cartItemsCount})`,
-						shortLabel: `${cartItemsCount}`,
+						shortlabel: `${cartItemsCount}`,
 						icon: ShoppingCart,
 						onClick: () => useProcurementStore.getState().toggleCart(),
 						variant: "primary",

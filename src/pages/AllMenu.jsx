@@ -123,7 +123,7 @@ const AllMenuPage = () => {
 					{
 						type: "button",
 						label: "Add Item",
-						shortLabel: "Add",
+						shortlabel: "Add",
 						icon: Plus,
 						onClick: openCreateModal,
 						variant: "primary",

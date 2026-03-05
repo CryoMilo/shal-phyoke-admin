@@ -121,7 +121,7 @@ const SubscriptionPlansPage = () => {
 					{
 						type: "button",
 						label: "Add Plan",
-						shortLabel: "Add",
+						shortlabel: "Add",
 						icon: Plus,
 						onClick: () => openCreateModal(true),
 						variant: "primary",

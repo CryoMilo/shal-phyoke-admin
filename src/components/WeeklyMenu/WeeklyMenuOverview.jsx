@@ -38,7 +38,7 @@ export const WeeklyMenuOverview = ({ currentWeeklyMenu, onEditWeek }) => {
 					{
 						type: "button",
 						label: "Create Weekly Menu",
-						shortLabel: "Create Menu",
+						shortlabel: "Create Menu",
 						icon: Plus,
 						onClick: () => onEditWeek(null),
 						variant: "primary",
@@ -141,7 +141,7 @@ const WeeklyMenuGrid = ({ currentWeeklyMenu, weeklyMenu, onEdit }) => {
 					{
 						type: "button",
 						label: "Edit Menu",
-						shortLabel: "Edit",
+						shortlabel: "Edit",
 						icon: Edit,
 						onClick: onEdit,
 						variant: "primary",

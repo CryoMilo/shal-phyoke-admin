@@ -235,7 +235,7 @@ export const WeeklyMenuBuilder = ({ weeklyMenu, onBack }) => {
 					{
 						type: "button",
 						label: "Back",
-						shortLabel: "Back",
+						shortlabel: "Back",
 						icon: ChevronLeft,
 						onClick: onBack,
 						variant: "ghost",
@@ -243,7 +243,7 @@ export const WeeklyMenuBuilder = ({ weeklyMenu, onBack }) => {
 					{
 						type: "button",
 						label: loading ? "Saving..." : "Save Weekly Menu",
-						shortLabel: loading ? "Saving..." : "Save",
+						shortlabel: loading ? "Saving..." : "Save",
 						icon: loading ? null : Save,
 						onClick: handleSave,
 						variant: "success",
