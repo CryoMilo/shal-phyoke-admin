@@ -141,13 +141,6 @@ const useInventoryStore = create((set, get) => ({
 		const items = get().inventoryItems;
 		const { searchQuery, activeCategory, showRegularOnly } = get();
 
-		console.log("Filtering items:", {
-			totalItems: items.length,
-			searchQuery,
-			activeCategory,
-			showRegularOnly,
-		});
-
 		return items.filter((item) => {
 			// Search filter - check name and category
 			const matchesSearch =

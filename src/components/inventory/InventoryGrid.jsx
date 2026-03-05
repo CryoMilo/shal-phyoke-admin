@@ -3,8 +3,6 @@ import React from "react";
 import { Edit2, Trash2, Image as ImageIcon } from "lucide-react";
 
 const InventoryGrid = ({ items, onEdit, onDelete }) => {
-	console.log(items);
-
 	if (items.length === 0) {
 		return (
 			<div className="text-center py-12 bg-base-100 rounded-lg border border-base-200">

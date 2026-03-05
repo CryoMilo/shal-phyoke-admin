@@ -49,22 +49,6 @@ const InventoryItems = () => {
 
 	const categories = getAllCategories();
 
-	// Debug logging
-	useEffect(() => {
-		console.log("Current state:", {
-			totalItems: items.length,
-			filteredItems: filteredItems.length,
-			searchQuery,
-			activeCategory,
-			showRegularOnly,
-			items: items.map((i) => ({
-				name: i.name,
-				category: i.category,
-				is_regular: i.is_regular,
-			})),
-		});
-	}, [items, filteredItems, searchQuery, activeCategory, showRegularOnly]);
-
 	const openCreateModal = () => {
 		setEditingItem(null);
 		setShowModal(true);

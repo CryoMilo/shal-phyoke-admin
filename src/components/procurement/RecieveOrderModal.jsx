@@ -1,12 +1,12 @@
 // src/components/procurement/ReceiveOrderModal.jsx
-import { useState } from "react";
+import React, { useState } from "react";
 import { X, Check, AlertCircle } from "lucide-react";
-import useProcurementStore from "../../stores/useProcurementStore";
+import useProcurementStore from "../../stores/procurementStore";
 
 const ReceiveOrderModal = ({ isOpen, onClose, order }) => {
 	const [receivedItems, setReceivedItems] = useState(
 		order.items?.reduce((acc, item) => {
-			acc[item.id] = true; // Default all as received
+			acc[item.id] = true;
 			return acc;
 		}, {}) || {}
 	);
@@ -37,16 +37,20 @@ const ReceiveOrderModal = ({ isOpen, onClose, order }) => {
 
 	return (
 		<div className="modal modal-open">
-			<div className="modal-box max-w-2xl">
-				<h3 className="font-bold text-lg flex items-center gap-2">
-					Receive Order
-					<span className="text-sm font-normal text-gray-500">
-						{order.vendor?.name} - {order.order_number}
-					</span>
-				</h3>
+			<div className="modal-box max-w-2xl relative">
+				<button
+					onClick={onClose}
+					className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">
+					<X className="w-4 h-4" />
+				</button>
 
-				<div className="py-4">
-					<p className="text-sm text-gray-600 mb-4">
+				<h3 className="font-bold text-lg mb-2">
+					Receive Order: {order.vendor?.name}
+				</h3>
+				<p className="text-sm text-gray-500 mb-6">{order.order_number}</p>
+
+				<div className="space-y-4">
+					<p className="text-sm text-gray-600">
 						Check items that arrived. Unchecked items will be added back to your
 						cart.
 					</p>
@@ -55,7 +59,7 @@ const ReceiveOrderModal = ({ isOpen, onClose, order }) => {
 						{order.items?.map((item) => (
 							<label
 								key={item.id}
-								className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer ${
+								className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
 									receivedItems[item.id]
 										? "bg-green-50 border-green-200"
 										: "bg-orange-50 border-orange-200"
@@ -92,9 +96,9 @@ const ReceiveOrderModal = ({ isOpen, onClose, order }) => {
 						))}
 					</div>
 
-					<div className="mt-4">
+					<div className="form-control">
 						<label className="label">
-							<span className="label-text">Notes (optional)</span>
+							<span className="label-text font-medium">Notes (optional)</span>
 						</label>
 						<textarea
 							value={notes}
@@ -106,7 +110,7 @@ const ReceiveOrderModal = ({ isOpen, onClose, order }) => {
 					</div>
 
 					{missedCount > 0 && (
-						<div className="alert alert-warning mt-4">
+						<div className="alert alert-warning">
 							<AlertCircle className="w-5 h-5" />
 							<span>
 								{missedCount} item{missedCount > 1 ? "s" : ""} will be added

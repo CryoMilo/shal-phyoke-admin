@@ -1,27 +1,28 @@
 // src/pages/Procurement.jsx
-import { useState, useEffect } from "react";
-import { ShoppingBag, History, Package, Plus } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { ShoppingBag, History, Package, ShoppingCart } from "lucide-react";
+import useProcurementStore from "../stores/procurementStore";
 import { supabase } from "../services/supabase";
+import { Loading } from "../components/common/Loading";
+import { PageHeader } from "../components/common/PageHeader";
 import MarketListTab from "../components/procurement/MarketListTab";
 import HistoryTab from "../components/procurement/HistoryTab";
 import CartDrawer from "../components/procurement/CartDrawer";
-import { Loading } from "../components/common/Loading";
-import { PageHeader } from "../components/common/PageHeader";
-import useProcurementStore from "../stores/useProcurementStore";
 
 const Procurement = () => {
-	const [activeTab, setActiveTab] = useState("market-list");
-	const [user, setUser] = useState(null);
-
 	const {
+		activeTab,
+		setActiveTab,
+		loading,
 		fetchVendors,
 		fetchInventoryItems,
 		fetchActiveCart,
 		fetchMarketLists,
-		loading,
-		error,
 		setCurrentUser,
+		activeCart,
 	} = useProcurementStore();
+
+	const [user, setUser] = useState(null);
 
 	useEffect(() => {
 		// Get current user
@@ -69,56 +70,52 @@ const Procurement = () => {
 		{ id: "history", label: "History", icon: History },
 	];
 
+	const cartItemsCount = activeCart.length;
+
 	if (loading && !user) {
-		return (
-			<div className="flex items-center justify-center h-64">
-				<Loading size="lg" />
-			</div>
-		);
+		return <Loading />;
 	}
 
 	return (
-		<div className="space-y-6">
+		<div className="container mx-auto p-3 md:p-6">
+			{/* Header */}
 			<PageHeader
 				title="Procurement"
+				description="Manage your market lists and track incoming orders"
 				icon={Package}
-				actions={
-					<button
-						onClick={() => useProcurementStore.getState().toggleCart()}
-						className="btn btn-primary btn-sm gap-2 lg:hidden">
-						<ShoppingBag className="w-4 h-4" />
-						View Cart
-					</button>
-				}
+				buttons={[
+					{
+						type: "button",
+						label: `Cart (${cartItemsCount})`,
+						shortLabel: `${cartItemsCount}`,
+						icon: ShoppingCart,
+						onClick: () => useProcurementStore.getState().toggleCart(),
+						variant: "primary",
+						badge: cartItemsCount > 0 ? cartItemsCount : null,
+					},
+				]}
 			/>
 
 			{/* Tabs */}
-			<div className="tabs tabs-boxed bg-base-200 p-1">
+			<div className="tabs tabs-boxed bg-base-200 p-1 mb-6">
 				{tabs.map((tab) => (
 					<button
 						key={tab.id}
 						onClick={() => setActiveTab(tab.id)}
-						className={`tab gap-2 ${activeTab === tab.id ? "tab-active" : ""}`}>
+						className={`tab gap-2 flex-1 sm:flex-none ${
+							activeTab === tab.id ? "tab-active" : ""
+						}`}>
 						<tab.icon className="w-4 h-4" />
 						<span className="hidden sm:inline">{tab.label}</span>
 					</button>
 				))}
 			</div>
 
-			{/* Error message */}
-			{error && (
-				<div className="alert alert-error">
-					<span>{error}</span>
-				</div>
-			)}
-
 			{/* Tab content */}
-			<div className="mt-6">
-				{activeTab === "market-list" && <MarketListTab userId={user?.id} />}
-				{activeTab === "history" && <HistoryTab />}
-			</div>
+			{activeTab === "market-list" && <MarketListTab userId={user?.id} />}
+			{activeTab === "history" && <HistoryTab />}
 
-			{/* Cart Drawer - visible on all tabs */}
+			{/* Cart Drawer */}
 			<CartDrawer userId={user?.id} />
 		</div>
 	);

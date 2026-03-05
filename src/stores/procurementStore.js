@@ -8,28 +8,20 @@ const useProcurementStore = create((set, get) => ({
 	inventoryItems: [],
 	activeCart: [],
 	marketLists: [],
-	marketListItems: {},
 	loading: false,
 	error: null,
 
-	// Selected vendor filter
-	selectedVendor: "all",
-
-	// Search query
-	searchQuery: "",
-
-	// Cart drawer visibility
+	// UI states
 	isCartOpen: false,
+	selectedVendor: "all",
+	searchQuery: "",
+	activeTab: "market-list", // 'market-list' or 'history'
 
-	// Selected market list for detail view
-	selectedMarketList: null,
-
-	// Current user
+	// Current user (for cart)
 	currentUser: null,
 
 	// Fetch all vendors
 	fetchVendors: async () => {
-		set({ loading: true });
 		try {
 			const { data, error } = await supabase
 				.from("vendors")
@@ -37,17 +29,14 @@ const useProcurementStore = create((set, get) => ({
 				.order("name");
 
 			if (error) throw error;
-			set({ vendors: data, error: null });
+			set({ vendors: data || [] });
 		} catch (error) {
-			set({ error: error.message });
-		} finally {
-			set({ loading: false });
+			console.error("Error fetching vendors:", error);
 		}
 	},
 
 	// Fetch inventory items
 	fetchInventoryItems: async () => {
-		set({ loading: true });
 		try {
 			const { data, error } = await supabase
 				.from("inventory_items")
@@ -61,21 +50,20 @@ const useProcurementStore = create((set, get) => ({
           )
         `
 				)
-				.order("category", { ascending: true })
-				.order("name", { ascending: true });
+				.order("category")
+				.order("name");
 
 			if (error) throw error;
-			set({ inventoryItems: data, error: null });
+			set({ inventoryItems: data || [] });
 		} catch (error) {
-			set({ error: error.message });
-		} finally {
-			set({ loading: false });
+			console.error("Error fetching inventory items:", error);
 		}
 	},
 
 	// Fetch active cart for current user
 	fetchActiveCart: async (userId) => {
-		set({ loading: true });
+		if (!userId) return;
+
 		try {
 			const { data, error } = await supabase
 				.from("active_cart")
@@ -101,16 +89,16 @@ const useProcurementStore = create((set, get) => ({
 				.order("added_at", { ascending: false });
 
 			if (error) throw error;
-			set({ activeCart: data, error: null });
+			set({ activeCart: data || [] });
 		} catch (error) {
-			set({ error: error.message });
-		} finally {
-			set({ loading: false });
+			console.error("Error fetching active cart:", error);
 		}
 	},
 
 	// Add to cart
 	addToCart: async (item, userId) => {
+		if (!userId) return { error: "No user logged in" };
+
 		try {
 			const cartItem = {
 				user_id: userId,
@@ -121,7 +109,6 @@ const useProcurementStore = create((set, get) => ({
 				is_missed: item.isMissed || false,
 			};
 
-			// Handle regular inventory item vs custom item
 			if (item.inventoryItemId) {
 				cartItem.inventory_item_id = item.inventoryItemId;
 			} else {
@@ -156,10 +143,10 @@ const useProcurementStore = create((set, get) => ({
 				activeCart: [data, ...state.activeCart],
 			}));
 
-			return data;
+			return { success: true, data };
 		} catch (error) {
-			set({ error: error.message });
-			throw error;
+			console.error("Error adding to cart:", error);
+			return { error: error.message };
 		}
 	},
 
@@ -196,8 +183,11 @@ const useProcurementStore = create((set, get) => ({
 					item.id === cartItemId ? data : item
 				),
 			}));
+
+			return { success: true };
 		} catch (error) {
-			set({ error: error.message });
+			console.error("Error updating cart item:", error);
+			return { error: error.message };
 		}
 	},
 
@@ -214,24 +204,11 @@ const useProcurementStore = create((set, get) => ({
 			set((state) => ({
 				activeCart: state.activeCart.filter((item) => item.id !== cartItemId),
 			}));
+
+			return { success: true };
 		} catch (error) {
-			set({ error: error.message });
-		}
-	},
-
-	// Clear cart (after confirming orders)
-	clearCart: async (userId) => {
-		try {
-			const { error } = await supabase
-				.from("active_cart")
-				.delete()
-				.eq("user_id", userId);
-
-			if (error) throw error;
-
-			set({ activeCart: [] });
-		} catch (error) {
-			set({ error: error.message });
+			console.error("Error removing from cart:", error);
+			return { error: error.message };
 		}
 	},
 
@@ -284,10 +261,10 @@ const useProcurementStore = create((set, get) => ({
 				marketLists: [marketList, ...state.marketLists],
 			}));
 
-			return marketList;
+			return { success: true, data: marketList };
 		} catch (error) {
-			set({ error: error.message });
-			throw error;
+			console.error("Error creating market list:", error);
+			return { error: error.message };
 		} finally {
 			set({ loading: false });
 		}
@@ -295,8 +272,9 @@ const useProcurementStore = create((set, get) => ({
 
 	// Fetch market lists (ordered)
 	fetchMarketLists: async (status = "Ordered") => {
-		set({ loading: true });
 		try {
+			set({ loading: true });
+
 			const { data, error } = await supabase
 				.from("market_lists")
 				.select(
@@ -316,7 +294,7 @@ const useProcurementStore = create((set, get) => ({
 
 			// Fetch items for each market list
 			const marketListsWithItems = await Promise.all(
-				data.map(async (list) => {
+				(data || []).map(async (list) => {
 					const { data: items } = await supabase
 						.from("market_list_items")
 						.select(
@@ -339,6 +317,7 @@ const useProcurementStore = create((set, get) => ({
 
 			set({ marketLists: marketListsWithItems, error: null });
 		} catch (error) {
+			console.error("Error fetching market lists:", error);
 			set({ error: error.message });
 		} finally {
 			set({ loading: false });
@@ -347,8 +326,9 @@ const useProcurementStore = create((set, get) => ({
 
 	// Fetch history (arrived/cancelled)
 	fetchHistory: async () => {
-		set({ loading: true });
 		try {
+			set({ loading: true });
+
 			const { data, error } = await supabase
 				.from("market_lists")
 				.select(
@@ -369,7 +349,7 @@ const useProcurementStore = create((set, get) => ({
 
 			// Fetch items for each market list
 			const historyWithItems = await Promise.all(
-				data.map(async (list) => {
+				(data || []).map(async (list) => {
 					const { data: items } = await supabase
 						.from("market_list_items")
 						.select(
@@ -392,6 +372,7 @@ const useProcurementStore = create((set, get) => ({
 
 			set({ marketLists: historyWithItems, error: null });
 		} catch (error) {
+			console.error("Error fetching history:", error);
 			set({ error: error.message });
 		} finally {
 			set({ loading: false });
@@ -438,10 +419,10 @@ const useProcurementStore = create((set, get) => ({
 			}
 
 			// Add missed items back to cart
-			const { data: currentUser } = await supabase.auth.getUser();
-			if (currentUser?.user && missedItems.length > 0) {
+			const currentUser = get().currentUser;
+			if (currentUser?.id && missedItems.length > 0) {
 				const cartItems = missedItems.map((item) => ({
-					user_id: currentUser.user.id,
+					user_id: currentUser.id,
 					inventory_item_id: item.inventory_item_id || null,
 					custom_item_name: item.custom_item_name || null,
 					vendor_id: item.vendor_id,
@@ -457,27 +438,104 @@ const useProcurementStore = create((set, get) => ({
 			// Refresh data
 			await get().fetchMarketLists("Ordered");
 		} catch (error) {
-			set({ error: error.message });
+			console.error("Error updating market list status:", error);
+			return { error: error.message };
 		} finally {
 			set({ loading: false });
 		}
 	},
 
-	// Set selected vendor filter
-	setSelectedVendor: (vendor) => set({ selectedVendor: vendor }),
+	// Clear cart
+	clearCart: async (userId) => {
+		try {
+			const { error } = await supabase
+				.from("active_cart")
+				.delete()
+				.eq("user_id", userId);
 
-	// Set search query
-	setSearchQuery: (query) => set({ searchQuery: query }),
+			if (error) throw error;
 
-	// Toggle cart drawer
+			set({ activeCart: [] });
+			return { success: true };
+		} catch (error) {
+			console.error("Error clearing cart:", error);
+			return { error: error.message };
+		}
+	},
+
+	// UI Actions
 	toggleCart: () => set((state) => ({ isCartOpen: !state.isCartOpen })),
-
-	// Set selected market list
-	setSelectedMarketList: (marketList) =>
-		set({ selectedMarketList: marketList }),
-
-	// Set current user
+	setSelectedVendor: (vendor) => set({ selectedVendor: vendor }),
+	setSearchQuery: (query) => set({ searchQuery: query }),
+	setActiveTab: (tab) => set({ activeTab: tab }),
 	setCurrentUser: (user) => set({ currentUser: user }),
+
+	// Reset filters
+	resetFilters: () =>
+		set({
+			selectedVendor: "all",
+			searchQuery: "",
+		}),
+
+	// Get filtered inventory items by vendor
+	getItemsByVendor: (vendorId) => {
+		const items = get().inventoryItems;
+		const { searchQuery } = get();
+
+		console.log("getItemsByVendor called:", {
+			vendorId,
+			totalItems: items.length,
+			searchQuery,
+			items: items.map((i) => ({
+				name: i.name,
+				vendorId: i.default_vendor_id,
+			})),
+		});
+
+		// If vendorId is 'all', show all items
+		if (vendorId === "all") {
+			return items.filter((item) => {
+				const matchesSearch =
+					searchQuery === "" ||
+					item.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+					item.category?.toLowerCase().includes(searchQuery.toLowerCase());
+				return matchesSearch;
+			});
+		}
+
+		// Otherwise filter by vendor
+		return items.filter((item) => {
+			const matchesVendor = item.default_vendor_id === vendorId;
+			const matchesSearch =
+				searchQuery === "" ||
+				item.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+				item.category?.toLowerCase().includes(searchQuery.toLowerCase());
+
+			return matchesVendor && matchesSearch;
+		});
+	},
+
+	// Get cart items grouped by vendor
+	getCartByVendor: () => {
+		const cart = get().activeCart;
+
+		return cart.reduce((acc, item) => {
+			const vendorId = item.vendor?.id;
+			if (!acc[vendorId]) {
+				acc[vendorId] = {
+					vendor: item.vendor,
+					items: [],
+				};
+			}
+			acc[vendorId].items.push(item);
+			return acc;
+		}, {});
+	},
+
+	// Get live orders
+	getLiveOrders: () => {
+		return get().marketLists.filter((list) => list.status === "Ordered");
+	},
 }));
 
 export default useProcurementStore;

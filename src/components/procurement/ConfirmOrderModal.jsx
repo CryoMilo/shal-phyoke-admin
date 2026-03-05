@@ -1,7 +1,7 @@
 // src/components/procurement/ConfirmOrderModal.jsx
-import { useState } from "react";
+import React, { useState } from "react";
 import { X, AlertCircle } from "lucide-react";
-import useProcurementStore from "../../stores/useProcurementStore";
+import useProcurementStore from "../../stores/procurementStore";
 
 const ConfirmOrderModal = ({ isOpen, onClose, vendor, items }) => {
 	const [notes, setNotes] = useState("");
@@ -39,20 +39,22 @@ const ConfirmOrderModal = ({ isOpen, onClose, vendor, items }) => {
 
 	return (
 		<div className="modal modal-open">
-			<div className="modal-box">
-				<h3 className="font-bold text-lg flex items-center gap-2">
-					Confirm Order
-					<span className="text-sm font-normal text-gray-500">
-						for {vendor.name}
-					</span>
+			<div className="modal-box relative">
+				<button
+					onClick={onClose}
+					className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">
+					<X className="w-4 h-4" />
+				</button>
+
+				<h3 className="font-bold text-lg mb-2">
+					Confirm Order for {vendor.name}
 				</h3>
 
 				<div className="py-4">
 					<div className="bg-base-200 rounded-lg p-3 mb-4">
 						<p className="text-sm font-medium">Order Summary</p>
 						<p className="text-xs text-gray-600 mt-1">
-							{totalItems} items • {missedItems} missed items from previous
-							orders
+							{totalItems} items • {missedItems} missed from previous orders
 						</p>
 					</div>
 
@@ -83,7 +85,9 @@ const ConfirmOrderModal = ({ isOpen, onClose, vendor, items }) => {
 
 					<div className="form-control">
 						<label className="label">
-							<span className="label-text">Order Notes (optional)</span>
+							<span className="label-text font-medium">
+								Order Notes (optional)
+							</span>
 						</label>
 						<textarea
 							value={notes}
@@ -106,7 +110,11 @@ const ConfirmOrderModal = ({ isOpen, onClose, vendor, items }) => {
 						onClick={handleConfirm}
 						className="btn btn-primary"
 						disabled={isConfirming}>
-						{isConfirming ? "Confirming..." : "Confirm Order"}
+						{isConfirming ? (
+							<span className="loading loading-spinner loading-sm"></span>
+						) : (
+							"Confirm Order"
+						)}
 					</button>
 				</div>
 			</div>

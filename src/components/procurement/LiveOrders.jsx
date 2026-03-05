@@ -1,65 +1,58 @@
 // src/components/procurement/LiveOrders.jsx
-import { useState } from "react";
-import { Truck, Clock, AlertCircle, ChevronRight } from "lucide-react";
-import useProcurementStore from "../../stores/useProcurementStore";
+import React, { useState } from "react";
+import { Truck, Clock, ChevronRight } from "lucide-react";
+import useProcurementStore from "../../stores/procurementStore";
 import ReceiveOrderModal from "./RecieveOrderModal";
 
 const LiveOrders = () => {
 	const [selectedOrder, setSelectedOrder] = useState(null);
 	const { marketLists } = useProcurementStore();
 
-	// Filter only 'Ordered' status orders
 	const liveOrders = marketLists.filter((list) => list.status === "Ordered");
 
-	const getStatusIcon = () => {
-		// You can add logic here for different statuses if needed
-		return <Truck className="w-4 h-4" />;
-	};
-
-	const getStatusColor = () => {
-		// Default styling
-		return "bg-blue-50 border-blue-200";
-	};
-
 	if (liveOrders.length === 0) {
-		return null; // Don't show section if no live orders
+		return null;
 	}
 
 	return (
 		<>
-			<div className="bg-base-200 rounded-lg p-4">
-				<h3 className="font-semibold mb-3 flex items-center gap-2">
-					<Truck className="w-5 h-5" />
-					Live Incoming Orders ({liveOrders.length})
-				</h3>
+			<div className="card bg-primary/5 border border-primary/20">
+				<div className="card-body p-4">
+					<h3 className="font-semibold flex items-center gap-2 text-primary">
+						<Truck className="w-5 h-5" />
+						Live Incoming Orders ({liveOrders.length})
+					</h3>
 
-				<div className="space-y-2">
-					{liveOrders.map((order) => (
-						<div
-							key={order.id}
-							className={`flex items-center justify-between p-3 rounded-lg border ${getStatusColor(
-								order
-							)}`}>
-							<div className="flex items-center gap-3">
-								{getStatusIcon(order)}
-								<div>
-									<p className="font-medium">
-										{order.vendor?.name} - {order.order_number}
-									</p>
-									<p className="text-sm text-gray-600">
-										{order.total_items} items • {order.notes || "No notes"}
-									</p>
+					<div className="space-y-2 mt-3">
+						{liveOrders.map((order) => (
+							<div
+								key={order.id}
+								className="flex items-center justify-between p-3 bg-base-100 rounded-lg border">
+								<div className="flex items-center gap-3">
+									<div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+										<Truck className="w-4 h-4 text-primary" />
+									</div>
+									<div>
+										<p className="font-medium">
+											{order.vendor?.name} - {order.order_number}
+										</p>
+										<p className="text-xs text-gray-500 flex items-center gap-1">
+											<Clock className="w-3 h-3" />
+											{new Date(order.created_at).toLocaleTimeString()} •{" "}
+											{order.total_items} items
+										</p>
+									</div>
 								</div>
-							</div>
 
-							<button
-								onClick={() => setSelectedOrder(order)}
-								className="btn btn-primary btn-sm gap-2">
-								Arrived
-								<ChevronRight className="w-4 h-4" />
-							</button>
-						</div>
-					))}
+								<button
+									onClick={() => setSelectedOrder(order)}
+									className="btn btn-primary btn-sm gap-1">
+									Arrived
+									<ChevronRight className="w-4 h-4" />
+								</button>
+							</div>
+						))}
+					</div>
 				</div>
 			</div>
 
