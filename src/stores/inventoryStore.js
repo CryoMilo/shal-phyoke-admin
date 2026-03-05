@@ -197,6 +197,22 @@ const useInventoryStore = create((set, get) => ({
 		);
 	},
 
+	createInventoryItem: async (itemData) => {
+		try {
+			const { error } = await supabase
+				.from("inventory_items")
+				.insert([itemData]);
+
+			if (error) throw error;
+
+			await get().fetchInventoryItems();
+			return { success: true };
+		} catch (error) {
+			console.error("Error creating inventory item:", error);
+			return { error: error.message };
+		}
+	},
+
 	updateInventoryItem: async (id, itemData) => {
 		try {
 			const { error } = await supabase

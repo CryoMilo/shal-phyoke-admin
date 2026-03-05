@@ -22,6 +22,7 @@ const InventoryItems = () => {
 		fetchVendors,
 		subscribeToInventory,
 		updateQuantity,
+		createInventoryItem,
 		updateInventoryItem,
 		getFilteredItems,
 		getVendorsWithCounts,
@@ -91,13 +92,20 @@ const InventoryItems = () => {
 	};
 
 	const handleModalSubmit = async (data) => {
-		if (!editingItem) return;
-
-		await updateInventoryItem(editingItem.id, data);
-		setShowModal(false);
-		setEditingItem(null);
+		try {
+			if (editingItem) {
+				// Update existing item
+				await updateInventoryItem(editingItem.id, data);
+			} else {
+				// Create new item
+				await createInventoryItem(data);
+			}
+			setShowModal(false);
+			setEditingItem(null);
+		} catch (error) {
+			console.error("Error saving item:", error);
+		}
 	};
-
 	if (loading && items.length === 0) {
 		return <Loading />;
 	}
