@@ -1,13 +1,14 @@
 // src/pages/InventoryItems.jsx
-import React, { useState, useEffect, useMemo } from "react";
-import { Plus, Package } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Search, Package, Plus } from "lucide-react";
 import useInventoryStore from "../stores/inventoryStore";
+import useProcurementStore from "../stores/procurementStore";
+import { supabase } from "../services/supabase";
 import { Loading } from "../components/common/Loading";
 import { PageHeader } from "../components/common/PageHeader";
-import InventoryFilters from "../components/inventory/InventoryFilters";
-import InventoryGrid from "../components/inventory/InventoryGrid";
+import VendorChip from "../components/inventory/VendorChip";
+import InventoryCard from "../components/inventory/InventoryCard";
 import InventoryItemModal from "../components/inventory/InventoryItemModal";
-import DeleteConfirmationModal from "../components/common/DeleteConfirmationModal";
 
 const InventoryItems = () => {
 	const {
@@ -15,90 +16,86 @@ const InventoryItems = () => {
 		vendors,
 		loading,
 		searchQuery,
-		activeCategory,
+		selectedVendors,
 		showRegularOnly,
 		fetchInventoryItems,
 		fetchVendors,
-		createInventoryItem,
+		subscribeToInventory,
+		updateQuantity,
 		updateInventoryItem,
-		deleteInventoryItem,
+		getFilteredItems,
+		getVendorsWithCounts,
 		setSearchQuery,
-		setActiveCategory,
+		toggleVendorFilter,
 		setShowRegularOnly,
-		showOnlyRegularItems,
-		showAllItems,
 		resetFilters,
-		getAllCategories,
-		getFilteredItems, // Use the new method
 	} = useInventoryStore();
 
+	const { addToCart } = useProcurementStore();
+	const [user, setUser] = useState(null);
 	const [showModal, setShowModal] = useState(false);
 	const [editingItem, setEditingItem] = useState(null);
-	const [formLoading, setFormLoading] = useState(false);
-	const [deleteItem, setDeleteItem] = useState(null);
+	const [quantities, setQuantities] = useState({});
 
 	useEffect(() => {
 		fetchInventoryItems();
 		fetchVendors();
-	}, [fetchInventoryItems, fetchVendors]);
 
-	// Get filtered items using the store method
-	const filteredItems = useMemo(() => {
-		return getFilteredItems();
-	}, [items, searchQuery, activeCategory, showRegularOnly, getFilteredItems]);
+		// Set up real-time subscription
+		const subscription = subscribeToInventory();
 
-	const categories = getAllCategories();
+		// Get current user
+		const getUser = async () => {
+			const {
+				data: { user },
+			} = await supabase.auth.getUser();
+			setUser(user);
+		};
+		getUser();
 
-	const openCreateModal = () => {
-		setEditingItem(null);
-		setShowModal(true);
+		return () => {
+			subscription.unsubscribe();
+		};
+	}, []);
+
+	const filteredItems = getFilteredItems();
+	const vendorsWithCounts = getVendorsWithCounts();
+
+	const handleAddToCart = async (item) => {
+		if (!user) return;
+
+		const quantity = quantities[item.id] || 1;
+		await addToCart(
+			{
+				inventoryItemId: item.id,
+				vendorId: item.default_vendor_id,
+				quantity,
+				unit: item.unit,
+				notes: "",
+			},
+			user.id
+		);
 	};
 
-	const openEditModal = (item) => {
+	const handleQuantityChange = (itemId, newValue) => {
+		setQuantities((prev) => ({ ...prev, [itemId]: newValue }));
+	};
+
+	const handleUpdateStock = async (itemId, newQuantity) => {
+		await updateQuantity(itemId, newQuantity);
+	};
+
+	const handleCardClick = (item) => {
 		setEditingItem(item);
 		setShowModal(true);
 	};
 
-	const handleFormSubmit = async (data) => {
-		try {
-			setFormLoading(true);
+	const handleModalSubmit = async (data) => {
+		if (!editingItem) return;
 
-			let result;
-			if (editingItem) {
-				result = await updateInventoryItem(editingItem.id, data);
-			} else {
-				result = await createInventoryItem(data);
-			}
-
-			if (result.error) {
-				throw new Error(result.error);
-			}
-
-			setShowModal(false);
-			setEditingItem(null);
-		} catch (error) {
-			console.error("Error saving inventory item:", error);
-			alert("Error saving inventory item: " + error.message);
-		} finally {
-			setFormLoading(false);
-		}
-	};
-
-	const handleDelete = async (id) => {
-		try {
-			const result = await deleteInventoryItem(id);
-			if (result.error) {
-				throw new Error(result.error);
-			}
-			setDeleteItem(null);
-		} catch (error) {
-			console.error("Error deleting inventory item:", error);
-			alert("Error deleting inventory item");
-		}
-	};
-
-	const handleClearFilters = () => {
-		resetFilters();
+		await updateInventoryItem(editingItem.id, data);
+		setShowModal(false);
+		setEditingItem(null);
 	};
 
 	if (loading && items.length === 0) {
@@ -109,8 +106,8 @@ const InventoryItems = () => {
 		<div className="container mx-auto p-3 md:p-6">
 			{/* Header */}
 			<PageHeader
-				title="Inventory Items"
-				description="Manage your inventory items and their default vendors"
+				title="Inventory Stock"
+				description="Update stock levels and reorder items"
 				icon={Package}
 				buttons={[
 					{
@@ -118,83 +115,108 @@ const InventoryItems = () => {
 						label: "Add Item",
 						shortlabel: "Add",
 						icon: Plus,
-						onClick: openCreateModal,
+						onClick: () => {
+							setEditingItem(null);
+							setShowModal(true);
+						},
 						variant: "primary",
 					},
 				]}
 			/>
 
 			{/* Filters */}
-			<InventoryFilters
-				searchQuery={searchQuery}
-				setSearchQuery={setSearchQuery}
-				activeCategory={activeCategory}
-				setActiveCategory={setActiveCategory}
-				showRegularOnly={showRegularOnly}
-				setShowRegularOnly={setShowRegularOnly}
-				showOnlyRegularItems={showOnlyRegularItems}
-				showAllItems={showAllItems}
-				categories={categories}
-				filteredCount={filteredItems.length}
-				totalCount={items.length}
-			/>
+			<div className="card bg-base-100 shadow-sm border border-base-200 mb-6">
+				<div className="card-body p-4">
+					{/* Search */}
+					<div className="mb-4">
+						<div className="relative">
+							<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500" />
+							<input
+								type="text"
+								placeholder="Search items by name or category..."
+								value={searchQuery}
+								onChange={(e) => setSearchQuery(e.target.value)}
+								className="input input-bordered w-full pl-9"
+							/>
+						</div>
+					</div>
 
-			{/* Grid */}
-			{filteredItems.length > 0 ? (
-				<InventoryGrid
-					items={filteredItems}
-					onEdit={openEditModal}
-					onDelete={setDeleteItem}
-				/>
-			) : (
-				<div className="text-center py-8 md:py-12 bg-base-100 rounded-lg shadow-sm border border-base-200">
-					<Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-					<p className="text-gray-500 text-lg mb-4">
-						{items.length === 0
-							? "No inventory items found"
-							: "No items match your filters"}
-					</p>
-					{items.length === 0 ? (
-						<button className="btn btn-primary" onClick={openCreateModal}>
-							<Plus className="w-4 h-4 mr-2" />
-							Add Your First Item
-						</button>
-					) : (
-						<button className="btn btn-outline" onClick={handleClearFilters}>
-							Clear All Filters
-						</button>
-					)}
+					{/* Vendor Chips */}
+					<div className="mb-3">
+						<div className="flex items-center gap-2 mb-2">
+							<span className="text-sm font-medium">Filter by Vendor:</span>
+							<button
+								onClick={() => setShowRegularOnly(!showRegularOnly)}
+								className={`badge badge-sm gap-1 cursor-pointer ${
+									showRegularOnly ? "badge-primary" : "badge-ghost"
+								}`}>
+								Regular Only
+							</button>
+						</div>
+						<div className="flex flex-wrap gap-2">
+							<VendorChip
+								vendor={{ id: "all", name: "All Vendors" }}
+								selected={selectedVendors.length === 0}
+								onClick={() => resetFilters()}
+								count={items.length}
+							/>
+							{vendorsWithCounts.map((vendor) => (
+								<VendorChip
+									key={vendor.id}
+									vendor={vendor}
+									selected={selectedVendors.includes(vendor.id)}
+									onClick={() => toggleVendorFilter(vendor.id)}
+									count={vendor.count}
+								/>
+							))}
+						</div>
+					</div>
+
+					{/* Results count */}
+					<div className="text-sm text-gray-500">
+						Showing <span className="font-medium">{filteredItems.length}</span>{" "}
+						items
+					</div>
 				</div>
-			)}
+			</div>
 
-			{/* Create/Edit Modal */}
+			{/* Compact List View */}
+			<div className="space-y-2">
+				{filteredItems.map((item) => (
+					<InventoryCard
+						key={item.id}
+						item={item}
+						user={user}
+						cartQuantity={quantities[item.id] || 1}
+						onQuantityChange={handleQuantityChange}
+						onAddToCart={handleAddToCart}
+						onUpdateStock={handleUpdateStock}
+						onClick={() => handleCardClick(item)}
+					/>
+				))}
+
+				{filteredItems.length === 0 && (
+					<div className="text-center py-12 bg-base-100 rounded-lg border border-base-200">
+						<Package className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+						<p className="text-gray-500">No items match your filters</p>
+						<button
+							className="btn btn-outline btn-sm mt-4"
+							onClick={resetFilters}>
+							Clear Filters
+						</button>
+					</div>
+				)}
+			</div>
+
+			{/* Edit Modal */}
 			<InventoryItemModal
 				showModal={showModal}
 				setShowModal={setShowModal}
 				editingItem={editingItem}
-				handleSubmit={handleFormSubmit}
-				loading={formLoading}
+				handleSubmit={handleModalSubmit}
+				loading={false}
 				vendors={vendors}
 			/>
-
-			{/* Delete Confirmation Modal */}
-			<DeleteConfirmationModal
-				isOpen={!!deleteItem}
-				onClose={() => setDeleteItem(null)}
-				onConfirm={() => handleDelete(deleteItem.id)}
-				title="Delete Inventory Item"
-				message={`Are you sure you want to delete "${deleteItem?.name}"? This action cannot be undone.`}
-			/>
-
-			{/* Floating Action Button for Mobile */}
-			<div className="fixed bottom-6 right-6 z-30 sm:hidden">
-				<button
-					className="btn btn-primary btn-circle shadow-lg"
-					onClick={openCreateModal}
-					aria-label="Add inventory item">
-					<Plus className="w-6 h-6" />
-				</button>
-			</div>
 		</div>
 	);
 };

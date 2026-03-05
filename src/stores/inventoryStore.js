@@ -11,7 +11,7 @@ const useInventoryStore = create((set, get) => ({
 
 	// Filter states
 	searchQuery: "",
-	activeCategory: "all",
+	selectedVendors: [], // Array of selected vendor IDs for multi-select
 	showRegularOnly: false,
 
 	// Fetch all inventory items
@@ -43,7 +43,71 @@ const useInventoryStore = create((set, get) => ({
 		}
 	},
 
-	// Fetch vendors for dropdown
+	// Set up real-time subscription
+	subscribeToInventory: () => {
+		const subscription = supabase
+			.channel("inventory_changes")
+			.on(
+				"postgres_changes",
+				{ event: "*", schema: "public", table: "inventory_items" },
+				(payload) => {
+					console.log("Real-time update:", payload);
+					get().fetchInventoryItems(); // Refetch on any change
+				}
+			)
+			.subscribe();
+
+		return subscription;
+	},
+
+	// Update quantity
+	updateQuantity: async (id, newQuantity) => {
+		try {
+			const { error } = await supabase
+				.from("inventory_items")
+				.update({ quantity: newQuantity })
+				.eq("id", id);
+
+			if (error) throw error;
+
+			// Optimistic update
+			set((state) => ({
+				inventoryItems: state.inventoryItems.map((item) =>
+					item.id === id ? { ...item, quantity: newQuantity } : item
+				),
+			}));
+
+			return { success: true };
+		} catch (error) {
+			console.error("Error updating quantity:", error);
+			return { error: error.message };
+		}
+	},
+
+	// Update threshold
+	updateThreshold: async (id, newThreshold) => {
+		try {
+			const { error } = await supabase
+				.from("inventory_items")
+				.update({ threshold: newThreshold })
+				.eq("id", id);
+
+			if (error) throw error;
+
+			set((state) => ({
+				inventoryItems: state.inventoryItems.map((item) =>
+					item.id === id ? { ...item, threshold: newThreshold } : item
+				),
+			}));
+
+			return { success: true };
+		} catch (error) {
+			console.error("Error updating threshold:", error);
+			return { error: error.message };
+		}
+	},
+
+	// Fetch vendors for filters
 	fetchVendors: async () => {
 		try {
 			const { data, error } = await supabase
@@ -58,75 +122,27 @@ const useInventoryStore = create((set, get) => ({
 		}
 	},
 
-	// Create inventory item
-	createInventoryItem: async (itemData) => {
-		try {
-			const { error } = await supabase
-				.from("inventory_items")
-				.insert([itemData]);
-
-			if (error) throw error;
-
-			await get().fetchInventoryItems();
-			return { success: true };
-		} catch (error) {
-			console.error("Error creating inventory item:", error);
-			return { error: error.message };
-		}
-	},
-
-	// Update inventory item
-	updateInventoryItem: async (id, itemData) => {
-		try {
-			const { error } = await supabase
-				.from("inventory_items")
-				.update(itemData)
-				.eq("id", id);
-
-			if (error) throw error;
-
-			await get().fetchInventoryItems();
-			return { success: true };
-		} catch (error) {
-			console.error("Error updating inventory item:", error);
-			return { error: error.message };
-		}
-	},
-
-	// Delete inventory item
-	deleteInventoryItem: async (id) => {
-		try {
-			const { error } = await supabase
-				.from("inventory_items")
-				.delete()
-				.eq("id", id);
-
-			if (error) throw error;
-
-			await get().fetchInventoryItems();
-			return { success: true };
-		} catch (error) {
-			console.error("Error deleting inventory item:", error);
-			return { error: error.message };
-		}
-	},
-
 	// Filter actions
 	setSearchQuery: (query) => set({ searchQuery: query }),
-	setActiveCategory: (category) => set({ activeCategory: category }),
+
+	toggleVendorFilter: (vendorId) => {
+		set((state) => {
+			const isSelected = state.selectedVendors.includes(vendorId);
+			return {
+				selectedVendors: isSelected
+					? state.selectedVendors.filter((id) => id !== vendorId)
+					: [...state.selectedVendors, vendorId],
+			};
+		});
+	},
+
 	setShowRegularOnly: (show) => set({ showRegularOnly: show }),
-
-	// Show only regular items
-	showOnlyRegularItems: () => set({ showRegularOnly: true }),
-
-	// Show all items
-	showAllItems: () => set({ showRegularOnly: false }),
 
 	// Reset filters
 	resetFilters: () =>
 		set({
 			searchQuery: "",
-			activeCategory: "all",
+			selectedVendors: [],
 			showRegularOnly: false,
 		}),
 
@@ -136,42 +152,67 @@ const useInventoryStore = create((set, get) => ({
 		return [...new Set(items.map((item) => item.category))].sort();
 	},
 
-	// Filtered items - this is a computed property, not a state
+	// Get all unique vendors with counts
+	getVendorsWithCounts: () => {
+		const items = get().inventoryItems;
+		const vendors = get().vendors;
+
+		return vendors.map((vendor) => ({
+			...vendor,
+			count: items.filter((item) => item.default_vendor_id === vendor.id)
+				.length,
+		}));
+	},
+
+	// Filtered items
 	getFilteredItems: () => {
 		const items = get().inventoryItems;
-		const { searchQuery, activeCategory, showRegularOnly } = get();
+		const { searchQuery, selectedVendors, showRegularOnly } = get();
 
 		return items.filter((item) => {
-			// Search filter - check name and category
+			// Search filter
 			const matchesSearch =
 				searchQuery === "" ||
-				(item.name &&
-					item.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
-				(item.category &&
-					item.category.toLowerCase().includes(searchQuery.toLowerCase()));
+				item.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+				item.category?.toLowerCase().includes(searchQuery.toLowerCase());
 
-			// Category filter
-			const matchesCategory =
-				activeCategory === "all" || item.category === activeCategory;
+			// Vendor filter - if no vendors selected, show all
+			const matchesVendor =
+				selectedVendors.length === 0 ||
+				(item.default_vendor_id &&
+					selectedVendors.includes(item.default_vendor_id));
 
 			// Regular only filter
 			const matchesRegular = !showRegularOnly || item.is_regular === true;
 
-			const matches = matchesSearch && matchesCategory && matchesRegular;
-
-			if (!matches) {
-				console.log("Item filtered out:", {
-					name: item.name,
-					category: item.category,
-					is_regular: item.is_regular,
-					matchesSearch,
-					matchesCategory,
-					matchesRegular,
-				});
-			}
-
-			return matches;
+			return matchesSearch && matchesVendor && matchesRegular;
 		});
+	},
+
+	// Get low stock items (quantity <= threshold)
+	getLowStockItems: () => {
+		const items = get().inventoryItems;
+		return items.filter(
+			(item) => item.quantity <= item.threshold && item.threshold > 0
+		);
+	},
+
+	updateInventoryItem: async (id, itemData) => {
+		try {
+			const { error } = await supabase
+				.from("inventory_items")
+				.update(itemData)
+				.eq("id", id);
+
+			if (error) throw error;
+
+			// Refetch to get updated data with vendor relations
+			await get().fetchInventoryItems();
+			return { success: true };
+		} catch (error) {
+			console.error("Error updating inventory item:", error);
+			return { error: error.message };
+		}
 	},
 }));
 
