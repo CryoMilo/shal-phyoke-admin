@@ -1,9 +1,16 @@
 // src/components/inventory/InventoryItemModal.jsx
-import { useState, useEffect } from "react";
-import { X, Upload, Image as ImageIcon } from "lucide-react";
-import { supabase } from "../../services/supabase";
+import React, { useState, useEffect } from "react";
+import { X } from "lucide-react";
+import ImageUpload from "../common/ImageUpload";
 
-const InventoryItemModal = ({ isOpen, onClose, item, vendors, onSuccess }) => {
+const InventoryItemModal = ({
+	showModal,
+	setShowModal,
+	editingItem,
+	handleSubmit,
+	loading,
+	vendors,
+}) => {
 	const [formData, setFormData] = useState({
 		name: "",
 		category: "Other",
@@ -12,10 +19,9 @@ const InventoryItemModal = ({ isOpen, onClose, item, vendors, onSuccess }) => {
 		image_url: "",
 		is_regular: true,
 	});
-	const [uploading, setUploading] = useState(false);
-	const [saving, setSaving] = useState(false);
 	const [customCategory, setCustomCategory] = useState("");
 	const [showCustomCategory, setShowCustomCategory] = useState(false);
+	const [uploadError, setUploadError] = useState("");
 
 	// Common categories for quick selection
 	const commonCategories = [
@@ -32,159 +38,99 @@ const InventoryItemModal = ({ isOpen, onClose, item, vendors, onSuccess }) => {
 	];
 
 	useEffect(() => {
-		if (item) {
+		if (editingItem) {
 			setFormData({
-				name: item.name || "",
-				category: item.category || "Other",
-				default_vendor_id: item.default_vendor_id || "",
-				unit: item.unit || "piece",
-				image_url: item.image_url || "",
-				is_regular: item.is_regular ?? true,
+				name: editingItem.name || "",
+				category: editingItem.category || "Other",
+				default_vendor_id: editingItem.default_vendor_id || "",
+				unit: editingItem.unit || "piece",
+				image_url: editingItem.image_url || "",
+				is_regular: editingItem.is_regular ?? true,
 			});
-			setShowCustomCategory(!commonCategories.includes(item.category || ""));
-			setCustomCategory(item.category || "");
+			setShowCustomCategory(
+				!commonCategories.includes(editingItem.category || "")
+			);
+			setCustomCategory(editingItem.category || "");
 		} else {
-			setFormData({
-				name: "",
-				category: "Other",
-				default_vendor_id: "",
-				unit: "piece",
-				image_url: "",
-				is_regular: true,
-			});
-			setShowCustomCategory(false);
-			setCustomCategory("");
+			resetForm();
 		}
-	}, [item]);
+	}, [editingItem]);
 
-	const handleImageUpload = async (e) => {
-		const file = e.target.files?.[0];
-		if (!file) return;
-
-		setUploading(true);
-		try {
-			const fileExt = file.name.split(".").pop();
-			const fileName = `${Math.random()}.${fileExt}`;
-			const filePath = `inventory-items/${fileName}`;
-
-			const { error: uploadError } = await supabase.storage
-				.from("inventory-images")
-				.upload(filePath, file);
-
-			if (uploadError) throw uploadError;
-
-			const {
-				data: { publicUrl },
-			} = supabase.storage.from("inventory-images").getPublicUrl(filePath);
-
-			setFormData((prev) => ({ ...prev, image_url: publicUrl }));
-		} catch (error) {
-			console.error("Error uploading image:", error);
-		} finally {
-			setUploading(false);
-		}
+	const resetForm = () => {
+		setFormData({
+			name: "",
+			category: "Other",
+			default_vendor_id: "",
+			unit: "piece",
+			image_url: "",
+			is_regular: true,
+		});
+		setShowCustomCategory(false);
+		setCustomCategory("");
+		setUploadError("");
 	};
 
-	const handleSubmit = async (e) => {
+	const handleClose = () => {
+		resetForm();
+		setShowModal(false);
+	};
+
+	const onSubmit = async (e) => {
 		e.preventDefault();
-		setSaving(true);
 
-		try {
-			// Determine final category
-			const finalCategory = showCustomCategory
-				? customCategory
-				: formData.category;
+		// Determine final category
+		const finalCategory = showCustomCategory
+			? customCategory
+			: formData.category;
 
-			const dataToSave = {
-				...formData,
-				category: finalCategory,
-			};
+		const dataToSave = {
+			...formData,
+			category: finalCategory,
+			default_vendor_id: formData.default_vendor_id || null,
+			image_url: formData.image_url || null,
+		};
 
-			if (item) {
-				// Update
-				const { error } = await supabase
-					.from("inventory_items")
-					.update(dataToSave)
-					.eq("id", item.id);
-
-				if (error) throw error;
-			} else {
-				// Create
-				const { error } = await supabase
-					.from("inventory_items")
-					.insert([dataToSave]);
-
-				if (error) throw error;
-			}
-
-			onSuccess();
-			onClose();
-		} catch (error) {
-			console.error("Error saving item:", error);
-		} finally {
-			setSaving(false);
-		}
+		await handleSubmit(dataToSave);
 	};
 
-	if (!isOpen) return null;
+	if (!showModal) return null;
 
 	return (
 		<div className="modal modal-open">
-			<div className="modal-box max-w-2xl">
-				<h3 className="font-bold text-lg mb-4">
-					{item ? "Edit Inventory Item" : "Add Inventory Item"}
+			<div className="modal-box max-w-2xl relative">
+				{/* Close button */}
+				<button
+					onClick={handleClose}
+					className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">
+					<X className="w-4 h-4" />
+				</button>
+
+				<h3 className="font-bold text-lg mb-6">
+					{editingItem ? "Edit Inventory Item" : "Add Inventory Item"}
 				</h3>
 
-				<form onSubmit={handleSubmit} className="space-y-4">
+				<form onSubmit={onSubmit} className="space-y-5">
 					{/* Image Upload */}
-					<div className="form-control">
-						<label className="label">
-							<span className="label-text">Item Image</span>
-						</label>
-						<div className="flex items-center gap-4">
-							<div className="w-20 h-20 rounded-lg bg-base-300 flex items-center justify-center overflow-hidden">
-								{formData.image_url ? (
-									<img
-										src={formData.image_url}
-										alt="Preview"
-										className="w-full h-full object-cover"
-									/>
-								) : (
-									<ImageIcon className="w-8 h-8 text-gray-500" />
-								)}
-							</div>
-							<div className="flex-1">
-								<input
-									type="file"
-									accept="image/*"
-									onChange={handleImageUpload}
-									className="hidden"
-									id="image-upload"
-								/>
-								<label
-									htmlFor="image-upload"
-									className="btn btn-outline btn-sm gap-2">
-									<Upload className="w-4 h-4" />
-									{uploading ? "Uploading..." : "Upload Image"}
-								</label>
-								{formData.image_url && (
-									<button
-										type="button"
-										onClick={() =>
-											setFormData((prev) => ({ ...prev, image_url: "" }))
-										}
-										className="btn btn-ghost btn-sm ml-2">
-										<X className="w-4 h-4" />
-									</button>
-								)}
-							</div>
-						</div>
-					</div>
+					<ImageUpload
+						bucket="inventory-images"
+						folder="inventory-items"
+						value={formData.image_url}
+						onChange={(url) =>
+							setFormData((prev) => ({ ...prev, image_url: url }))
+						}
+						label="Item Image"
+						required={false}
+						maxSizeMB={5}
+						allowedTypes={["image/jpeg", "image/png", "image/webp"]}
+						onError={setUploadError}
+						placeholder="Upload an image of the item"
+					/>
 
 					{/* Name */}
 					<div className="form-control">
 						<label className="label">
-							<span className="label-text">Item Name *</span>
+							<span className="label-text font-medium">Item Name</span>
+							<span className="label-text-alt text-error">*</span>
 						</label>
 						<input
 							type="text"
@@ -201,7 +147,8 @@ const InventoryItemModal = ({ isOpen, onClose, item, vendors, onSuccess }) => {
 					{/* Category */}
 					<div className="form-control">
 						<label className="label">
-							<span className="label-text">Category *</span>
+							<span className="label-text font-medium">Category</span>
+							<span className="label-text-alt text-error">*</span>
 						</label>
 						{!showCustomCategory ? (
 							<div className="flex gap-2">
@@ -248,7 +195,7 @@ const InventoryItemModal = ({ isOpen, onClose, item, vendors, onSuccess }) => {
 					{/* Default Vendor */}
 					<div className="form-control">
 						<label className="label">
-							<span className="label-text">Default Vendor</span>
+							<span className="label-text font-medium">Default Vendor</span>
 						</label>
 						<select
 							value={formData.default_vendor_id}
@@ -268,7 +215,8 @@ const InventoryItemModal = ({ isOpen, onClose, item, vendors, onSuccess }) => {
 					{/* Unit */}
 					<div className="form-control">
 						<label className="label">
-							<span className="label-text">Unit *</span>
+							<span className="label-text font-medium">Unit</span>
+							<span className="label-text-alt text-error">*</span>
 						</label>
 						<input
 							type="text"
@@ -300,21 +248,27 @@ const InventoryItemModal = ({ isOpen, onClose, item, vendors, onSuccess }) => {
 					<div className="modal-action">
 						<button
 							type="button"
-							onClick={onClose}
+							onClick={handleClose}
 							className="btn btn-ghost"
-							disabled={saving}>
+							disabled={loading}>
 							Cancel
 						</button>
 						<button
 							type="submit"
-							className="btn btn-primary"
-							disabled={saving || uploading}>
-							{saving ? "Saving..." : item ? "Update Item" : "Add Item"}
+							className="btn btn-primary min-w-[100px]"
+							disabled={loading || !!uploadError}>
+							{loading ? (
+								<span className="loading loading-spinner loading-sm"></span>
+							) : editingItem ? (
+								"Update Item"
+							) : (
+								"Add Item"
+							)}
 						</button>
 					</div>
 				</form>
 			</div>
-			<div className="modal-backdrop" onClick={onClose} />
+			<div className="modal-backdrop" onClick={handleClose} />
 		</div>
 	);
 };

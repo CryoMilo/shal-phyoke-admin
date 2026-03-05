@@ -1,274 +1,196 @@
 // src/pages/InventoryItems.jsx
-import { useState, useEffect } from "react";
-import {
-	Plus,
-	Search,
-	Filter,
-	Edit2,
-	Trash2,
-	Image as ImageIcon,
-	Package,
-	Upload,
-} from "lucide-react";
-import { supabase } from "../services/supabase";
-import { PageHeader } from "../components/common/PageHeader";
+import React, { useState, useEffect, useMemo } from "react";
+import { Plus, Package } from "lucide-react";
+import useInventoryStore from "../stores/inventoryStore";
 import { Loading } from "../components/common/Loading";
+import { PageHeader } from "../components/common/PageHeader";
+import InventoryFilters from "../components/inventory/InventoryFilters";
+import InventoryGrid from "../components/inventory/InventoryGrid";
 import InventoryItemModal from "../components/inventory/InventoryItemModal";
 import DeleteConfirmationModal from "../components/common/DeleteConfirmationModal";
 
 const InventoryItems = () => {
-	const [items, setItems] = useState([]);
-	const [vendors, setVendors] = useState([]);
-	const [loading, setLoading] = useState(true);
-	const [searchQuery, setSearchQuery] = useState("");
-	const [categoryFilter, setCategoryFilter] = useState("all");
-	const [vendorFilter, setVendorFilter] = useState("all");
-	const [isModalOpen, setIsModalOpen] = useState(false);
+	const {
+		inventoryItems: items,
+		vendors,
+		loading,
+		searchQuery,
+		activeCategory,
+		showRegularOnly,
+		fetchInventoryItems,
+		fetchVendors,
+		createInventoryItem,
+		updateInventoryItem,
+		deleteInventoryItem,
+		setSearchQuery,
+		setActiveCategory,
+		setShowRegularOnly,
+		showOnlyRegularItems,
+		showAllItems,
+		resetFilters,
+		getAllCategories,
+		getFilteredItems, // Use the new method
+	} = useInventoryStore();
+
+	const [showModal, setShowModal] = useState(false);
 	const [editingItem, setEditingItem] = useState(null);
+	const [formLoading, setFormLoading] = useState(false);
 	const [deleteItem, setDeleteItem] = useState(null);
-	const [categories, setCategories] = useState([]);
 
 	useEffect(() => {
-		fetchData();
-	}, []);
+		fetchInventoryItems();
+		fetchVendors();
+	}, [fetchInventoryItems, fetchVendors]);
 
-	const fetchData = async () => {
-		setLoading(true);
+	// Get filtered items using the store method
+	const filteredItems = useMemo(() => {
+		return getFilteredItems();
+	}, [items, searchQuery, activeCategory, showRegularOnly, getFilteredItems]);
+
+	const categories = getAllCategories();
+
+	// Debug logging
+	useEffect(() => {
+		console.log("Current state:", {
+			totalItems: items.length,
+			filteredItems: filteredItems.length,
+			searchQuery,
+			activeCategory,
+			showRegularOnly,
+			items: items.map((i) => ({
+				name: i.name,
+				category: i.category,
+				is_regular: i.is_regular,
+			})),
+		});
+	}, [items, filteredItems, searchQuery, activeCategory, showRegularOnly]);
+
+	const openCreateModal = () => {
+		setEditingItem(null);
+		setShowModal(true);
+	};
+
+	const openEditModal = (item) => {
+		setEditingItem(item);
+		setShowModal(true);
+	};
+
+	const handleFormSubmit = async (data) => {
 		try {
-			// Fetch inventory items
-			const { data: itemsData, error: itemsError } = await supabase
-				.from("inventory_items")
-				.select(
-					`
-          *,
-          default_vendor:default_vendor_id (
-            id,
-            name,
-            line_id
-          )
-        `
-				)
-				.order("category")
-				.order("name");
+			setFormLoading(true);
 
-			if (itemsError) throw itemsError;
+			let result;
+			if (editingItem) {
+				result = await updateInventoryItem(editingItem.id, data);
+			} else {
+				result = await createInventoryItem(data);
+			}
 
-			// Fetch vendors for dropdown
-			const { data: vendorsData, error: vendorsError } = await supabase
-				.from("vendors")
-				.select("*")
-				.order("name");
+			if (result.error) {
+				throw new Error(result.error);
+			}
 
-			if (vendorsError) throw vendorsError;
-
-			setItems(itemsData || []);
-			setVendors(vendorsData || []);
-
-			// Extract unique categories
-			const uniqueCategories = [
-				...new Set(itemsData.map((item) => item.category)),
-			].sort();
-			setCategories(uniqueCategories);
+			setShowModal(false);
+			setEditingItem(null);
 		} catch (error) {
-			console.error("Error fetching data:", error);
+			console.error("Error saving inventory item:", error);
+			alert("Error saving inventory item: " + error.message);
 		} finally {
-			setLoading(false);
+			setFormLoading(false);
 		}
 	};
 
 	const handleDelete = async (id) => {
 		try {
-			const { error } = await supabase
-				.from("inventory_items")
-				.delete()
-				.eq("id", id);
-
-			if (error) throw error;
-
-			setItems(items.filter((item) => item.id !== id));
+			const result = await deleteInventoryItem(id);
+			if (result.error) {
+				throw new Error(result.error);
+			}
 			setDeleteItem(null);
 		} catch (error) {
-			console.error("Error deleting item:", error);
+			console.error("Error deleting inventory item:", error);
+			alert("Error deleting inventory item");
 		}
 	};
 
-	const filteredItems = items.filter((item) => {
-		const matchesSearch =
-			searchQuery === "" ||
-			item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-			item.category.toLowerCase().includes(searchQuery.toLowerCase());
+	const handleClearFilters = () => {
+		resetFilters();
+	};
 
-		const matchesCategory =
-			categoryFilter === "all" || item.category === categoryFilter;
-
-		const matchesVendor =
-			vendorFilter === "all" || item.default_vendor_id === vendorFilter;
-
-		return matchesSearch && matchesCategory && matchesVendor;
-	});
-
-	if (loading) {
-		return (
-			<div className="flex items-center justify-center h-64">
-				<Loading size="lg" />
-			</div>
-		);
+	if (loading && items.length === 0) {
+		return <Loading />;
 	}
 
 	return (
-		<div className="space-y-6">
+		<div className="container mx-auto p-3 md:p-6">
+			{/* Header */}
 			<PageHeader
 				title="Inventory Items"
+				description="Manage your inventory items and their default vendors"
 				icon={Package}
-				actions={
-					<button
-						onClick={() => {
-							setEditingItem(null);
-							setIsModalOpen(true);
-						}}
-						className="btn btn-primary btn-sm gap-2">
-						<Plus className="w-4 h-4" />
-						Add Item
-					</button>
-				}
+				buttons={[
+					{
+						type: "button",
+						label: "Add Item",
+						shortLabel: "Add",
+						icon: Plus,
+						onClick: openCreateModal,
+						variant: "primary",
+					},
+				]}
 			/>
 
 			{/* Filters */}
-			<div className="flex flex-col sm:flex-row gap-4">
-				<div className="relative flex-1">
-					<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500" />
-					<input
-						type="text"
-						placeholder="Search items..."
-						value={searchQuery}
-						onChange={(e) => setSearchQuery(e.target.value)}
-						className="input input-bordered w-full pl-9"
-					/>
-				</div>
+			<InventoryFilters
+				searchQuery={searchQuery}
+				setSearchQuery={setSearchQuery}
+				activeCategory={activeCategory}
+				setActiveCategory={setActiveCategory}
+				showRegularOnly={showRegularOnly}
+				setShowRegularOnly={setShowRegularOnly}
+				showOnlyRegularItems={showOnlyRegularItems}
+				showAllItems={showAllItems}
+				categories={categories}
+				filteredCount={filteredItems.length}
+				totalCount={items.length}
+			/>
 
-				<div className="flex gap-2">
-					<select
-						value={categoryFilter}
-						onChange={(e) => setCategoryFilter(e.target.value)}
-						className="select select-bordered min-w-[140px]">
-						<option value="all">All Categories</option>
-						{categories.map((cat) => (
-							<option key={cat} value={cat}>
-								{cat}
-							</option>
-						))}
-					</select>
-
-					<select
-						value={vendorFilter}
-						onChange={(e) => setVendorFilter(e.target.value)}
-						className="select select-bordered min-w-[140px]">
-						<option value="all">All Vendors</option>
-						{vendors.map((vendor) => (
-							<option key={vendor.id} value={vendor.id}>
-								{vendor.name}
-							</option>
-						))}
-					</select>
-				</div>
-			</div>
-
-			{/* Inventory Items Grid */}
-			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-				{filteredItems.map((item) => (
-					<div
-						key={item.id}
-						className={`card bg-base-100 shadow-sm hover:shadow-md transition-shadow ${
-							!item.is_regular ? "border-2 border-dashed border-primary" : ""
-						} ${!item.is_active ? "opacity-60" : ""}`}>
-						<div className="card-body p-4">
-							<div className="flex items-start gap-3">
-								{/* Image */}
-								<div className="w-16 h-16 rounded-lg bg-base-300 flex items-center justify-center overflow-hidden">
-									{item.image_url ? (
-										<img
-											src={item.image_url}
-											alt={item.name}
-											className="w-full h-full object-cover"
-										/>
-									) : (
-										<ImageIcon className="w-8 h-8 text-gray-500" />
-									)}
-								</div>
-
-								{/* Details */}
-								<div className="flex-1 min-w-0">
-									<div className="flex items-start justify-between">
-										<div>
-											<h3 className="font-medium truncate">{item.name}</h3>
-											<p className="text-xs text-gray-500 mt-1">
-												{item.category}
-											</p>
-										</div>
-										<div className="flex items-center gap-1">
-											<button
-												onClick={() => {
-													setEditingItem(item);
-													setIsModalOpen(true);
-												}}
-												className="btn btn-ghost btn-xs">
-												<Edit2 className="w-3 h-3" />
-											</button>
-											<button
-												onClick={() => setDeleteItem(item)}
-												className="btn btn-ghost btn-xs text-error">
-												<Trash2 className="w-3 h-3" />
-											</button>
-										</div>
-									</div>
-
-									<div className="mt-2 space-y-1">
-										<p className="text-sm">
-											<span className="text-gray-500">Unit:</span> {item.unit}
-										</p>
-										<p className="text-sm">
-											<span className="text-gray-500">Default Vendor:</span>{" "}
-											{item.default_vendor?.name || "Not set"}
-										</p>
-									</div>
-
-									<div className="flex items-center gap-2 mt-3">
-										<div className="badge badge-sm">
-											{item.is_regular ? "Regular" : "Occasional"}
-										</div>
-									</div>
-								</div>
-							</div>
-						</div>
-					</div>
-				))}
-
-				{filteredItems.length === 0 && (
-					<div className="col-span-full text-center py-12 bg-base-200 rounded-lg">
-						<Package className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-						<p className="text-gray-500">No inventory items found</p>
-						<button
-							onClick={() => {
-								setEditingItem(null);
-								setIsModalOpen(true);
-							}}
-							className="btn btn-primary btn-sm mt-4">
+			{/* Grid */}
+			{filteredItems.length > 0 ? (
+				<InventoryGrid
+					items={filteredItems}
+					onEdit={openEditModal}
+					onDelete={setDeleteItem}
+				/>
+			) : (
+				<div className="text-center py-8 md:py-12 bg-base-100 rounded-lg shadow-sm border border-base-200">
+					<Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+					<p className="text-gray-500 text-lg mb-4">
+						{items.length === 0
+							? "No inventory items found"
+							: "No items match your filters"}
+					</p>
+					{items.length === 0 ? (
+						<button className="btn btn-primary" onClick={openCreateModal}>
+							<Plus className="w-4 h-4 mr-2" />
 							Add Your First Item
 						</button>
-					</div>
-				)}
-			</div>
+					) : (
+						<button className="btn btn-outline" onClick={handleClearFilters}>
+							Clear All Filters
+						</button>
+					)}
+				</div>
+			)}
 
-			{/* Inventory Item Modal */}
+			{/* Create/Edit Modal */}
 			<InventoryItemModal
-				isOpen={isModalOpen}
-				onClose={() => {
-					setIsModalOpen(false);
-					setEditingItem(null);
-				}}
-				item={editingItem}
+				showModal={showModal}
+				setShowModal={setShowModal}
+				editingItem={editingItem}
+				handleSubmit={handleFormSubmit}
+				loading={formLoading}
 				vendors={vendors}
-				onSuccess={fetchData}
 			/>
 
 			{/* Delete Confirmation Modal */}
@@ -279,6 +201,16 @@ const InventoryItems = () => {
 				title="Delete Inventory Item"
 				message={`Are you sure you want to delete "${deleteItem?.name}"? This action cannot be undone.`}
 			/>
+
+			{/* Floating Action Button for Mobile */}
+			<div className="fixed bottom-6 right-6 z-30 sm:hidden">
+				<button
+					className="btn btn-primary btn-circle shadow-lg"
+					onClick={openCreateModal}
+					aria-label="Add inventory item">
+					<Plus className="w-6 h-6" />
+				</button>
+			</div>
 		</div>
 	);
 };
