@@ -9,16 +9,24 @@ import {
 	ChevronRight,
 	ShoppingBasket,
 	DollarSign,
-	TrendingUp,
 	FileText,
 	Package,
-	DollarSign as DollarIcon,
 	TrendingDown,
+	Box,
+	ShoppingCart,
 } from "lucide-react";
 
 const Sidebar = () => {
 	const location = useLocation();
 	const [isCollapsed, setIsCollapsed] = useState(false);
+
+	const isActiveRoute = (path) => {
+		return location.pathname === path;
+	};
+
+	const toggleSidebar = () => {
+		setIsCollapsed(!isCollapsed);
+	};
 
 	const menuStructure = [
 		{
@@ -46,9 +54,18 @@ const Sidebar = () => {
 			icon: FileText,
 		},
 		{
+			type: "divider",
+			label: "Inventory",
+		},
+		{
 			name: "Procurement",
 			path: "/procurement",
-			icon: Package,
+			icon: ShoppingCart,
+		},
+		{
+			name: "Inventory Items",
+			path: "/inventory-items",
+			icon: Box,
 		},
 		{
 			type: "divider",
@@ -79,14 +96,6 @@ const Sidebar = () => {
 			icon: ShoppingBasket,
 		},
 	];
-
-	const isActiveRoute = (path) => {
-		return location.pathname === path;
-	};
-
-	const toggleSidebar = () => {
-		setIsCollapsed(!isCollapsed);
-	};
 
 	return (
 		<div className="drawer lg:drawer-open">

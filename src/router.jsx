@@ -17,6 +17,8 @@ import Orders from "./pages/Orders";
 import DailyCash from "./pages/DailyCash";
 import DailyExpenses from "./pages/DailyExpenses";
 import MonthlyOverheads from "./pages/MonthlyOverheads";
+import Procurement from "./pages/Procurement";
+import InventoryItems from "./pages/InventoryItems";
 
 // 1. Root route
 const rootRoute = createRootRoute({ component: App });
@@ -102,6 +104,18 @@ const monthlyOverheadsRoute = createRoute({
 	component: MonthlyOverheads,
 });
 
+const procurementRoute = createRoute({
+	path: "/procurement",
+	getParentRoute: () => rootRoute,
+	component: Procurement,
+});
+
+const inventoryItemsRoute = createRoute({
+	path: "/inventory-items",
+	getParentRoute: () => rootRoute,
+	component: InventoryItems,
+});
+
 // 3. Combine all routes
 const routeTree = rootRoute.addChildren([
 	dashboardRoute,
@@ -117,6 +131,8 @@ const routeTree = rootRoute.addChildren([
 	dailyCashRoute,
 	dailyExpensesRoute,
 	monthlyOverheadsRoute,
+	procurementRoute,
+	inventoryItemsRoute,
 ]);
 
 // 4. Create and export router
