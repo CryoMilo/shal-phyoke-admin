@@ -1,10 +1,13 @@
 // src/components/procurement/MarketListTab.jsx
-import React from "react";
-import { Maximize2, Minimize2, ShoppingBag } from "lucide-react";
+import React, { useState } from "react";
+import { Maximize2, Minimize2, Plus, ShoppingBag } from "lucide-react";
 import useProcurementStore from "../../stores/procurementStore";
 import VendorAccordion from "./VendorAccordion";
+import AddCustomItemModal from "./AddCustomItemModa";
 
 const MarketListTab = () => {
+	const [showAddModal, setShowAddModal] = useState(false);
+
 	const {
 		getItemsByVendor,
 		expandedVendors,
@@ -21,10 +24,19 @@ const MarketListTab = () => {
 
 	return (
 		<div className="space-y-4">
-			{/* Header with expand/collapse controls */}
+			{/* Header with controls */}
 			<div className="flex justify-between items-center">
 				<h2 className="text-lg font-semibold">Items to Buy</h2>
 				<div className="flex gap-2">
+					{/* Add Custom Item Button */}
+					<button
+						onClick={() => setShowAddModal(true)}
+						className="btn btn-primary btn-sm gap-1"
+						title="Add custom item">
+						<Plus className="w-4 h-4" />
+						<span className="hidden sm:inline">Add Custom</span>
+					</button>
+
 					<button
 						onClick={expandAllVendors}
 						className="btn btn-ghost btn-sm gap-1"
@@ -49,9 +61,15 @@ const MarketListTab = () => {
 					<p className="text-gray-500 text-lg mb-2">
 						Your market list is empty
 					</p>
-					<p className="text-sm text-gray-400">
-						Items added from Inventory will appear here
+					<p className="text-sm text-gray-400 mb-4">
+						Add items from Inventory or create custom items
 					</p>
+					<button
+						onClick={() => setShowAddModal(true)}
+						className="btn btn-primary btn-sm gap-2">
+						<Plus className="w-4 h-4" />
+						Add Custom Item
+					</button>
 				</div>
 			) : (
 				<div className="space-y-3">
@@ -64,6 +82,12 @@ const MarketListTab = () => {
 					))}
 				</div>
 			)}
+
+			{/* Add Custom Item Modal */}
+			<AddCustomItemModal
+				isOpen={showAddModal}
+				onClose={() => setShowAddModal(false)}
+			/>
 		</div>
 	);
 };

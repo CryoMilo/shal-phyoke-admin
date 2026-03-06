@@ -146,7 +146,7 @@ const useProcurementStore = create((set, get) => ({
 			const { error } = await supabase.from("market_list").insert([
 				{
 					custom_item_name: itemData.name,
-					vendor_id: itemData.vendor_id,
+					vendor_id: itemData.vendor_id || null,
 					quantity: itemData.quantity,
 					unit: itemData.unit,
 					notes: itemData.notes || "",
@@ -155,6 +155,7 @@ const useProcurementStore = create((set, get) => ({
 
 			if (error) throw error;
 
+			// Refresh list
 			await get().fetchMarketList();
 			return { success: true };
 		} catch (error) {
