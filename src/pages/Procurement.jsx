@@ -1,13 +1,11 @@
 // src/pages/Procurement.jsx
-import React, { useState, useEffect } from "react";
-import { ShoppingBag, History, Package, ShoppingCart } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { ShoppingBag, Truck, History, Package } from "lucide-react";
 import useProcurementStore from "../stores/procurementStore";
 import { supabase } from "../services/supabase";
 import { Loading } from "../components/common/Loading";
 import { PageHeader } from "../components/common/PageHeader";
 import MarketListTab from "../components/procurement/MarketListTab";
-import HistoryTab from "../components/procurement/HistoryTab";
-import CartDrawer from "../components/procurement/CartDrawer";
 
 const Procurement = () => {
 	const {
@@ -16,84 +14,49 @@ const Procurement = () => {
 		loading,
 		fetchVendors,
 		fetchInventoryItems,
-		fetchActiveCart,
-		fetchMarketLists,
-		setCurrentUser,
-		activeCart,
+		fetchMarketList,
 	} = useProcurementStore();
 
 	const [user, setUser] = useState(null);
 
 	useEffect(() => {
+		// Fetch initial data
+		const init = async () => {
+			await Promise.all([
+				fetchVendors(),
+				fetchInventoryItems(),
+				fetchMarketList(),
+			]);
+		};
+
+		init();
+
 		// Get current user
 		const getUser = async () => {
 			const {
 				data: { user },
 			} = await supabase.auth.getUser();
-			if (user) {
-				setUser(user);
-				setCurrentUser(user);
-
-				// Fetch all necessary data
-				await Promise.all([
-					fetchVendors(),
-					fetchInventoryItems(),
-					fetchActiveCart(user.id),
-					fetchMarketLists("Ordered"),
-				]);
-			}
+			setUser(user);
 		};
-
 		getUser();
-
-		// Subscribe to auth changes
-		const { data: authListener } = supabase.auth.onAuthStateChange(
-			async (event, session) => {
-				if (session?.user) {
-					setUser(session.user);
-					setCurrentUser(session.user);
-					await fetchActiveCart(session.user.id);
-				} else {
-					setUser(null);
-					setCurrentUser(null);
-				}
-			}
-		);
-
-		return () => {
-			authListener?.subscription.unsubscribe();
-		};
 	}, []);
 
 	const tabs = [
 		{ id: "market-list", label: "Market List", icon: ShoppingBag },
-		{ id: "history", label: "History", icon: History },
+		{ id: "order-status", label: "Order Status", icon: Truck },
+		{ id: "order-history", label: "Order History", icon: History },
 	];
 
-	const cartItemsCount = activeCart.length;
-
-	if (loading && !user) {
+	if (loading) {
 		return <Loading />;
 	}
 
 	return (
 		<div className="container mx-auto p-3 md:p-6">
-			{/* Header */}
 			<PageHeader
 				title="Procurement"
-				description="Manage your market lists and track incoming orders"
+				description="Manage your shopping list and track orders"
 				icon={Package}
-				buttons={[
-					{
-						type: "button",
-						label: `Cart (${cartItemsCount})`,
-						shortlabel: `${cartItemsCount}`,
-						icon: ShoppingCart,
-						onClick: () => useProcurementStore.getState().toggleCart(),
-						variant: "primary",
-						badge: cartItemsCount > 0 ? cartItemsCount : null,
-					},
-				]}
 			/>
 
 			{/* Tabs */}
@@ -111,12 +74,20 @@ const Procurement = () => {
 				))}
 			</div>
 
-			{/* Tab content */}
+			{/* Tab Content */}
 			{activeTab === "market-list" && <MarketListTab userId={user?.id} />}
-			{activeTab === "history" && <HistoryTab />}
-
-			{/* Cart Drawer */}
-			<CartDrawer userId={user?.id} />
+			{activeTab === "order-status" && (
+				<div className="text-center py-12">
+					<Truck className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+					<p className="text-gray-500">Order Status tab coming soon...</p>
+				</div>
+			)}
+			{activeTab === "order-history" && (
+				<div className="text-center py-12">
+					<History className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+					<p className="text-gray-500">Order History tab coming soon...</p>
+				</div>
+			)}
 		</div>
 	);
 };

@@ -4,21 +4,15 @@ import { supabase } from "../services/supabase";
 
 const useProcurementStore = create((set, get) => ({
 	// State
+	marketList: [],
 	vendors: [],
 	inventoryItems: [],
-	activeCart: [],
-	marketLists: [],
 	loading: false,
 	error: null,
 
 	// UI states
-	isCartOpen: false,
-	selectedVendor: "all",
-	searchQuery: "",
-	activeTab: "market-list", // 'market-list' or 'history'
-
-	// Current user (for cart)
-	currentUser: null,
+	activeTab: "market-list",
+	expandedVendors: [],
 
 	// Fetch all vendors
 	fetchVendors: async () => {
@@ -45,12 +39,10 @@ const useProcurementStore = create((set, get) => ({
           *,
           default_vendor:default_vendor_id (
             id,
-            name,
-            line_id
+            name
           )
         `
 				)
-				.order("category")
 				.order("name");
 
 			if (error) throw error;
@@ -60,481 +52,218 @@ const useProcurementStore = create((set, get) => ({
 		}
 	},
 
-	// Fetch active cart for current user
-	fetchActiveCart: async (userId) => {
-		if (!userId) return;
-
+	// Fetch market list (items to buy)
+	fetchMarketList: async () => {
+		set({ loading: true });
 		try {
 			const { data, error } = await supabase
-				.from("active_cart")
+				.from("market_list")
 				.select(
 					`
           *,
           inventory_item:inventory_item_id (
             id,
             name,
-            category,
             image_url,
-            unit
+            category
           ),
           vendor:vendor_id (
             id,
-            name,
-            line_id
+            name
           )
         `
 				)
-				.eq("user_id", userId)
-				.order("is_missed", { ascending: false })
+				.eq("is_ordered", false)
 				.order("added_at", { ascending: false });
 
 			if (error) throw error;
-			set({ activeCart: data || [] });
+			set({ marketList: data || [], error: null });
 		} catch (error) {
-			console.error("Error fetching active cart:", error);
+			console.error("Error fetching market list:", error);
+			set({ error: error.message });
+		} finally {
+			set({ loading: false });
 		}
 	},
 
-	// Add to cart
-	addToCart: async (item, userId) => {
-		if (!userId) return { error: "No user logged in" };
+	// Add item to market list (from inventory)
+	addToMarketList: async (item) => {
+		console.log("Adding to market list:", item);
 
 		try {
-			const cartItem = {
-				user_id: userId,
-				vendor_id: item.vendorId,
-				quantity: item.quantity || 1,
-				unit: item.unit,
-				notes: item.notes || "",
-				is_missed: item.isMissed || false,
-			};
+			// Check if item already exists
+			const { data: existingItems, error: checkError } = await supabase
+				.from("market_list")
+				.select("*")
+				.eq("inventory_item_id", item.id)
+				.eq("is_ordered", false);
 
-			if (item.inventoryItemId) {
-				cartItem.inventory_item_id = item.inventoryItemId;
+			if (checkError) throw checkError;
+
+			if (existingItems && existingItems.length > 0) {
+				// Update quantity
+				const existingItem = existingItems[0];
+				const newQuantity = existingItem.quantity + item.quantity;
+
+				const { error: updateError } = await supabase
+					.from("market_list")
+					.update({
+						quantity: newQuantity,
+						updated_at: new Date(),
+					})
+					.eq("id", existingItem.id);
+
+				if (updateError) throw updateError;
 			} else {
-				cartItem.custom_item_name = item.customItemName;
+				// Insert new item
+				const { error: insertError } = await supabase
+					.from("market_list")
+					.insert([
+						{
+							inventory_item_id: item.id,
+							vendor_id: item.default_vendor_id,
+							quantity: item.quantity,
+							unit: item.unit,
+							notes: item.notes || "",
+						},
+					]);
+
+				if (insertError) throw insertError;
 			}
 
-			const { data, error } = await supabase
-				.from("active_cart")
-				.insert(cartItem)
-				.select(
-					`
-          *,
-          inventory_item:inventory_item_id (
-            id,
-            name,
-            category,
-            image_url,
-            unit
-          ),
-          vendor:vendor_id (
-            id,
-            name,
-            line_id
-          )
-        `
-				)
-				.single();
-
-			if (error) throw error;
-
-			set((state) => ({
-				activeCart: [data, ...state.activeCart],
-			}));
-
-			return { success: true, data };
-		} catch (error) {
-			console.error("Error adding to cart:", error);
-			return { error: error.message };
-		}
-	},
-
-	// Update cart item
-	updateCartItem: async (cartItemId, updates) => {
-		try {
-			const { data, error } = await supabase
-				.from("active_cart")
-				.update(updates)
-				.eq("id", cartItemId)
-				.select(
-					`
-          *,
-          inventory_item:inventory_item_id (
-            id,
-            name,
-            category,
-            image_url,
-            unit
-          ),
-          vendor:vendor_id (
-            id,
-            name,
-            line_id
-          )
-        `
-				)
-				.single();
-
-			if (error) throw error;
-
-			set((state) => ({
-				activeCart: state.activeCart.map((item) =>
-					item.id === cartItemId ? data : item
-				),
-			}));
-
+			// Refresh list
+			await get().fetchMarketList();
 			return { success: true };
 		} catch (error) {
-			console.error("Error updating cart item:", error);
+			console.error("Error adding to market list:", error);
 			return { error: error.message };
 		}
 	},
 
-	// Remove from cart
-	removeFromCart: async (cartItemId) => {
+	// Add custom item (not in inventory)
+	addCustomItem: async (itemData) => {
+		try {
+			const { error } = await supabase.from("market_list").insert([
+				{
+					custom_item_name: itemData.name,
+					vendor_id: itemData.vendor_id,
+					quantity: itemData.quantity,
+					unit: itemData.unit,
+					notes: itemData.notes || "",
+				},
+			]);
+
+			if (error) throw error;
+
+			await get().fetchMarketList();
+			return { success: true };
+		} catch (error) {
+			console.error("Error adding custom item:", error);
+			return { error: error.message };
+		}
+	},
+
+	// Update market list item
+	updateMarketListItem: async (id, updates) => {
 		try {
 			const { error } = await supabase
-				.from("active_cart")
-				.delete()
-				.eq("id", cartItemId);
-
-			if (error) throw error;
-
-			set((state) => ({
-				activeCart: state.activeCart.filter((item) => item.id !== cartItemId),
-			}));
-
-			return { success: true };
-		} catch (error) {
-			console.error("Error removing from cart:", error);
-			return { error: error.message };
-		}
-	},
-
-	// Create market list (confirm order)
-	createMarketList: async (vendorId, items, notes = "") => {
-		try {
-			set({ loading: true });
-
-			// Insert market list
-			const { data: marketList, error: listError } = await supabase
-				.from("market_lists")
-				.insert({
-					vendor_id: vendorId,
-					notes,
-					status: "Ordered",
-				})
-				.select()
-				.single();
-
-			if (listError) throw listError;
-
-			// Insert market list items
-			const marketListItems = items.map((item) => ({
-				market_list_id: marketList.id,
-				inventory_item_id: item.inventory_item_id || null,
-				custom_item_name: item.custom_item_name || null,
-				quantity: item.quantity,
-				unit: item.unit,
-				notes: item.notes || "",
-				is_missed: false,
-			}));
-
-			const { error: itemsError } = await supabase
-				.from("market_list_items")
-				.insert(marketListItems);
-
-			if (itemsError) throw itemsError;
-
-			// Remove these items from active cart
-			const cartItemIds = items.map((item) => item.cart_id).filter((id) => id);
-			if (cartItemIds.length > 0) {
-				await supabase.from("active_cart").delete().in("id", cartItemIds);
-			}
-
-			// Update local state
-			set((state) => ({
-				activeCart: state.activeCart.filter(
-					(item) => !cartItemIds.includes(item.id)
-				),
-				marketLists: [marketList, ...state.marketLists],
-			}));
-
-			return { success: true, data: marketList };
-		} catch (error) {
-			console.error("Error creating market list:", error);
-			return { error: error.message };
-		} finally {
-			set({ loading: false });
-		}
-	},
-
-	// Fetch market lists (ordered)
-	fetchMarketLists: async (status = "Ordered") => {
-		try {
-			set({ loading: true });
-
-			const { data, error } = await supabase
-				.from("market_lists")
-				.select(
-					`
-          *,
-          vendor:vendor_id (
-            id,
-            name,
-            line_id
-          )
-        `
-				)
-				.eq("status", status)
-				.order("created_at", { ascending: false });
-
-			if (error) throw error;
-
-			// Fetch items for each market list
-			const marketListsWithItems = await Promise.all(
-				(data || []).map(async (list) => {
-					const { data: items } = await supabase
-						.from("market_list_items")
-						.select(
-							`
-              *,
-              inventory_item:inventory_item_id (
-                id,
-                name,
-                category,
-                image_url,
-                unit
-              )
-            `
-						)
-						.eq("market_list_id", list.id);
-
-					return { ...list, items: items || [] };
-				})
-			);
-
-			set({ marketLists: marketListsWithItems, error: null });
-		} catch (error) {
-			console.error("Error fetching market lists:", error);
-			set({ error: error.message });
-		} finally {
-			set({ loading: false });
-		}
-	},
-
-	// Fetch history (arrived/cancelled)
-	fetchHistory: async () => {
-		try {
-			set({ loading: true });
-
-			const { data, error } = await supabase
-				.from("market_lists")
-				.select(
-					`
-          *,
-          vendor:vendor_id (
-            id,
-            name,
-            line_id
-          )
-        `
-				)
-				.in("status", ["Arrived", "Cancelled"])
-				.order("created_at", { ascending: false })
-				.limit(50);
-
-			if (error) throw error;
-
-			// Fetch items for each market list
-			const historyWithItems = await Promise.all(
-				(data || []).map(async (list) => {
-					const { data: items } = await supabase
-						.from("market_list_items")
-						.select(
-							`
-              *,
-              inventory_item:inventory_item_id (
-                id,
-                name,
-                category,
-                image_url,
-                unit
-              )
-            `
-						)
-						.eq("market_list_id", list.id);
-
-					return { ...list, items: items || [] };
-				})
-			);
-
-			set({ marketLists: historyWithItems, error: null });
-		} catch (error) {
-			console.error("Error fetching history:", error);
-			set({ error: error.message });
-		} finally {
-			set({ loading: false });
-		}
-	},
-
-	// Update market list status (Arrived with missed items)
-	updateMarketListStatus: async (
-		marketListId,
-		status,
-		receivedItems,
-		missedItems,
-		notes = ""
-	) => {
-		try {
-			set({ loading: true });
-
-			// Update market list
-			const { error: listError } = await supabase
-				.from("market_lists")
+				.from("market_list")
 				.update({
-					status,
-					received_items: receivedItems,
-					missed_items: missedItems,
-					notes: notes,
+					...updates,
+					updated_at: new Date(),
 				})
-				.eq("id", marketListId);
-
-			if (listError) throw listError;
-
-			// Update individual items
-			for (const item of receivedItems) {
-				await supabase
-					.from("market_list_items")
-					.update({ is_missed: false })
-					.eq("id", item.id);
-			}
-
-			for (const item of missedItems) {
-				await supabase
-					.from("market_list_items")
-					.update({ is_missed: true })
-					.eq("id", item.id);
-			}
-
-			// Add missed items back to cart
-			const currentUser = get().currentUser;
-			if (currentUser?.id && missedItems.length > 0) {
-				const cartItems = missedItems.map((item) => ({
-					user_id: currentUser.id,
-					inventory_item_id: item.inventory_item_id || null,
-					custom_item_name: item.custom_item_name || null,
-					vendor_id: item.vendor_id,
-					quantity: item.quantity,
-					unit: item.unit,
-					notes: `Missed from order`,
-					is_missed: true,
-				}));
-
-				await supabase.from("active_cart").insert(cartItems);
-			}
-
-			// Refresh data
-			await get().fetchMarketLists("Ordered");
-		} catch (error) {
-			console.error("Error updating market list status:", error);
-			return { error: error.message };
-		} finally {
-			set({ loading: false });
-		}
-	},
-
-	// Clear cart
-	clearCart: async (userId) => {
-		try {
-			const { error } = await supabase
-				.from("active_cart")
-				.delete()
-				.eq("user_id", userId);
+				.eq("id", id);
 
 			if (error) throw error;
 
-			set({ activeCart: [] });
+			await get().fetchMarketList();
 			return { success: true };
 		} catch (error) {
-			console.error("Error clearing cart:", error);
+			console.error("Error updating market list item:", error);
 			return { error: error.message };
 		}
 	},
 
-	// UI Actions
-	toggleCart: () => set((state) => ({ isCartOpen: !state.isCartOpen })),
-	setSelectedVendor: (vendor) => set({ selectedVendor: vendor }),
-	setSearchQuery: (query) => set({ searchQuery: query }),
-	setActiveTab: (tab) => set({ activeTab: tab }),
-	setCurrentUser: (user) => set({ currentUser: user }),
+	// Remove from market list
+	removeFromMarketList: async (id) => {
+		try {
+			const { error } = await supabase
+				.from("market_list")
+				.delete()
+				.eq("id", id);
 
-	// Reset filters
-	resetFilters: () =>
-		set({
-			selectedVendor: "all",
-			searchQuery: "",
-		}),
+			if (error) throw error;
 
-	// Get filtered inventory items by vendor
-	getItemsByVendor: (vendorId) => {
-		const items = get().inventoryItems;
-		const { searchQuery } = get();
-
-		console.log("getItemsByVendor called:", {
-			vendorId,
-			totalItems: items.length,
-			searchQuery,
-			items: items.map((i) => ({
-				name: i.name,
-				vendorId: i.default_vendor_id,
-			})),
-		});
-
-		// If vendorId is 'all', show all items
-		if (vendorId === "all") {
-			return items.filter((item) => {
-				const matchesSearch =
-					searchQuery === "" ||
-					item.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-					item.category?.toLowerCase().includes(searchQuery.toLowerCase());
-				return matchesSearch;
-			});
+			await get().fetchMarketList();
+			return { success: true };
+		} catch (error) {
+			console.error("Error removing from market list:", error);
+			return { error: error.message };
 		}
+	},
 
-		// Otherwise filter by vendor
-		return items.filter((item) => {
-			const matchesVendor = item.default_vendor_id === vendorId;
-			const matchesSearch =
-				searchQuery === "" ||
-				item.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-				item.category?.toLowerCase().includes(searchQuery.toLowerCase());
+	// Toggle vendor accordion
+	toggleVendor: (vendorId) => {
+		set((state) => ({
+			expandedVendors: state.expandedVendors.includes(vendorId)
+				? state.expandedVendors.filter((id) => id !== vendorId)
+				: [...state.expandedVendors, vendorId],
+		}));
+	},
 
-			return matchesVendor && matchesSearch;
+	// Expand all vendors
+	expandAllVendors: () => {
+		const vendors = get().vendors;
+		set({ expandedVendors: vendors.map((v) => v.id) });
+	},
+
+	// Collapse all vendors
+	collapseAllVendors: () => {
+		set({ expandedVendors: [] });
+	},
+
+	// Set active tab
+	setActiveTab: (tab) => set({ activeTab: tab }),
+
+	// Get items grouped by vendor
+	getItemsByVendor: () => {
+		const items = get().marketList;
+		const vendors = get().vendors;
+
+		const vendorMap = new Map();
+
+		// Add "TBD" group
+		vendorMap.set("tbd", {
+			id: "tbd",
+			name: "TBD - No Vendor Assigned",
+			items: [],
 		});
-	},
 
-	// Get cart items grouped by vendor
-	getCartByVendor: () => {
-		const cart = get().activeCart;
+		// Initialize vendors
+		vendors.forEach((vendor) => {
+			vendorMap.set(vendor.id, {
+				...vendor,
+				items: [],
+			});
+		});
 
-		return cart.reduce((acc, item) => {
-			const vendorId = item.vendor?.id;
-			if (!acc[vendorId]) {
-				acc[vendorId] = {
-					vendor: item.vendor,
-					items: [],
-				};
+		// Sort items into vendors
+		items.forEach((item) => {
+			if (item.vendor_id && vendorMap.has(item.vendor_id)) {
+				vendorMap.get(item.vendor_id).items.push(item);
+			} else {
+				vendorMap.get("tbd").items.push(item);
 			}
-			acc[vendorId].items.push(item);
-			return acc;
-		}, {});
-	},
+		});
 
-	// Get live orders
-	getLiveOrders: () => {
-		return get().marketLists.filter((list) => list.status === "Ordered");
+		// Filter out empty vendors and sort
+		return Array.from(vendorMap.values())
+			.filter((vendor) => vendor.items.length > 0)
+			.sort((a, b) => {
+				if (a.id === "tbd") return 1;
+				if (b.id === "tbd") return -1;
+				return a.name.localeCompare(b.name);
+			});
 	},
 }));
 

@@ -3,12 +3,12 @@ import React, { useState, useEffect } from "react";
 import { Search, Package, Plus } from "lucide-react";
 import useInventoryStore from "../stores/inventoryStore";
 import useProcurementStore from "../stores/procurementStore";
-import { supabase } from "../services/supabase";
 import { Loading } from "../components/common/Loading";
 import { PageHeader } from "../components/common/PageHeader";
 import VendorChip from "../components/inventory/VendorChip";
 import InventoryCard from "../components/inventory/InventoryCard";
 import InventoryItemModal from "../components/inventory/InventoryItemModal";
+import { supabase } from "../services/supabase";
 
 const InventoryItems = () => {
 	const {
@@ -32,8 +32,8 @@ const InventoryItems = () => {
 		resetFilters,
 	} = useInventoryStore();
 
-	const { addToCart } = useProcurementStore();
-	const [user, setUser] = useState(null);
+	const { addToMarketList } = useProcurementStore();
+
 	const [showModal, setShowModal] = useState(false);
 	const [editingItem, setEditingItem] = useState(null);
 	const [quantities, setQuantities] = useState({});
@@ -45,37 +45,55 @@ const InventoryItems = () => {
 		// Set up real-time subscription
 		const subscription = subscribeToInventory();
 
-		// Get current user
-		const getUser = async () => {
-			const {
-				data: { user },
-			} = await supabase.auth.getUser();
-			setUser(user);
-		};
-		getUser();
-
 		return () => {
 			subscription.unsubscribe();
 		};
 	}, []);
 
+	// Auto-add low stock items to market list
+	useEffect(() => {
+		const addLowStockToMarketList = async () => {
+			const lowStockItems = items.filter(
+				(item) => item.quantity <= item.threshold && item.threshold > 0
+			);
+
+			for (const item of lowStockItems) {
+				// Check if already in market list
+				const { data: existing } = await supabase
+					.from("market_list")
+					.select("id")
+					.eq("inventory_item_id", item.id)
+					.eq("is_ordered", false);
+
+				if (!existing || existing.length === 0) {
+					await addToMarketList({
+						id: item.id,
+						default_vendor_id: item.default_vendor_id,
+						quantity: 1,
+						unit: item.unit,
+						notes: "Auto-added: Low stock",
+					});
+				}
+			}
+		};
+
+		if (items.length > 0) {
+			addLowStockToMarketList();
+		}
+	}, [items]);
+
 	const filteredItems = getFilteredItems();
 	const vendorsWithCounts = getVendorsWithCounts();
 
-	const handleAddToCart = async (item) => {
-		if (!user) return;
-
+	const handleAddToMarketList = async (item) => {
 		const quantity = quantities[item.id] || 1;
-		await addToCart(
-			{
-				inventoryItemId: item.id,
-				vendorId: item.default_vendor_id,
-				quantity,
-				unit: item.unit,
-				notes: "",
-			},
-			user.id
-		);
+		await addToMarketList({
+			id: item.id,
+			default_vendor_id: item.default_vendor_id,
+			quantity,
+			unit: item.unit,
+			notes: "",
+		});
 	};
 
 	const handleQuantityChange = (itemId, newValue) => {
@@ -94,10 +112,8 @@ const InventoryItems = () => {
 	const handleModalSubmit = async (data) => {
 		try {
 			if (editingItem) {
-				// Update existing item
 				await updateInventoryItem(editingItem.id, data);
 			} else {
-				// Create new item
 				await createInventoryItem(data);
 			}
 			setShowModal(false);
@@ -106,13 +122,13 @@ const InventoryItems = () => {
 			console.error("Error saving item:", error);
 		}
 	};
+
 	if (loading && items.length === 0) {
 		return <Loading />;
 	}
 
 	return (
 		<div className="container mx-auto p-3 md:p-6">
-			{/* Header */}
 			<PageHeader
 				title="Inventory Stock"
 				description="Update stock levels and reorder items"
@@ -180,7 +196,6 @@ const InventoryItems = () => {
 						</div>
 					</div>
 
-					{/* Results count */}
 					<div className="text-sm text-gray-500">
 						Showing <span className="font-medium">{filteredItems.length}</span>{" "}
 						items
@@ -194,10 +209,9 @@ const InventoryItems = () => {
 					<InventoryCard
 						key={item.id}
 						item={item}
-						user={user}
 						cartQuantity={quantities[item.id] || 1}
 						onQuantityChange={handleQuantityChange}
-						onAddToCart={handleAddToCart}
+						onAddToMarketList={() => handleAddToMarketList(item)}
 						onUpdateStock={handleUpdateStock}
 						onClick={() => handleCardClick(item)}
 					/>
@@ -216,7 +230,6 @@ const InventoryItems = () => {
 				)}
 			</div>
 
-			{/* Edit Modal */}
 			<InventoryItemModal
 				showModal={showModal}
 				setShowModal={setShowModal}

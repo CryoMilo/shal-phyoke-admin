@@ -1,11 +1,9 @@
 // src/components/inventory/InventoryCard.jsx
 import React, { useState } from "react";
-import { ShoppingCart, Minus, Plus, Package } from "lucide-react";
+import { ShoppingCart, Minus, Plus, Package, Edit2 } from "lucide-react";
 
-const InventoryCard = ({ item, onAddToCart, onUpdateStock, onClick }) => {
+const InventoryCard = ({ item, onAddToMarketList, onUpdateStock, onClick }) => {
 	const [isUpdating, setIsUpdating] = useState(false);
-	// eslint-disable-next-line no-unused-vars
-	const [localQuantity, setLocalQuantity] = useState(item.quantity || 0);
 
 	const stockStatus = () => {
 		if (item.quantity <= 0)
@@ -22,7 +20,6 @@ const InventoryCard = ({ item, onAddToCart, onUpdateStock, onClick }) => {
 		if (isNaN(numValue) || numValue < 0) return;
 
 		setIsUpdating(true);
-		setLocalQuantity(numValue);
 		await onUpdateStock(item.id, numValue);
 		setIsUpdating(false);
 	};
@@ -75,16 +72,17 @@ const InventoryCard = ({ item, onAddToCart, onUpdateStock, onClick }) => {
 			</div>
 
 			{/* Stock Level Controls */}
-			<div className="w-32 rounded-lg p-1" onClick={(e) => e.stopPropagation()}>
+			<div
+				className="w-32 bg-base-200 rounded-lg p-1"
+				onClick={(e) => e.stopPropagation()}>
 				<div className="flex items-center justify-between gap-1">
 					<button
 						onClick={(e) => {
 							e.stopPropagation();
 							handleDecrement();
 						}}
-						className="btn btn-sm btn-square bg-base-200 hover:bg-base-300 shadow-sm"
-						disabled={isUpdating}
-						title="Decrease stock">
+						className="btn btn-sm btn-square btn-ghost bg-base-100 hover:bg-base-300 shadow-sm"
+						disabled={isUpdating}>
 						<Minus className="w-4 h-4" />
 					</button>
 
@@ -108,27 +106,34 @@ const InventoryCard = ({ item, onAddToCart, onUpdateStock, onClick }) => {
 							e.stopPropagation();
 							handleIncrement();
 						}}
-						className="btn btn-sm btn-square bg-base-200 hover:bg-base-300 shadow-sm"
-						disabled={isUpdating}
-						title="Increase stock">
+						className="btn btn-sm btn-square btn-ghost bg-base-100 hover:bg-base-300 shadow-sm"
+						disabled={isUpdating}>
 						<Plus className="w-4 h-4" />
 					</button>
 				</div>
+				{isUpdating && (
+					<span className="text-xs text-gray-400 block text-center mt-0.5">
+						Updating...
+					</span>
+				)}
 			</div>
 
-			{/* Add to Cart Controls */}
-			<div
-				className="flex items-center gap-2"
-				onClick={(e) => e.stopPropagation()}>
+			{/* Add to Market List Button */}
+			<div onClick={(e) => e.stopPropagation()}>
 				<button
 					onClick={(e) => {
 						e.stopPropagation();
-						onAddToCart(item);
+						onAddToMarketList(item);
 					}}
 					className="btn btn-primary btn-sm gap-1">
 					<ShoppingCart className="w-4 h-4" />
-					Add
+					Add to List
 				</button>
+			</div>
+
+			{/* Edit indicator */}
+			<div className="opacity-0 group-hover:opacity-100 transition-opacity">
+				<Edit2 className="w-4 h-4 text-gray-400" />
 			</div>
 		</div>
 	);

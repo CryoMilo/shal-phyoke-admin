@@ -1,42 +1,23 @@
-// src/components/procurement/AddCustomItemModal.jsx
+// src/components/procurement/EditItemModal.jsx
 import React, { useState } from "react";
 import { X } from "lucide-react";
 import useProcurementStore from "../../stores/procurementStore";
 
-const AddCustomItemModal = ({ isOpen, onClose, vendor, userId }) => {
+const EditItemModal = ({ isOpen, onClose, item }) => {
 	const [formData, setFormData] = useState({
-		name: "",
-		quantity: 1,
-		unit: "piece",
-		notes: "",
+		quantity: item.quantity,
+		unit: item.unit,
+		notes: item.notes || "",
 	});
 
-	const { addToCart } = useProcurementStore();
+	const { updateMarketListItem } = useProcurementStore();
 
 	if (!isOpen) return null;
 
 	const handleSubmit = async (e) => {
 		e.preventDefault();
-
-		await addToCart(
-			{
-				customItemName: formData.name,
-				vendorId: vendor.id,
-				quantity: formData.quantity,
-				unit: formData.unit,
-				notes: formData.notes,
-				isMissed: false,
-			},
-			userId
-		);
-
+		await updateMarketListItem(item.id, formData);
 		onClose();
-		setFormData({
-			name: "",
-			quantity: 1,
-			unit: "piece",
-			notes: "",
-		});
 	};
 
 	return (
@@ -49,54 +30,34 @@ const AddCustomItemModal = ({ isOpen, onClose, vendor, userId }) => {
 				</button>
 
 				<h3 className="font-bold text-lg mb-6">
-					Add Custom Item for {vendor.name}
+					Edit Item: {item.inventory_item?.name || item.custom_item_name}
 				</h3>
 
 				<form onSubmit={handleSubmit} className="space-y-4">
-					<div className="form-control">
-						<label className="label">
-							<span className="label-text font-medium">Item Name</span>
-							<span className="label-text-alt text-error">*</span>
-						</label>
-						<input
-							type="text"
-							required
-							value={formData.name}
-							onChange={(e) =>
-								setFormData({ ...formData, name: e.target.value })
-							}
-							placeholder="e.g., Special Mushrooms, Rare Spice"
-							className="input input-bordered w-full"
-							autoFocus
-						/>
-					</div>
-
-					<div className="grid grid-cols-2 gap-3">
+					<div className="grid grid-cols-2 gap-4">
 						<div className="form-control">
 							<label className="label">
 								<span className="label-text font-medium">Quantity</span>
-								<span className="label-text-alt text-error">*</span>
 							</label>
 							<input
 								type="number"
-								required
-								min="0.5"
 								step="0.5"
+								min="0.5"
+								required
 								value={formData.quantity}
 								onChange={(e) =>
 									setFormData({
 										...formData,
-										quantity: parseFloat(e.target.value) || 1,
+										quantity: parseFloat(e.target.value),
 									})
 								}
-								className="input input-bordered w-full"
+								className="input input-bordered"
 							/>
 						</div>
 
 						<div className="form-control">
 							<label className="label">
 								<span className="label-text font-medium">Unit</span>
-								<span className="label-text-alt text-error">*</span>
 							</label>
 							<input
 								type="text"
@@ -105,15 +66,15 @@ const AddCustomItemModal = ({ isOpen, onClose, vendor, userId }) => {
 								onChange={(e) =>
 									setFormData({ ...formData, unit: e.target.value })
 								}
-								placeholder="kg, bag, piece"
-								className="input input-bordered w-full"
+								placeholder="kg, piece, box"
+								className="input input-bordered"
 							/>
 						</div>
 					</div>
 
 					<div className="form-control">
 						<label className="label">
-							<span className="label-text font-medium">Notes (optional)</span>
+							<span className="label-text font-medium">Notes</span>
 						</label>
 						<textarea
 							value={formData.notes}
@@ -122,7 +83,7 @@ const AddCustomItemModal = ({ isOpen, onClose, vendor, userId }) => {
 							}
 							placeholder="Any special instructions..."
 							className="textarea textarea-bordered"
-							rows="2"
+							rows="3"
 						/>
 					</div>
 
@@ -131,7 +92,7 @@ const AddCustomItemModal = ({ isOpen, onClose, vendor, userId }) => {
 							Cancel
 						</button>
 						<button type="submit" className="btn btn-primary">
-							Add to List
+							Save Changes
 						</button>
 					</div>
 				</form>
@@ -141,4 +102,4 @@ const AddCustomItemModal = ({ isOpen, onClose, vendor, userId }) => {
 	);
 };
 
-export default AddCustomItemModal;
+export default EditItemModal;
