@@ -1,6 +1,7 @@
 // src/stores/procurementStore.js
 import { create } from "zustand";
 import { supabase } from "../services/supabase";
+import { showToast } from "../utils/toastUtils";
 
 const useProcurementStore = create((set, get) => ({
 	// State
@@ -9,6 +10,10 @@ const useProcurementStore = create((set, get) => ({
 	inventoryItems: [],
 	loading: false,
 	error: null,
+
+	// Procurement Order Status
+	procurementOrders: [],
+	selectedOrder: null,
 
 	// UI states
 	activeTab: "market-list",
@@ -251,10 +256,13 @@ const useProcurementStore = create((set, get) => ({
 
 		// Sort items into vendors
 		items.forEach((item) => {
-			if (item.vendor_id && vendorMap.has(item.vendor_id)) {
-				vendorMap.get(item.vendor_id).items.push(item);
-			} else {
-				vendorMap.get("tbd").items.push(item);
+			// Make sure we only include items that are not ordered
+			if (!item.is_ordered) {
+				if (item.vendor_id && vendorMap.has(item.vendor_id)) {
+					vendorMap.get(item.vendor_id).items.push(item);
+				} else {
+					vendorMap.get("tbd").items.push(item);
+				}
 			}
 		});
 
@@ -266,6 +274,218 @@ const useProcurementStore = create((set, get) => ({
 				if (b.id === "tbd") return -1;
 				return a.name.localeCompare(b.name);
 			});
+	},
+
+	// Confirm order (move from market list to orders)
+	confirmOrder: async (vendorId, items, estimatedArrival, notes = "") => {
+		try {
+			set({ loading: true });
+
+			// Create order
+			const { data: order, error: orderError } = await supabase
+				.from("procurement_orders")
+				.insert([
+					{
+						vendor_id: vendorId,
+						status: "ordered",
+						estimated_arrival: estimatedArrival,
+						notes,
+						total_items: items.length,
+					},
+				])
+				.select()
+				.single();
+
+			if (orderError) throw orderError;
+
+			// Create order items
+			const orderItems = items.map((item) => ({
+				order_id: order.id,
+				market_list_item_id: item.id,
+				inventory_item_id: item.inventory_item_id,
+				custom_item_name: item.custom_item_name,
+				vendor_id: vendorId,
+				quantity: item.quantity,
+				unit: item.unit,
+				notes: item.notes,
+				received: false,
+				is_missed: false,
+			}));
+
+			const { error: itemsError } = await supabase
+				.from("procurement_order_items")
+				.insert(orderItems);
+
+			if (itemsError) throw itemsError;
+
+			for (const item of items) {
+				const { error: updateError } = await supabase
+					.from("market_list")
+					.update({ is_ordered: true })
+					.eq("id", item.id);
+
+				if (updateError) {
+					console.warn(`Failed to update item ${item.id}:`, updateError);
+				}
+			}
+
+			// Refresh data
+			await get().fetchMarketList();
+			await get().fetchProcurementOrders();
+
+			showToast.success(`Order confirmed for ${vendorId}`);
+			return { success: true, order };
+		} catch (error) {
+			console.error("Error confirming order:", error);
+			showToast.error("Failed to confirm order");
+			return { error: error.message };
+		} finally {
+			set({ loading: false });
+		}
+	},
+
+	// Fetch procurement orders
+	fetchProcurementOrders: async () => {
+		try {
+			const { data, error } = await supabase
+				.from("procurement_orders")
+				.select(
+					`
+          *,
+          vendor:vendor_id (
+            id,
+            name,
+            line_id
+          ),
+          items:procurement_order_items (
+            id,
+            inventory_item_id,
+            custom_item_name,
+            quantity,
+            unit,
+            notes,
+            received,
+            received_quantity,
+            is_missed,
+            inventory_item:inventory_item_id (
+              id,
+              name,
+              image_url,
+              unit
+            )
+          )
+        `
+				)
+				.order("created_at", { ascending: false });
+
+			if (error) throw error;
+			set({ procurementOrders: data || [] });
+		} catch (error) {
+			console.error("Error fetching orders:", error);
+		}
+	},
+
+	// Update order status (arrived with received/missed items)
+	updateOrderStatus: async (
+		orderId,
+		status,
+		receivedItems,
+		missedItems,
+		notes = ""
+	) => {
+		try {
+			set({ loading: true });
+
+			// Update order
+			const { error: orderError } = await supabase
+				.from("procurement_orders")
+				.update({
+					status,
+					arrived_at: status === "arrived" ? new Date() : null,
+					notes,
+				})
+				.eq("id", orderId);
+
+			if (orderError) throw orderError;
+
+			// Update received status for items
+			for (const item of receivedItems) {
+				await supabase
+					.from("procurement_order_items")
+					.update({
+						received: true,
+						received_quantity: item.quantity,
+						is_missed: false,
+					})
+					.eq("id", item.id);
+			}
+
+			// Handle missed items - ADD BACK TO MARKET LIST WITH CORRECT VENDOR
+			for (const item of missedItems) {
+				// Update the order item to mark as missed
+				await supabase
+					.from("procurement_order_items")
+					.update({
+						received: false,
+						received_quantity: 0,
+						is_missed: true,
+					})
+					.eq("id", item.id);
+
+				// Add missed items back to market list with the ORIGINAL vendor
+				const { error: insertError } = await supabase
+					.from("market_list")
+					.insert([
+						{
+							inventory_item_id: item.inventory_item_id,
+							custom_item_name: item.custom_item_name,
+							vendor_id: item.vendor_id, // Use the original vendor_id from the order item
+							quantity: item.quantity,
+							unit: item.unit,
+							notes: item.notes
+								? `Missed from order - ${item.notes}`
+								: "Missed from order",
+							is_ordered: false,
+						},
+					]);
+
+				if (insertError) {
+					console.error(
+						"Failed to add missed item back to market list:",
+						insertError
+					);
+				}
+			}
+
+			// Refresh data
+			await get().fetchProcurementOrders();
+			await get().fetchMarketList();
+
+			if (missedItems.length > 0) {
+				showToast.warning(
+					`${missedItems.length} missed items added back to market list`
+				);
+			} else {
+				showToast.success("Order marked as arrived");
+			}
+
+			return { success: true };
+		} catch (error) {
+			console.error("Error updating order:", error);
+			showToast.error("Failed to update order");
+			return { error: error.message };
+		} finally {
+			set({ loading: false });
+		}
+	},
+	// Set selected order for modal
+	setSelectedOrder: (order) => set({ selectedOrder: order }),
+
+	// Get orders by status
+	getOrdersByStatus: (status) => {
+		const orders = get().procurementOrders;
+		if (status === "all") return orders;
+		return orders.filter((order) => order.status === status);
 	},
 }));
 

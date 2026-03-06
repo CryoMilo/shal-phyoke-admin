@@ -6,6 +6,8 @@ import { Loading } from "../components/common/Loading";
 import { PageHeader } from "../components/common/PageHeader";
 import MarketListTab from "../components/procurement/MarketListTab";
 import EditVendorsModal from "../components/procurement/EditVendorsModal";
+import OrderStatusTab from "../components/procurement/OrderStatusTab";
+import OrderHistoryTab from "../components/procurement/OrderHistoryTab";
 
 const Procurement = () => {
 	const {
@@ -52,7 +54,7 @@ const Procurement = () => {
 					{
 						type: "button",
 						label: "Edit Vendors",
-						shortLabel: "Vendors",
+						shortlabel: "Vendors",
 						icon: Settings,
 						onClick: () => setShowVendorsModal(true),
 						variant: "ghost",
@@ -77,18 +79,8 @@ const Procurement = () => {
 
 			{/* Tab Content */}
 			{activeTab === "market-list" && <MarketListTab />}
-			{activeTab === "order-status" && (
-				<div className="text-center py-12">
-					<Truck className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-					<p className="text-gray-500">Order Status tab coming soon...</p>
-				</div>
-			)}
-			{activeTab === "order-history" && (
-				<div className="text-center py-12">
-					<History className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-					<p className="text-gray-500">Order History tab coming soon...</p>
-				</div>
-			)}
+			{activeTab === "order-status" && <OrderStatusTab />}
+			{activeTab === "order-history" && <OrderHistoryTab />}
 
 			{/* Edit Vendors Modal */}
 			<EditVendorsModal
