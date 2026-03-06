@@ -1,11 +1,11 @@
 // src/pages/Procurement.jsx
 import React, { useEffect, useState } from "react";
-import { ShoppingBag, Truck, History, Package } from "lucide-react";
+import { ShoppingBag, Truck, History, Package, Settings } from "lucide-react";
 import useProcurementStore from "../stores/procurementStore";
-import { supabase } from "../services/supabase";
 import { Loading } from "../components/common/Loading";
 import { PageHeader } from "../components/common/PageHeader";
 import MarketListTab from "../components/procurement/MarketListTab";
+import EditVendorsModal from "../components/procurement/EditVendorsModal";
 
 const Procurement = () => {
 	const {
@@ -17,7 +17,7 @@ const Procurement = () => {
 		fetchMarketList,
 	} = useProcurementStore();
 
-	const [user, setUser] = useState(null);
+	const [showVendorsModal, setShowVendorsModal] = useState(false);
 
 	useEffect(() => {
 		// Fetch initial data
@@ -30,15 +30,6 @@ const Procurement = () => {
 		};
 
 		init();
-
-		// Get current user
-		const getUser = async () => {
-			const {
-				data: { user },
-			} = await supabase.auth.getUser();
-			setUser(user);
-		};
-		getUser();
 	}, []);
 
 	const tabs = [
@@ -57,6 +48,16 @@ const Procurement = () => {
 				title="Procurement"
 				description="Manage your shopping list and track orders"
 				icon={Package}
+				buttons={[
+					{
+						type: "button",
+						label: "Edit Vendors",
+						shortLabel: "Vendors",
+						icon: Settings,
+						onClick: () => setShowVendorsModal(true),
+						variant: "ghost",
+					},
+				]}
 			/>
 
 			{/* Tabs */}
@@ -75,7 +76,7 @@ const Procurement = () => {
 			</div>
 
 			{/* Tab Content */}
-			{activeTab === "market-list" && <MarketListTab userId={user?.id} />}
+			{activeTab === "market-list" && <MarketListTab />}
 			{activeTab === "order-status" && (
 				<div className="text-center py-12">
 					<Truck className="w-12 h-12 text-gray-400 mx-auto mb-3" />
@@ -88,6 +89,12 @@ const Procurement = () => {
 					<p className="text-gray-500">Order History tab coming soon...</p>
 				</div>
 			)}
+
+			{/* Edit Vendors Modal */}
+			<EditVendorsModal
+				isOpen={showVendorsModal}
+				onClose={() => setShowVendorsModal(false)}
+			/>
 		</div>
 	);
 };
