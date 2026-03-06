@@ -1,0 +1,264 @@
+Subscriber Plans -
+
+create table public.subscriber_plans (
+  id uuid not null default gen_random_uuid (),
+  subscriber_id uuid not null,
+  subscription_plan_id uuid not null,
+  serve_type public.serve_type not null default 'Delivery'::serve_type,
+  remaining_points integer not null default 0,
+  subscription_start_date date not null,
+  subscription_end_date date GENERATED ALWAYS as ((subscription_start_date + '2 mons'::interval)) STORED null,
+  is_active boolean not null default true,
+  created_at timestamp with time zone not null default now(),
+  constraint subscriber_plans_pkey primary key (id),
+  constraint subscriber_plans_subscriber_id_fkey foreign KEY (subscriber_id) references subscribers (id) on delete CASCADE,
+  constraint subscriber_plans_subscription_plan_id_fkey foreign KEY (subscription_plan_id) references subscription_plans (id) on delete CASCADE
+) TABLESPACE pg_default;
+
+
+subscribers -
+
+create table public.subscribers (
+  id uuid not null default gen_random_uuid (),
+  user_id uuid null,
+  delivery_address text null,
+  phone_number text null,
+  special_instructions text null,
+  is_active boolean null default true,
+  created_at timestamp with time zone null default now(),
+  name text null,
+  line_id text null,
+  image_url text null,
+  constraint subscribers_pkey primary key (id),
+  constraint subscribers_user_id_fkey foreign KEY (user_id) references auth.users (id) on delete CASCADE
+) TABLESPACE pg_default;
+
+create index IF not exists idx_subscribers_line_id on public.subscribers using btree (line_id) TABLESPACE pg_default;
+
+
+Subscriber Order Addons -
+
+create table public.subscription_order_add_ons (
+  id uuid not null default gen_random_uuid (),
+  subscription_order_id uuid not null,
+  menu_item_id uuid not null,
+  quantity integer not null default 1,
+  created_at timestamp with time zone null default now(),
+  constraint subscription_order_add_ons_pkey primary key (id),
+  constraint subscription_order_add_ons_unique unique (subscription_order_id, menu_item_id),
+  constraint subscription_order_add_ons_menu_item_id_fkey foreign KEY (menu_item_id) references menu_items (id) on delete CASCADE,
+  constraint subscription_order_add_ons_subscription_order_id_fkey foreign KEY (subscription_order_id) references subscription_orders (id) on delete CASCADE
+) TABLESPACE pg_default;
+
+create index IF not exists idx_subscription_order_add_ons_order_id on public.subscription_order_add_ons using btree (subscription_order_id) TABLESPACE pg_default;
+
+create index IF not exists idx_subscription_order_add_ons_menu_item_id on public.subscription_order_add_ons using btree (menu_item_id) TABLESPACE pg_default;
+
+
+Subscription Orders - 
+
+create table public.subscription_orders (
+  id uuid not null default gen_random_uuid (),
+  order_date date not null default CURRENT_DATE,
+  subscriber_id uuid null,
+  menu_items_structured jsonb not null default '{"main_dish": [], "side_dish": []}'::jsonb,
+  eat_in boolean null default false,
+  point_use integer null default 1,
+  created_at timestamp with time zone null default now(),
+  note text null,
+  status public.order_status not null default 'Cooking'::order_status,
+  subscriber_plan_id uuid null,
+  addons_paid boolean not null default false,
+  addons_receipt_url text null,
+  constraint subscription_orders_pkey primary key (id),
+  constraint subscription_orders_subscriber_id_fkey foreign KEY (subscriber_id) references subscribers (id) on delete CASCADE,
+  constraint subscription_orders_subscriber_plan_id_fkey foreign KEY (subscriber_plan_id) references subscriber_plans (id) on delete CASCADE
+) TABLESPACE pg_default;
+
+create index IF not exists idx_subscription_orders_subscriber on public.subscription_orders using btree (subscriber_id) TABLESPACE pg_default;
+
+create index IF not exists idx_subscription_orders_subscriber_plan on public.subscription_orders using btree (subscriber_plan_id) TABLESPACE pg_default;
+
+create index IF not exists idx_subscription_orders_menu_structured on public.subscription_orders using gin (menu_items_structured) TABLESPACE pg_default;
+
+create index IF not exists idx_subscription_orders_status on public.subscription_orders using btree (status) TABLESPACE pg_default;
+
+create index IF not exists idx_subscription_orders_order_date on public.subscription_orders using btree (order_date) TABLESPACE pg_default;
+
+create unique INDEX IF not exists idx_unique_active_order_per_subscriber_plan on public.subscription_orders using btree (subscriber_plan_id) TABLESPACE pg_default
+where
+  (status <> 'Archived'::order_status);
+
+create trigger validate_subscriber_plan_ownership_trigger BEFORE INSERT
+or
+update on subscription_orders for EACH row
+execute FUNCTION validate_subscriber_plan_ownership ();
+
+
+Subscription Orders With Plans ( View ) - 
+
+create view public.subscription_orders_with_plans as
+select
+  so.id,
+  so.order_date,
+  so.subscriber_id,
+  so.menu_items_structured,
+  so.eat_in,
+  so.point_use,
+  so.created_at,
+  so.note,
+  so.status,
+  so.subscriber_plan_id,
+  so.addons_paid,
+  so.addons_receipt_url,
+  s.name as subscriber_name,
+  s.delivery_address,
+  s.phone_number,
+  s.image_url as subscriber_image_url,
+  sp.plan_name,
+  sp.main_dish_choice,
+  sp.side_dish_choice,
+  sp.price as plan_price,
+  spl.remaining_points,
+  spl.serve_type,
+  COALESCE(
+    json_agg(
+      distinct jsonb_build_object(
+        'id',
+        md.id,
+        'name_burmese',
+        md.name_burmese,
+        'name_english',
+        md.name_english,
+        'price',
+        md.price,
+        'category',
+        md.category,
+        'is_regular',
+        md.is_regular
+      )
+    ) filter (
+      where
+        md.id is not null
+        and (so.menu_items_structured -> 'main_dish'::text) ? md.id::text
+    ),
+    '[]'::json
+  ) as main_dish_details,
+  COALESCE(
+    json_agg(
+      distinct jsonb_build_object(
+        'id',
+        sd.id,
+        'name_burmese',
+        sd.name_burmese,
+        'name_english',
+        sd.name_english,
+        'price',
+        sd.price,
+        'category',
+        sd.category,
+        'is_regular',
+        sd.is_regular
+      )
+    ) filter (
+      where
+        sd.id is not null
+        and (so.menu_items_structured -> 'side_dish'::text) ? sd.id::text
+    ),
+    '[]'::json
+  ) as side_dish_details,
+  COALESCE(
+    json_agg(
+      distinct jsonb_build_object(
+        'id',
+        soao.id,
+        'menu_item_id',
+        soao.menu_item_id,
+        'quantity',
+        soao.quantity,
+        'menu_item',
+        jsonb_build_object(
+          'id',
+          mi.id,
+          'name_burmese',
+          mi.name_burmese,
+          'name_english',
+          mi.name_english,
+          'name_thai',
+          mi.name_thai,
+          'price',
+          mi.price,
+          'category',
+          mi.category,
+          'is_regular',
+          mi.is_regular,
+          'image_url',
+          mi.image_url
+        )
+      )
+    ) filter (
+      where
+        soao.id is not null
+    ),
+    '[]'::json
+  ) as add_ons_details
+from
+  subscription_orders so
+  left join subscribers s on so.subscriber_id = s.id
+  left join subscriber_plans spl on so.subscriber_plan_id = spl.id
+  left join subscription_plans sp on spl.subscription_plan_id = sp.id
+  left join menu_items md on md.id::text = any (
+    (
+      ARRAY(
+        select
+          jsonb_array_elements_text(so.menu_items_structured -> 'main_dish'::text) as jsonb_array_elements_text
+      )
+    )
+  )
+  left join menu_items sd on sd.id::text = any (
+    (
+      ARRAY(
+        select
+          jsonb_array_elements_text(so.menu_items_structured -> 'side_dish'::text) as jsonb_array_elements_text
+      )
+    )
+  )
+  left join subscription_order_add_ons soao on so.id = soao.subscription_order_id
+  left join menu_items mi on soao.menu_item_id = mi.id
+group by
+  so.id,
+  s.id,
+  spl.id,
+  sp.id;
+
+
+
+Subscription Plans - 
+
+create table public.subscription_plans (
+  id uuid not null default gen_random_uuid (),
+  plan_name text not null,
+  main_dish_choice integer null default 1,
+  side_dish_choice integer null default 0,
+  price numeric not null,
+  points_included integer null default 0,
+  is_active boolean null default true,
+  created_at timestamp with time zone null default now(),
+  image_url text null,
+  constraint subscription_plans_pkey primary key (id)
+) TABLESPACE pg_default;
+
+
+
+
+REMOVED FRONTEND FILES - 
+src/components/SubscriberOrders/     # Entire folder
+src/components/Subscribers/          # Entire folder
+src/pages/SubscriberOrder.jsx
+src/pages/Subscribers.jsx
+src/pages/SubscriptionPlans.jsx
+src/stores/subscriberOrderStore.js
+src/stores/useSubscriberStore.js
+src/stores/useSubscriptionPlanStore.js
+src/validations/subscriberOrderSchema.js
+src/validations/subscriberSchema.js
