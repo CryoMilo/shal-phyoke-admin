@@ -1,17 +1,48 @@
 // src/components/procurement/MarketListItem.jsx
 import React, { useState } from "react";
-import { Edit2, Trash2, Image as ImageIcon, Package } from "lucide-react";
+import { Edit2, Trash2, Package, Minus, Plus } from "lucide-react";
 import useProcurementStore from "../../stores/procurementStore";
 import EditItemModal from "./EditItemModal";
+import { showToast } from "../../utils/toastUtils";
 
-const MarketListItem = ({ item, userId }) => {
+const MarketListItem = ({ item }) => {
 	const [showEditModal, setShowEditModal] = useState(false);
-	const { removeFromMarketList } = useProcurementStore();
+	const [isUpdating, setIsUpdating] = useState(false);
+	const { updateMarketListItem, removeFromMarketList } = useProcurementStore();
 
 	const handleDelete = async () => {
-		if (confirm("Remove this item from market list?")) {
-			await removeFromMarketList(item.id);
+		const itemName =
+			item.inventory_item?.name || item.custom_item_name || "Item";
+		const confirmDelete = window.confirm(
+			`Remove ${itemName} from market list?`
+		);
+
+		if (confirmDelete) {
+			const result = await removeFromMarketList(item.id);
+			if (result?.success) {
+				showToast.itemRemoved(itemName);
+			} else {
+				showToast.error(`Failed to remove ${itemName}`);
+			}
 		}
+	};
+
+	const handleQuantityChange = async (delta) => {
+		const newQuantity = Math.max(0.5, item.quantity + delta);
+		setIsUpdating(true);
+		await updateMarketListItem(item.id, { quantity: newQuantity });
+		setIsUpdating(false);
+		// No toast for quantity changes
+	};
+
+	const handleDirectQuantityChange = async (newValue) => {
+		const numValue = parseFloat(newValue);
+		if (isNaN(numValue) || numValue < 0.5) return;
+
+		setIsUpdating(true);
+		await updateMarketListItem(item.id, { quantity: numValue });
+		setIsUpdating(false);
+		// No toast for quantity changes
 	};
 
 	return (
@@ -56,11 +87,38 @@ const MarketListItem = ({ item, userId }) => {
 					)}
 				</div>
 
-				{/* Quantity and Unit */}
-				<div className="text-right">
-					<span className="font-medium">
-						{item.quantity} {item.unit}
-					</span>
+				{/* Quantity Controls */}
+				<div className="w-32 bg-base-200 rounded-lg p-1">
+					<div className="flex items-center justify-between gap-1">
+						<button
+							onClick={() => handleQuantityChange(-0.5)}
+							className="btn btn-xs btn-square btn-ghost bg-base-100 hover:bg-base-300 shadow-sm"
+							disabled={isUpdating || item.quantity <= 0.5}>
+							<Minus className="w-3 h-3" />
+						</button>
+
+						<div className="flex-1 text-center">
+							<input
+								type="number"
+								value={item.quantity}
+								onChange={(e) => handleDirectQuantityChange(e.target.value)}
+								className="w-full text-center input input-xs input-bordered bg-base-100 font-medium"
+								step="0.5"
+								min="0.5"
+								disabled={isUpdating}
+							/>
+						</div>
+
+						<button
+							onClick={() => handleQuantityChange(0.5)}
+							className="btn btn-xs btn-square btn-ghost bg-base-100 hover:bg-base-300 shadow-sm"
+							disabled={isUpdating}>
+							<Plus className="w-3 h-3" />
+						</button>
+					</div>
+					<div className="text-[10px] text-gray-400 text-center mt-0.5">
+						{item.unit}
+					</div>
 				</div>
 			</div>
 
@@ -70,7 +128,6 @@ const MarketListItem = ({ item, userId }) => {
 					isOpen={showEditModal}
 					onClose={() => setShowEditModal(false)}
 					item={item}
-					userId={userId}
 				/>
 			)}
 		</>

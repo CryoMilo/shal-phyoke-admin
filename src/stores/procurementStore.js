@@ -187,6 +187,7 @@ const useProcurementStore = create((set, get) => ({
 	// Remove from market list
 	removeFromMarketList: async (id) => {
 		try {
+			// Get item name before deleting
 			const { error } = await supabase
 				.from("market_list")
 				.delete()
@@ -201,7 +202,6 @@ const useProcurementStore = create((set, get) => ({
 			return { error: error.message };
 		}
 	},
-
 	// Toggle vendor accordion
 	toggleVendor: (vendorId) => {
 		set((state) => ({

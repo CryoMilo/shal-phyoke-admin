@@ -4,7 +4,7 @@ import { Maximize2, Minimize2, ShoppingBag } from "lucide-react";
 import useProcurementStore from "../../stores/procurementStore";
 import VendorAccordion from "./VendorAccordion";
 
-const MarketListTab = ({ userId }) => {
+const MarketListTab = () => {
 	const {
 		getItemsByVendor,
 		expandedVendors,
@@ -60,7 +60,6 @@ const MarketListTab = ({ userId }) => {
 							key={vendor.id}
 							vendor={vendor}
 							isExpanded={expandedVendors.includes(vendor.id)}
-							userId={userId}
 						/>
 					))}
 				</div>

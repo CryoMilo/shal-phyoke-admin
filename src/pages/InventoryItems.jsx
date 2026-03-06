@@ -9,6 +9,7 @@ import VendorChip from "../components/inventory/VendorChip";
 import InventoryCard from "../components/inventory/InventoryCard";
 import InventoryItemModal from "../components/inventory/InventoryItemModal";
 import { supabase } from "../services/supabase";
+import { showToast } from "../utils/toastUtils";
 
 const InventoryItems = () => {
 	const {
@@ -71,7 +72,7 @@ const InventoryItems = () => {
 						default_vendor_id: item.default_vendor_id,
 						quantity: 1,
 						unit: item.unit,
-						notes: "Auto-added: Low stock",
+						notes: "",
 					});
 				}
 			}
@@ -87,13 +88,22 @@ const InventoryItems = () => {
 
 	const handleAddToMarketList = async (item) => {
 		const quantity = quantities[item.id] || 1;
-		await addToMarketList({
+		const result = await addToMarketList({
 			id: item.id,
+			name: item.name,
 			default_vendor_id: item.default_vendor_id,
 			quantity,
 			unit: item.unit,
 			notes: "",
 		});
+
+		if (result?.success) {
+			showToast.itemAdded(item.name, quantity, item.unit);
+			// Reset quantity after successful add
+			setQuantities((prev) => ({ ...prev, [item.id]: 1 }));
+		} else {
+			showToast.error(`Failed to add ${item.name} to market list`);
+		}
 	};
 
 	const handleQuantityChange = (itemId, newValue) => {
