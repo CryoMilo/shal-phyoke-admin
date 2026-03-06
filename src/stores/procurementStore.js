@@ -202,6 +202,7 @@ const useProcurementStore = create((set, get) => ({
 			return { error: error.message };
 		}
 	},
+
 	// Toggle vendor accordion
 	toggleVendor: (vendorId) => {
 		set((state) => ({

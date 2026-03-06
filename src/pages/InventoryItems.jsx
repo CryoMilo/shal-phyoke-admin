@@ -8,7 +8,6 @@ import { PageHeader } from "../components/common/PageHeader";
 import VendorChip from "../components/inventory/VendorChip";
 import InventoryCard from "../components/inventory/InventoryCard";
 import InventoryItemModal from "../components/inventory/InventoryItemModal";
-import { supabase } from "../services/supabase";
 import { showToast } from "../utils/toastUtils";
 
 const InventoryItems = () => {
@@ -50,38 +49,6 @@ const InventoryItems = () => {
 			subscription.unsubscribe();
 		};
 	}, []);
-
-	// Auto-add low stock items to market list
-	useEffect(() => {
-		const addLowStockToMarketList = async () => {
-			const lowStockItems = items.filter(
-				(item) => item.quantity <= item.threshold && item.threshold > 0
-			);
-
-			for (const item of lowStockItems) {
-				// Check if already in market list
-				const { data: existing } = await supabase
-					.from("market_list")
-					.select("id")
-					.eq("inventory_item_id", item.id)
-					.eq("is_ordered", false);
-
-				if (!existing || existing.length === 0) {
-					await addToMarketList({
-						id: item.id,
-						default_vendor_id: item.default_vendor_id,
-						quantity: 1,
-						unit: item.unit,
-						notes: "",
-					});
-				}
-			}
-		};
-
-		if (items.length > 0) {
-			addLowStockToMarketList();
-		}
-	}, [items]);
 
 	const filteredItems = getFilteredItems();
 	const vendorsWithCounts = getVendorsWithCounts();

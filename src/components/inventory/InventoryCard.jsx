@@ -125,6 +125,7 @@ const InventoryCard = ({ item, onAddToMarketList, onUpdateStock, onClick }) => {
 						e.stopPropagation();
 						onAddToMarketList(item);
 					}}
+					disabled={item.quantity >= item.threshold + 1}
 					className="btn btn-primary btn-sm gap-1">
 					<ShoppingCart className="w-4 h-4" />
 					Add to List
