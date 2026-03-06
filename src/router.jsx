@@ -6,13 +6,9 @@ import {
 import App from "./App";
 import Dashboard from "./pages/Dashboard";
 import AllMenu from "./pages/AllMenu";
-import { SubscribersPage } from "./pages/Subscribers";
-import SubscriptionPlansPage from "./pages/SubscriptionPlans";
 import WeeklyMenu from "./pages/WeeklyMenu";
 import { MenuStatusManagement } from "./pages/MenuStatusManagement";
-import { SubscriberOrder } from "./pages/SubscriberOrder";
 import RegularMenu from "./pages/RegularMenu";
-import { ArchivedOrders } from "./pages/ArchivedOrders";
 import Orders from "./pages/Orders";
 import DailyCash from "./pages/DailyCash";
 import DailyExpenses from "./pages/DailyExpenses";
@@ -42,18 +38,6 @@ const regularMenuRoute = createRoute({
 	component: RegularMenu,
 });
 
-const subscriberListRoute = createRoute({
-	path: "/subscribers",
-	getParentRoute: () => rootRoute,
-	component: SubscribersPage,
-});
-
-const subscriptionPlansRoute = createRoute({
-	path: "/subscription-plans",
-	getParentRoute: () => rootRoute,
-	component: SubscriptionPlansPage,
-});
-
 const weeklyMenuRoute = createRoute({
 	path: "/weekly-menu",
 	getParentRoute: () => rootRoute,
@@ -66,23 +50,10 @@ const menuStatusRoute = createRoute({
 	component: MenuStatusManagement,
 });
 
-// Subscriber orders with nested routes
-const subscriberOrderRoute = createRoute({
-	path: "/subscriber-orders",
-	getParentRoute: () => rootRoute,
-	component: SubscriberOrder,
-});
-
 const OrdersRoute = createRoute({
 	path: "/orders",
 	getParentRoute: () => rootRoute,
 	component: Orders,
-});
-
-const archivedOrdersRoute = createRoute({
-	path: "/subscriber-orders/archived-orders",
-	getParentRoute: () => rootRoute,
-	component: ArchivedOrders,
 });
 
 // Income & Expense Routes
@@ -120,12 +91,8 @@ const inventoryItemsRoute = createRoute({
 const routeTree = rootRoute.addChildren([
 	dashboardRoute,
 	allMenuRoute,
-	subscriberListRoute,
-	subscriptionPlansRoute,
 	weeklyMenuRoute,
 	menuStatusRoute,
-	subscriberOrderRoute,
-	archivedOrdersRoute,
 	regularMenuRoute,
 	OrdersRoute,
 	dailyCashRoute,
