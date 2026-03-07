@@ -78,9 +78,6 @@ const OrderHistoryTab = () => {
 									<h3 className="font-semibold text-lg">
 										{order.vendor?.name}
 									</h3>
-									<span className="badge badge-ghost badge-sm">
-										{order.order_number || `ORD-${order.id.slice(0, 8)}`}
-									</span>
 									{getStatusBadge(order.status)}
 								</div>
 

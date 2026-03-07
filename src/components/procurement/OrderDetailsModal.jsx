@@ -78,7 +78,6 @@ const OrderDetailsModal = ({ isOpen, onClose, order, readOnly = false }) => {
 				<h3 className="font-bold text-xl mb-1">Order Details</h3>
 				<p className="text-gray-600 mb-6">
 					{order.vendor?.name} •{" "}
-					{order.order_number || `ORD-${order.id.slice(0, 8)}`}
 					{readOnly && (
 						<span className="ml-3 badge badge-ghost">
 							{order.status === "arrived" ? "Completed" : "Cancelled"}
