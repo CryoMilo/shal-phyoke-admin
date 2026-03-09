@@ -1,448 +1,535 @@
-import { useState, useEffect } from "react";
-import { format } from "date-fns";
+import { useState, useEffect, useMemo } from "react";
+import { format, subDays, addDays } from "date-fns";
 import {
-	Calendar,
-	DollarSign,
-	TrendingUp,
-	TrendingDown,
-	CheckCircle,
-	CreditCard,
+        Calendar,
+        DollarSign,
+        TrendingUp,
+        TrendingDown,
+        Save,
+        CreditCard,
+        AlertCircle,
+        ArrowLeft,
+        ArrowRight,
+        Receipt,
+        Banknote,
 } from "lucide-react";
+import { useForm } from "react-hook-form";
 import { supabase } from "../services/supabase";
+import { PageHeader } from "../components/common/PageHeader";
+import { Loading } from "../components/common/Loading";
+import { showToast } from "../utils/toastUtils";
 
 const DailyCash = () => {
-	const [selectedDate, setSelectedDate] = useState(
-		format(new Date(), "yyyy-MM-dd")
-	);
-	const [cashData, setCashData] = useState(null);
-	const [loading, setLoading] = useState(false);
-	const [salesData, setSalesData] = useState({ cash: 0, card: 0, online: 0 });
+        const [selectedDate, setSelectedDate] = useState(
+                format(new Date(), "yyyy-MM-dd")
+        );
+        const [loading, setLoading] = useState(true);
+        const [isSaving, setIsSaving] = useState(false);
+        const [salesData, setSalesData] = useState({ cash: 0, card: 0, online: 0 });
+        const [expensesData, setExpensesData] = useState({ total: 0, fromDrawer: 0 });
+        const [additionalIncome, setAdditionalIncome] = useState(0);
 
-	const fetchDailyCash = async (date) => {
-		setLoading(true);
-		try {
-			// Get daily cash record
-			const { data: cash, error } = await supabase
-				.from("daily_cash")
-				.select("*")
-				.eq("date", date)
-				.single();
+        const {
+                register,
+                handleSubmit,
+                reset,
+                watch,
+                setValue,
+                formState: { isDirty },
+        } = useForm({
+                defaultValues: {
+                        opening_balance: 0,
+                        cash_collected: 0,
+                        cash_deposited: 0,
+                        notes: "",
+                        closing_balance: 0,
+                },
+        });
 
-			if (error && error.code !== "PGRST116") {
-				console.error("Error fetching daily cash:", error);
-				// Create default cash data if not found
-				const defaultCashData = {
-					id: null,
-					date: date,
-					opening_balance: 0,
-					closing_balance: 0,
-					cash_sales: 0,
-					card_sales: 0,
-					online_sales: 0,
-					cash_collected: 0,
-					cash_deposited: 0,
-					notes: "",
-				};
-				setCashData(defaultCashData);
-			} else if (cash) {
-				setCashData(cash);
-			} else {
-				// No record found, create default
-				const defaultCashData = {
-					id: null,
-					date: date,
-					opening_balance: 0,
-					closing_balance: 0,
-					cash_sales: 0,
-					card_sales: 0,
-					online_sales: 0,
-					cash_collected: 0,
-					cash_deposited: 0,
-					notes: "",
-				};
-				setCashData(defaultCashData);
-			}
+        const watchedValues = watch();
 
-			// Get sales data for the day
-			const { data: sales } = await supabase
-				.from("orders")
-				.select("total_amount, payment_method, payment_status")
-				.eq("payment_status", "paid")
-				.gte("created_at", `${date}T00:00:00`)
-				.lt("created_at", `${date}T23:59:59`);
+        const fetchDailyData = async (date) => {
+                setLoading(true);
+                try {
+                        // 1. Fetch Daily Cash Record
+                        const { data: cash, error: cashError } = await supabase
+                                .from("daily_cash")
+                                .select("*")
+                                .eq("date", date)
+                                .single();
 
-			if (sales) {
-				const totals = sales.reduce(
-					(acc, order) => {
-						const amount = parseFloat(order.total_amount) || 0;
-						if (order.payment_method === "cash") acc.cash += amount;
-						else if (order.payment_method === "card") acc.card += amount;
-						else if (order.payment_method === "online") acc.online += amount;
-						return acc;
-					},
-					{ cash: 0, card: 0, online: 0 }
-				);
+                        if (cashError && cashError.code !== "PGRST116") throw cashError;
 
-				setSalesData(totals);
-			}
-		} catch (error) {
-			console.error("Error fetching daily cash:", error);
-			// Set default data on error
-			const defaultCashData = {
-				id: null,
-				date: date,
-				opening_balance: 0,
-				closing_balance: 0,
-				cash_sales: 0,
-				card_sales: 0,
-				online_sales: 0,
-				cash_collected: 0,
-				cash_deposited: 0,
-				notes: "",
-			};
-			setCashData(defaultCashData);
-		} finally {
-			setLoading(false);
-		}
-	};
+                        if (cash) {
+                                reset({
+                                        opening_balance: parseFloat(cash.opening_balance) || 0,
+                                        cash_collected: parseFloat(cash.cash_collected) || 0,
+                                        cash_deposited: parseFloat(cash.cash_deposited) || 0,
+                                        notes: cash.notes || "",
+                                        closing_balance: parseFloat(cash.closing_balance) || 0,
+                                });
+                        } else {
+                                // Try to get yesterday's closing balance as today's opening balance
+                                const yesterday = format(subDays(new Date(date), 1), "yyyy-MM-dd");
+                                const { data: prevDay } = await supabase
+                                        .from("daily_cash")
+                                        .select("closing_balance")
+                                        .eq("date", yesterday)
+                                        .single();
 
-	useEffect(() => {
-		fetchDailyCash(selectedDate);
-	}, [selectedDate]);
+                                reset({
+                                        opening_balance: prevDay?.closing_balance || 0,
+                                        cash_collected: 0,
+                                        cash_deposited: 0,
+                                        notes: "",
+                                        closing_balance: 0,
+                                });
+                        }
 
-	const handleDateChange = (e) => {
-		setSelectedDate(e.target.value);
-	};
+                        // 2. Fetch Sales from Orders
+                        const { data: sales } = await supabase
+                                .from("orders")
+                                .select("total_amount, payment_method")
+                                .eq("payment_status", "paid")
+                                .gte("created_at", `${date}T00:00:00`)
+                                .lt("created_at", `${date}T23:59:59`);
 
-	const navigateDate = (days) => {
-		const newDate = new Date(selectedDate);
-		newDate.setDate(newDate.getDate() + days);
-		setSelectedDate(format(newDate, "yyyy-MM-dd"));
-	};
+                        const salesTotals = (sales || []).reduce(
+                                (acc, order) => {
+                                        const amount = parseFloat(order.total_amount) || 0;
+                                        if (order.payment_method === "cash") acc.cash += amount;
+                                        else if (order.payment_method === "card") acc.card += amount;
+                                        else if (order.payment_method === "online") acc.online += amount;
+                                        return acc;
+                                },
+                                { cash: 0, card: 0, online: 0 }
+                        );
+                        setSalesData(salesTotals);
 
-	const updateDailyCash = async (field, value) => {
-		if (!cashData) return;
+                        // 3. Fetch Expenses
+                        const { data: expenses } = await supabase
+                                .from("daily_expenses")
+                                .select("amount, paid_by")
+                                .eq("date", date);
 
-		const updates = {
-			...cashData,
-			[field]: parseFloat(value) || 0,
-			date: selectedDate,
-		};
+                        const expenseTotals = (expenses || []).reduce(
+                                (acc, exp) => {
+                                        const amount = parseFloat(exp.amount) || 0;
+                                        acc.total += amount;
+                                        if (exp.paid_by === "cash_drawer") acc.fromDrawer += amount;
+                                        return acc;
+                                },
+                                { total: 0, fromDrawer: 0 }
+                        );
+                        setExpensesData(expenseTotals);
 
-		try {
-			if (cashData.id) {
-				const { error } = await supabase
-					.from("daily_cash")
-					.update(updates)
-					.eq("id", cashData.id);
+                        // 4. Fetch Additional Income
+                        const { data: income } = await supabase
+                                .from("additional_income")
+                                .select("amount")
+                                .eq("date", date)
+                                .eq("payment_method", "cash");
 
-				if (error) throw error;
-			} else {
-				const { data, error } = await supabase
-					.from("daily_cash")
-					.insert([updates])
-					.select()
-					.single();
+                        const incomeTotal = (income || []).reduce(
+                                (acc, inc) => acc + (parseFloat(inc.amount) || 0),
+                                0
+                        );
+                        setAdditionalIncome(incomeTotal);
+                } catch (error) {
+                        console.error("Error fetching daily data:", error);
+                        showToast.error("Failed to load daily data");
+                } finally {
+                        setLoading(false);
+                }
+        };
 
-				if (error) throw error;
-				if (data) setCashData(data);
-			}
+        useEffect(() => {
+                fetchDailyData(selectedDate);
+        }, [selectedDate]);
 
-			fetchDailyCash(selectedDate);
-		} catch (error) {
-			console.error("Error updating daily cash:", error);
-		}
-	};
+        // Derived Calculations
+        const expectedCash = useMemo(() => {
+                return (
+                        watchedValues.opening_balance +
+                        salesData.cash +
+                        additionalIncome -
+                        expensesData.fromDrawer
+                );
+        }, [
+                watchedValues.opening_balance,
+                salesData.cash,
+                additionalIncome,
+                expensesData.fromDrawer,
+        ]);
 
-	// Safe calculation functions
-	const calculateExpectedCash = () => {
-		const opening = cashData?.opening_balance || 0;
-		const cashSales = salesData.cash || 0;
-		return opening + cashSales;
-	};
+        const variance = useMemo(() => {
+                return watchedValues.cash_collected - expectedCash;
+        }, [watchedValues.cash_collected, expectedCash]);
 
-	const calculateVariance = () => {
-		const expected = calculateExpectedCash();
-		const actual = cashData?.cash_collected || 0;
-		return actual - expected;
-	};
+        const shortage = useMemo(() => {
+                return watchedValues.cash_collected - watchedValues.cash_deposited;
+        }, [watchedValues.cash_collected, watchedValues.cash_deposited]);
 
-	// Get safe values for display
-	const getSafeValue = (value, defaultValue = 0) => {
-		return cashData ? cashData[value] || defaultValue : defaultValue;
-	};
+        const handleSave = async (data) => {
+                setIsSaving(true);
+                try {
+                        const payload = {
+                                ...data,
+                                date: selectedDate,
+                                cash_sales: salesData.cash,
+                                card_sales: salesData.card,
+                                online_sales: salesData.online,
+                                // closing_balance is calculated as collected - deposited
+                                closing_balance: data.cash_collected - data.cash_deposited,
+                        };
 
-	return (
-		<div className="p-4">
-			{/* Header */}
-			<div className="flex justify-between items-center mb-6">
-				<div>
-					<h1 className="text-2xl font-bold">Daily Cash Tracking</h1>
-					<p className="text-gray-600">
-						Track daily cash flow and detect discrepancies
-					</p>
-				</div>
-				<div className="flex items-center gap-2">
-					<button
-						onClick={() => navigateDate(-1)}
-						className="btn btn-ghost btn-sm">
-						Previous Day
-					</button>
-					<div className="flex items-center gap-2 bg-base-300 px-3 py-2 rounded-lg">
-						<Calendar className="w-4 h-4" />
-						<input
-							type="date"
-							value={selectedDate}
-							onChange={handleDateChange}
-							className="bg-transparent focus:outline-none"
-						/>
-					</div>
-					<button
-						onClick={() => navigateDate(1)}
-						className="btn btn-ghost btn-sm">
-						Next Day
-					</button>
-				</div>
-			</div>
+                        const { error } = await supabase.from("daily_cash").upsert(payload, {
+                                onConflict: "date",
+                        });
 
-			{loading ? (
-				<div className="flex justify-center py-8">
-					<span className="loading loading-spinner loading-lg"></span>
-				</div>
-			) : (
-				<>
-					{/* Quick Stats */}
-					<div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-						<div className="stats shadow">
-							<div className="stat">
-								<div className="stat-title">Expected Cash</div>
-								<div className="stat-value text-primary">
-									${calculateExpectedCash().toFixed(2)}
-								</div>
-								<div className="stat-desc">
-									Opening: ${getSafeValue("opening_balance").toFixed(2)} +
-									Sales: ${salesData.cash.toFixed(2)}
-								</div>
-							</div>
-						</div>
+                        if (error) throw error;
+                        showToast.success("Daily cash record saved");
+                        fetchDailyData(selectedDate);
+                } catch (error) {
+                        console.error("Error saving daily cash:", error);
+                        showToast.error("Failed to save record");
+                } finally {
+                        setIsSaving(false);
+                }
+        };
 
-						<div className="stats shadow">
-							<div className="stat">
-								<div className="stat-title">Cash Collected</div>
-								<div className="stat-value">
-									${getSafeValue("cash_collected").toFixed(2)}
-								</div>
-								<div className="stat-desc">
-									<input
-										type="number"
-										step="0.01"
-										value={getSafeValue("cash_collected")}
-										onChange={(e) =>
-											updateDailyCash("cash_collected", e.target.value)
-										}
-										className="input input-bordered input-sm w-full"
-									/>
-								</div>
-							</div>
-						</div>
+        const navigateDate = (days) => {
+                const baseDate = new Date(selectedDate);
+                const newDate = days > 0 ? addDays(baseDate, 1) : subDays(baseDate, 1);
+                setSelectedDate(format(newDate, "yyyy-MM-dd"));
+        };
 
-						<div className="stats shadow">
-							<div className="stat">
-								<div className="stat-title">Cash Deposited</div>
-								<div className="stat-value">
-									${getSafeValue("cash_deposited").toFixed(2)}
-								</div>
-								<div className="stat-desc">
-									<input
-										type="number"
-										step="0.01"
-										value={getSafeValue("cash_deposited")}
-										onChange={(e) =>
-											updateDailyCash("cash_deposited", e.target.value)
-										}
-										className="input input-bordered input-sm w-full"
-									/>
-								</div>
-							</div>
-						</div>
+        if (loading) return <Loading />;
 
-						<div className="stats shadow">
-							<div className="stat">
-								<div
-									className={`stat-title ${calculateVariance() < 0 ? "text-error" : "text-success"}`}>
-									Variance
-								</div>
-								<div
-									className={`stat-value ${calculateVariance() < 0 ? "text-error" : "text-success"}`}>
-									${calculateVariance().toFixed(2)}
-								</div>
-								<div className="stat-desc flex items-center gap-1">
-									{calculateVariance() < 0 ? (
-										<>
-											<TrendingDown className="w-4 h-4" />
-											Shortage
-										</>
-									) : (
-										<>
-											<TrendingUp className="w-4 h-4" />
-											Overage
-										</>
-									)}
-								</div>
-							</div>
-						</div>
-					</div>
+        return (
+                <div className="container mx-auto p-3 md:p-6 max-w-6xl">
+                        <PageHeader
+                                title="Daily Cash Tracking"
+                                description="Reconcile daily cash flow, expenses, and deposits"
+                                buttons={[
+                                        {
+                                                label: "Save Changes",
+                                                icon: Save,
+                                                onClick: handleSubmit(handleSave),
+                                                variant: "primary",
+                                                disabled: isSaving || !isDirty,
+                                                loading: isSaving,
+                                        },
+                                ]}
+                        />
 
-					{/* Sales Breakdown */}
-					<div className="card bg-base-100 shadow mb-6">
-						<div className="card-body">
-							<h2 className="card-title">Sales Breakdown</h2>
-							<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-								<div className="bg-base-200 p-4 rounded-lg">
-									<div className="flex justify-between items-center">
-										<div>
-											<p className="text-sm text-gray-600">Cash Sales</p>
-											<p className="text-2xl font-bold">
-												${salesData.cash.toFixed(2)}
-											</p>
-										</div>
-										<DollarSign className="w-8 h-8 text-green-500" />
-									</div>
-								</div>
-								<div className="bg-base-200 p-4 rounded-lg">
-									<div className="flex justify-between items-center">
-										<div>
-											<p className="text-sm text-gray-600">Card Sales</p>
-											<p className="text-2xl font-bold">
-												${salesData.card.toFixed(2)}
-											</p>
-										</div>
-										<CreditCard className="w-8 h-8 text-blue-500" />
-									</div>
-								</div>
-								<div className="bg-base-200 p-4 rounded-lg">
-									<div className="flex justify-between items-center">
-										<div>
-											<p className="text-sm text-gray-600">Online Sales</p>
-											<p className="text-2xl font-bold">
-												${salesData.online.toFixed(2)}
-											</p>
-										</div>
-										<TrendingUp className="w-8 h-8 text-purple-500" />
-									</div>
-								</div>
-							</div>
-						</div>
-					</div>
+                        {/* Date Navigation */}
+                        <div className="flex items-center justify-between mb-8 bg-base-100 p-4 rounded-xl shadow-sm border border-base-200">
+                                <button
+                                        onClick={() => navigateDate(-1)}
+                                        className="btn btn-circle btn-ghost btn-sm">
+                                        <ArrowLeft className="w-5 h-5" />
+                                </button>
 
-					{/* Cash Flow Details */}
-					<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-						<div className="card bg-base-100 shadow">
-							<div className="card-body">
-								<h2 className="card-title">Cash Flow</h2>
-								<div className="space-y-4">
-									<div className="flex justify-between items-center p-3 bg-base-200 rounded">
-										<span>Opening Balance</span>
-										<input
-											type="number"
-											step="0.01"
-											value={getSafeValue("opening_balance")}
-											onChange={(e) =>
-												updateDailyCash("opening_balance", e.target.value)
-											}
-											className="input input-bordered input-sm w-32"
-										/>
-									</div>
-									<div className="flex justify-between items-center p-3 bg-base-200 rounded">
-										<span>Cash Sales</span>
-										<span className="font-bold">
-											${salesData.cash.toFixed(2)}
-										</span>
-									</div>
-									<div className="divider"></div>
-									<div className="flex justify-between items-center p-3 bg-primary/10 rounded">
-										<span className="font-bold">Expected Total</span>
-										<span className="font-bold">
-											${calculateExpectedCash().toFixed(2)}
-										</span>
-									</div>
-									<div className="flex justify-between items-center p-3 bg-base-200 rounded">
-										<span>Actual Collected</span>
-										<input
-											type="number"
-											step="0.01"
-											value={getSafeValue("cash_collected")}
-											onChange={(e) =>
-												updateDailyCash("cash_collected", e.target.value)
-											}
-											className="input input-bordered input-sm w-32"
-										/>
-									</div>
-								</div>
-							</div>
-						</div>
+                                <div className="flex items-center gap-3">
+                                        <Calendar className="w-5 h-5 text-primary" />
+                                        <input
+                                                type="date"
+                                                value={selectedDate}
+                                                onChange={(e) => setSelectedDate(e.target.value)}
+                                                className="input input-ghost font-bold text-lg focus:bg-transparent"
+                                        />
+                                </div>
 
-						<div className="card bg-base-100 shadow">
-							<div className="card-body">
-								<h2 className="card-title">Banking & Notes</h2>
-								<div className="space-y-4">
-									<div className="form-control">
-										<label className="label">
-											<span className="label-text">Cash to Deposit</span>
-										</label>
-										<input
-											type="number"
-											step="0.01"
-											value={getSafeValue("cash_deposited")}
-											onChange={(e) =>
-												updateDailyCash("cash_deposited", e.target.value)
-											}
-											className="input input-bordered"
-										/>
-									</div>
-									<div className="form-control">
-										<label className="label">
-											<span className="label-text">Notes</span>
-										</label>
-										<textarea
-											value={getSafeValue("notes", "")}
-											onChange={(e) => updateDailyCash("notes", e.target.value)}
-											className="textarea textarea-bordered h-24"
-											placeholder="Any notes about today's cash..."
-										/>
-									</div>
-									<div className="flex justify-between items-center mt-4">
-										<div
-											className={`badge ${calculateVariance() === 0 ? "badge-success" : "badge-warning"}`}>
-											{calculateVariance() === 0
-												? "Balanced"
-												: "Check Required"}
-										</div>
-										<button
-											className="btn btn-primary"
-											onClick={async () => {
-												// Calculate closing balance
-												const closingBalance =
-													getSafeValue("cash_collected") -
-													getSafeValue("cash_deposited");
-												await updateDailyCash(
-													"closing_balance",
-													closingBalance
-												);
-												alert("Day closed successfully!");
-											}}>
-											<CheckCircle className="w-4 h-4 mr-2" />
-											Close Day
-										</button>
-									</div>
-								</div>
-							</div>
-						</div>
-					</div>
-				</>
-			)}
-		</div>
-	);
+                                <button
+                                        onClick={() => navigateDate(1)}
+                                        className="btn btn-circle btn-ghost btn-sm">
+                                        <ArrowRight className="w-5 h-5" />
+                                </button>
+                        </div>
+
+                        <form onSubmit={handleSubmit(handleSave)} className="space-y-8">
+                                {/* Top Stats Row */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                        <div className="card bg-base-100 border border-base-200 shadow-sm">
+                                                <div className="card-body p-4">
+                                                        <div className="flex justify-between items-start">
+                                                                <div>
+                                                                        <p className="text-xs font-semibold text-base-content/60 uppercase tracking-wider">
+                                                                                Expected Cash
+                                                                        </p>
+                                                                        <h3 className="text-2xl font-bold mt-1">
+                                                                                ฿{expectedCash.toLocaleString()}
+                                                                        </h3>
+                                                                </div>
+                                                                <div className="p-2 bg-primary/10 text-primary rounded-lg">
+                                                                        <DollarSign className="w-5 h-5" />
+                                                                </div>
+                                                        </div>
+                                                        <p className="text-[10px] text-base-content/50 mt-2">
+                                                                Opening + Sales + Income - Drawer Exp
+                                                        </p>
+                                                </div>
+                                        </div>
+
+                                        <div className="card bg-base-100 border border-base-200 shadow-sm">
+                                                <div className="card-body p-4">
+                                                        <div className="flex justify-between items-start">
+                                                                <div>
+                                                                        <p className="text-xs font-semibold text-base-content/60 uppercase tracking-wider">
+                                                                                Cash Variance
+                                                                        </p>
+                                                                        <h3
+                                                                                className={`text-2xl font-bold mt-1 ${variance < 0 ? "text-error" : variance > 0 ? "text-success" : ""}`}>
+                                                                                ฿{variance.toLocaleString()}
+                                                                        </h3>
+                                                                </div>
+                                                                <div
+                                                                        className={`p-2 rounded-lg ${variance < 0 ? "bg-error/10 text-error" : "bg-success/10 text-success"}`}>
+                                                                        {variance < 0 ? (
+                                                                                <TrendingDown className="w-5 h-5" />
+                                                                        ) : (
+                                                                                <TrendingUp className="w-5 h-5" />
+                                                                        )}
+                                                                </div>
+                                                        </div>
+                                                        <p className="text-[10px] text-base-content/50 mt-2">
+                                                                Collected vs Expected
+                                                        </p>
+                                                </div>
+                                        </div>
+
+                                        <div className="card bg-base-100 border border-base-200 shadow-sm">
+                                                <div className="card-body p-4">
+                                                        <div className="flex justify-between items-start">
+                                                                <div>
+                                                                        <p className="text-xs font-semibold text-base-content/60 uppercase tracking-wider">
+                                                                                Shortage/Overage
+                                                                        </p>
+                                                                        <h3
+                                                                                className={`text-2xl font-bold mt-1 ${shortage !== 0 ? "text-warning" : "text-success"}`}>
+                                                                                ฿{shortage.toLocaleString()}
+                                                                        </h3>
+                                                                </div>
+                                                                <div className="p-2 bg-warning/10 text-warning rounded-lg">
+                                                                        <AlertCircle className="w-5 h-5" />
+                                                                </div>
+                                                        </div>
+                                                        <p className="text-[10px] text-base-content/50 mt-2">
+                                                                Collected vs Deposited
+                                                        </p>
+                                                </div>
+                                        </div>
+
+                                        <div className="card bg-primary text-primary-content shadow-md">
+                                                <div className="card-body p-4">
+                                                        <div className="flex justify-between items-start">
+                                                                <div>
+                                                                        <p className="text-xs font-semibold text-primary-content/70 uppercase tracking-wider">
+                                                                                Final Closing
+                                                                        </p>
+                                                                        <h3 className="text-2xl font-bold mt-1">
+                                                                                ฿{(watchedValues.cash_collected - watchedValues.cash_deposited).toLocaleString()}
+                                                                        </h3>
+                                                                </div>
+                                                                <div className="p-2 bg-white/20 rounded-lg text-white">
+                                                                        <Banknote className="w-5 h-5" />
+                                                                </div>
+                                                        </div>
+                                                        <p className="text-[10px] text-primary-content/70 mt-2">
+                                                                Amount remaining in drawer
+                                                        </p>
+                                                </div>
+                                        </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                        {/* Left Column: Form Inputs */}
+                                        <div className="lg:col-span-2 space-y-6">
+                                                <div className="card bg-base-100 border border-base-200">
+                                                        <div className="card-body">
+                                                                <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                                                                        <DollarSign className="w-5 h-5 text-primary" />
+                                                                        Cash Details
+                                                                </h3>
+
+                                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                                        <div className="form-control w-full">
+                                                                                <label className="label">
+                                                                                        <span className="label-text font-semibold">
+                                                                                                Opening Balance
+                                                                                        </span>
+                                                                                </label>
+                                                                                <input
+                                                                                        type="number"
+                                                                                        step="0.01"
+                                                                                        {...register("opening_balance", {
+                                                                                                valueAsNumber: true,
+                                                                                        })}
+                                                                                        className="input input-bordered focus:input-primary w-full"
+                                                                                />
+                                                                        </div>
+
+                                                                        <div className="form-control w-full">
+                                                                                <label className="label">
+                                                                                        <span className="label-text font-semibold">
+                                                                                                Actual Cash Collected
+                                                                                        </span>
+                                                                                </label>
+                                                                                <input
+                                                                                        type="number"
+                                                                                        step="0.01"
+                                                                                        {...register("cash_collected", {
+                                                                                                valueAsNumber: true,
+                                                                                        })}
+                                                                                        className="input input-bordered focus:input-primary w-full"
+                                                                                />
+                                                                        </div>
+
+                                                                        <div className="form-control w-full">
+                                                                                <label className="label">
+                                                                                        <span className="label-text font-semibold">
+                                                                                                Total Cash Deposited
+                                                                                        </span>
+                                                                                </label>
+                                                                                <input
+                                                                                        type="number"
+                                                                                        step="0.01"
+                                                                                        {...register("cash_deposited", {
+                                                                                                valueAsNumber: true,
+                                                                                        })}
+                                                                                        className="input input-bordered focus:input-primary w-full"
+                                                                                />
+                                                                        </div>
+
+                                                                        <div className="form-control w-full">
+                                                                                <label className="label">
+                                                                                        <span className="label-text font-semibold text-base-content/50">
+                                                                                                Calculated Closing Balance
+                                                                                        </span>
+                                                                                </label>
+                                                                                <input
+                                                                                        type="number"
+                                                                                        readOnly
+                                                                                        value={watchedValues.cash_collected - watchedValues.cash_deposited}
+                                                                                        className="input input-bordered bg-base-200 cursor-not-allowed"
+                                                                                />
+                                                                        </div>
+                                                                </div>
+
+                                                                <div className="mt-8">
+                                                                        <div className="bg-base-200/50 rounded-2xl p-4 border border-base-300">
+                                                                                <label className="label pt-0">
+                                                                                        <span className="label-text font-bold text-xs uppercase text-base-content/50 tracking-widest">
+                                                                                                Operational Notes & Discrepancies
+                                                                                        </span>
+                                                                                </label>
+                                                                                <textarea
+                                                                                        {...register("notes")}
+                                                                                        className="textarea textarea-ghost focus:bg-base-100 w-full h-32 text-sm leading-relaxed placeholder:text-base-content/30 transition-all duration-300 resize-none p-0 focus:p-2"
+                                                                                        placeholder="Describe any shortages, overages, or specific events that occurred during the shift..."
+                                                                                ></textarea>
+                                                                        </div>
+                                                                </div>
+                                                        </div>
+                                                </div>
+
+                                                {/* Income/Expense Summary */}
+                                                <div className="card bg-base-100 border border-base-200">
+                                                        <div className="card-body">
+                                                                <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                                                                        <Receipt className="w-5 h-5 text-primary" />
+                                                                        Flow Summary
+                                                                </h3>
+                                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                                        <div className="p-4 bg-base-200 rounded-xl">
+                                                                                <p className="text-xs font-bold text-base-content/50 uppercase">
+                                                                                        Additional Income
+                                                                                </p>
+                                                                                <p className="text-xl font-bold mt-1 text-success">
+                                                                                        + ฿{additionalIncome.toLocaleString()}
+                                                                                </p>
+                                                                        </div>
+                                                                        <div className="p-4 bg-base-200 rounded-xl">
+                                                                                <p className="text-xs font-bold text-base-content/50 uppercase">
+                                                                                        Drawer Expenses
+                                                                                </p>
+                                                                                <p className="text-xl font-bold mt-1 text-error">
+                                                                                        - ฿{expensesData.fromDrawer.toLocaleString()}
+                                                                                </p>
+                                                                        </div>
+                                                                        <div className="p-4 bg-base-200 rounded-xl">
+                                                                                <p className="text-xs font-bold text-base-content/50 uppercase">
+                                                                                        Total Expenses
+                                                                                </p>
+                                                                                <p className="text-xl font-bold mt-1">
+                                                                                        ฿{expensesData.total.toLocaleString()}
+                                                                                </p>
+                                                                        </div>
+                                                                </div>
+                                                        </div>
+                                                </div>
+                                        </div>
+
+                                        {/* Right Column: Sales Breakdown */}
+                                        <div className="space-y-6">
+                                                <div className="card bg-base-100 border border-base-200">
+                                                        <div className="card-body">
+                                                                <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                                                                        <CreditCard className="w-5 h-5 text-primary" />
+                                                                        Sales Revenue
+                                                                </h3>
+                                                                <div className="space-y-4">
+                                                                        <div className="flex justify-between items-center p-3 bg-base-200 rounded-lg">
+                                                                                <span className="text-sm font-medium">Cash Sales</span>
+                                                                                <span className="font-bold">
+                                                                                        ฿{salesData.cash.toLocaleString()}
+                                                                                </span>
+                                                                        </div>
+                                                                        <div className="flex justify-between items-center p-3 bg-base-200 rounded-lg">
+                                                                                <span className="text-sm font-medium">Card Sales</span>
+                                                                                <span className="font-bold">
+                                                                                        ฿{salesData.card.toLocaleString()}
+                                                                                </span>
+                                                                        </div>
+                                                                        <div className="flex justify-between items-center p-3 bg-base-200 rounded-lg">
+                                                                                <span className="text-sm font-medium">Online Sales</span>
+                                                                                <span className="font-bold">
+                                                                                        ฿{salesData.online.toLocaleString()}
+                                                                                </span>
+                                                                        </div>
+                                                                        <div className="divider my-0"></div>
+                                                                        <div className="flex justify-between items-center p-3 bg-primary/10 text-primary rounded-lg">
+                                                                                <span className="font-bold">Total Sales</span>
+                                                                                <span className="font-bold text-lg">
+                                                                                        ฿{(
+                                                                                                salesData.cash +
+                                                                                                salesData.card +
+                                                                                                salesData.online
+                                                                                        ).toLocaleString()}
+                                                                                </span>
+                                                                        </div>
+                                                                </div>
+                                                        </div>
+                                                </div>
+
+                                                <div className="alert alert-info shadow-sm">
+                                                        <AlertCircle className="w-5 h-5" />
+                                                        <div>
+                                                                <h3 className="font-bold text-xs uppercase tracking-tight">
+                                                                        Note
+                                                                </h3>
+                                                                <div className="text-xs opacity-80">
+                                                                        Expected cash is automatically calculated from opening
+                                                                        balance, orders, and expenses paid from drawer.
+                                                                </div>
+                                                        </div>
+                                                </div>
+                                        </div>
+                                </div>
+                        </form>
+                </div>
+        );
 };
 
 export default DailyCash;
