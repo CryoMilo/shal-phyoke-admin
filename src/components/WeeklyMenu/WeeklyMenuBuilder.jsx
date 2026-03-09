@@ -344,7 +344,7 @@ export const WeeklyMenuBuilder = ({ weeklyMenu, onBack }) => {
 												{item.category}
 											</span>
 											<span className="text-sm font-medium text-primary">
-												฿{item.price}
+												Ks{item.price}
 											</span>
 										</div>
 									</div>

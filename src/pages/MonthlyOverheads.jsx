@@ -305,7 +305,7 @@ const MonthlyOverheads = () => {
 						<span>{format(new Date(`${selectedMonth}-01`), "MMMM yyyy")}</span>
 						{stats.overdue > 0 && (
 							<span className="badge badge-sm badge-error">
-								฿{formatCurrency(stats.overdue)} Overdue
+								Ks{formatCurrency(stats.overdue)} Overdue
 							</span>
 						)}
 					</div>
@@ -344,7 +344,7 @@ const MonthlyOverheads = () => {
 					<div className="stat">
 						<div className="stat-title">Total Overheads</div>
 						<div className="stat-value text-primary">
-							฿{formatCurrency(stats.total)}
+							Ks{formatCurrency(stats.total)}
 						</div>
 						<div className="stat-desc">
 							{format(new Date(`${selectedMonth}-01`), "MMMM yyyy")}
@@ -356,7 +356,7 @@ const MonthlyOverheads = () => {
 					<div className="stat">
 						<div className="stat-title">Paid</div>
 						<div className="stat-value text-success">
-							฿{formatCurrency(stats.paid)}
+							Ks{formatCurrency(stats.paid)}
 						</div>
 						<div className="stat-desc">
 							<div className="flex items-center gap-1">
@@ -374,7 +374,7 @@ const MonthlyOverheads = () => {
 					<div className="stat">
 						<div className="stat-title">Pending</div>
 						<div className="stat-value text-warning">
-							฿{formatCurrency(stats.pending)}
+							Ks{formatCurrency(stats.pending)}
 						</div>
 						<div className="stat-desc">
 							<div className="flex items-center gap-1">
@@ -392,7 +392,7 @@ const MonthlyOverheads = () => {
 					<div className="stat">
 						<div className="stat-title">Overdue</div>
 						<div className="stat-value text-error">
-							฿{formatCurrency(stats.overdue)}
+							Ks{formatCurrency(stats.overdue)}
 						</div>
 						<div className="stat-desc">
 							<div className="flex items-center gap-1">
@@ -475,7 +475,7 @@ const MonthlyOverheads = () => {
 														</span>
 													</td>
 													<td className="font-bold text-error">
-														฿{formatCurrency(overhead.amount)}
+														Ks{formatCurrency(overhead.amount)}
 													</td>
 													<td>
 														{overhead.due_date
@@ -538,7 +538,7 @@ const MonthlyOverheads = () => {
 																				<span className="font-medium">
 																					Amount:
 																				</span>{" "}
-																				฿{formatCurrency(overhead.amount)}
+																				Ks{formatCurrency(overhead.amount)}
 																			</p>
 																			{overhead.due_date && (
 																				<p className="text-sm">
@@ -625,7 +625,7 @@ const MonthlyOverheads = () => {
 
 									<div className="form-control">
 										<label className="label">
-											<span className="label-text">Amount (฿) *</span>
+											<span className="label-text">Amount (Ks) *</span>
 										</label>
 										<input
 											type="number"

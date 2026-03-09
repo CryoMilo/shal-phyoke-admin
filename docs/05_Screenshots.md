@@ -1,61 +1,71 @@
 # Screenshots Documentation: Highground Beta
 
-This document provides a guide for the visual assets required to complete the Highground Beta project report.
+This document provides a guide for the visual assets required to complete the Highground Beta project report. Each section requires one high-quality full-page screenshot followed by a description of the core interactions.
 
 ---
 
 ## 1. Dashboard Overview
-**Objective:** Showcase the high-level operational pulse of the business.
-- **Full Page Screenshot:** Capture the entire dashboard including the sidebar and the main analytics grid.
-- **Key Interactions:** 
-    - Hover state over the "Sales Trend" Recharts line chart.
-    - Close-up of "Summary Cards" showing total orders and active inventory alerts.
+
+**Full Page Screenshot:** Capture the entire dashboard including the sidebar, summary cards, and analytics charts.
+
+**Key Interactions:**
+
+- **Real-time Revenue Tracking:** Oversee 'Cash' and 'QR' payment to see instant breakdowns.
+- **Dynamic Expense Ratios:** Automated percentage calculation of daily expenses relative to total income.
+- **Overhead Cost Projection:** Interactive tooltip showing the daily breakdown of monthly recurring costs.
+- **Profit/Loss Visualization:** Color-coded status indicators (Green/Red) that update instantly as financial data is entered.
+- **Trend Analysis:** Hovering over the performance line chart to reveal timestamped revenue data points.
 
 ---
 
 ## 2. Inventory Management
-**Objective:** Demonstrate the precision of stock tracking and vendor association.
-- **Full Page Screenshot:** The "Inventory Items" table filtered by a specific category (e.g., 'Meat').
-- **Key Interactions:**
-    - **Quick Update:** Modal showing the quantity adjustment flow.
-    - **Threshold Alert:** Close-up of the red badge indicating an item is below its threshold.
-- **Workflow:** 
-    1. Clicking "Edit Item".
-    2. Modifying the "Default Vendor".
-    3. Success toast notification appearance.
+
+**Full Page Screenshot:** The inventory grid showing categorized items, live stock levels, and status badges.
+
+**Key Interactions:**
+
+- **Inline Stock Control:** Rapid adjustment of item quantities using +/- increment buttons with optimistic UI updates.
+- **Threshold-Driven Alerting:** Automatic "Low Stock" badge triggering when items fall below their defined safety level.
+- **Supplier Filtering:** One-click vendor chip navigation to isolate inventory by specific supplier.
+- **Stock Type Categorization:** Visual distinction between 'Regular' daily stock and 'Occasional' specialty items.
+- **Real-time Synchronization:** Visual feedback when stock levels are updated by another user in the system.
 
 ---
 
 ## 3. Procurement & Market List
-**Objective:** Show how the system automates ordering workflows.
-- **Full Page Screenshot:** The "Procurement" page showing the generated Market List for a specific vendor.
-- **Key Interactions:**
-    - **Vendor Filter:** The multi-select dropdown for choosing which vendors to display.
-    - **Confirmation Modal:** The "Confirm Order" dialog summarizing the total items.
+
+**Full Page Screenshot:** The "Market List" tab showing items grouped by vendor and pending confirmation.
+
+**Key Interactions:**
+
+- **Automated List Generation:** System automatically populates the list based on current inventory vs. thresholds.
+- **Vendor-Specific Filtering:** Multi-select dropdown to isolate orders for specific suppliers.
+- **Custom Item Injection:** Ability to add non-inventory items to a one-time market list via modal.
+- **Inline Order Editing:** Modifying target quantities and adding procurement notes before final confirmation.
+- **Procurement Lifecycle Management:** Seamless status transitions from 'Pending' to 'Confirmed' to 'Received'.
 
 ---
 
-## 4. Order Board
-**Objective:** Showcase the real-time operational capability.
-- **Full Page Screenshot:** The "Active Orders" tab showing multiple order cards across different status columns.
-- **Key Interactions:**
-    - **Status Transition:** The dropdown menu within an order card changing from "Pending" to "Preparing".
-    - **Order Details:** The "Order Details Modal" showing itemized breakdowns and customer information.
+## 4. All Menu Items
+
+**Full Page Screenshot:** The master table view of all menu offerings with pricing and availability status.
+
+**Key Interactions:**
+
+- **Category Quick-Filtering:** Rapid navigation between 'Main', 'Sides', and 'Drinks' using dedicated button groups.
+- **CRUD Operations:** Full record management (Create, Read, Update, Delete) restricted to authenticated administrative users.
+- **Master Availability Toggle:** Instant status switching between 'Available' and 'Sold Out' to control public visibility.
+- **High-Resolution Image Previews:** Visual verification of menu photography through hover-based thumbnail expansion.
 
 ---
 
 ## 5. Weekly Menu Builder
-**Objective:** Display the dynamic scheduling and AI integration features.
-- **Full Page Screenshot:** The weekly grid view with multiple days populated with menu items.
-- **Key Interactions:**
-    - **Image Upload:** The drag-and-drop interface for menu images.
-    - **AI Processing:** A screenshot showing the "Processing Image..." state when Gemini is extracting menu data.
 
----
+**Full Page Screenshot:** The 7-day grid interface with menu items scheduled across the week.
 
-## 6. Financial Analytics
-**Objective:** Document the business intelligence and overhead tracking.
-- **Full Page Screenshot:** The "Monthly Overheads" list and its corresponding summary chart.
-- **Key Interactions:**
-    - **Expense Modal:** The form for adding a new "Daily Expense" with category selection.
-    - **Category Breakdown:** A close-up of the Pie Chart showing expense distribution.
+**Key Interactions:**
+
+- **Drag-and-Drop Scheduling:** Moving menu items from the master list into specific time slots on the calendar.
+- **Gemini AI Extraction:** Uploading a photo of a physical menu for automated text and price parsing.
+- **Live Publication Control:** A single action to push the scheduled weekly menu to production.
+- **Rapid Planning Tools:** Batch editing features like 'Clear All' or 'Duplicate Day' for faster scheduling.

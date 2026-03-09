@@ -54,13 +54,13 @@ const OrderCard = ({ order, onUpdate }) => {
 								<span className="text-warning"> *</span>
 							)}
 						</span>
-						<span>฿{item.price * item.quantity}</span>
+						<span>Ks{item.price * item.quantity}</span>
 					</div>
 				))}
 			</div>
 
 			<div className="flex justify-between items-center border-t pt-2">
-				<span className="font-bold">฿{order.total_amount}</span>
+				<span className="font-bold">Ks{order.total_amount}</span>
 				<div className="flex gap-1">
 					{order.order_status === "pending" && (
 						<button

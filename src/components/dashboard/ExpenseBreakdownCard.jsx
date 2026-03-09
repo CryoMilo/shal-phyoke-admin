@@ -29,7 +29,7 @@ export const ExpenseBreakdownCard = ({ salesData }) => {
 				<div className="flex justify-between items-center mb-4">
 					<h3 className="card-title">Expense Breakdown</h3>
 					<span className="badge badge-error">
-						Total: ฿{totalExpenses.toFixed(2)}
+						Total: Ks{totalExpenses.toFixed(2)}
 					</span>
 				</div>
 
@@ -42,7 +42,7 @@ export const ExpenseBreakdownCard = ({ salesData }) => {
 								<TrendingDown className="w-4 h-4 text-error" />
 								Daily Expenses
 								<span className="badge badge-sm">
-									฿{salesData.totalDailyExpenses.toFixed(2)}
+									Ks{salesData.totalDailyExpenses.toFixed(2)}
 								</span>
 							</h4>
 							<span className="text-sm text-gray-500">
@@ -60,7 +60,7 @@ export const ExpenseBreakdownCard = ({ salesData }) => {
 											<div className="flex justify-between text-sm">
 												<span>{formatCategory(category)}</span>
 												<span className="font-medium">
-													฿{amount.toFixed(2)}
+													Ks{amount.toFixed(2)}
 												</span>
 											</div>
 											<progress
@@ -85,7 +85,7 @@ export const ExpenseBreakdownCard = ({ salesData }) => {
 								<Calendar className="w-4 h-4 text-warning" />
 								Overhead Cost (Today's Portion)
 								<span className="badge badge-sm badge-warning">
-									฿{todayOverheadCost.toFixed(2)}
+									Ks{todayOverheadCost.toFixed(2)}
 								</span>
 							</h4>
 							<span className="text-sm text-gray-500">
@@ -98,19 +98,19 @@ export const ExpenseBreakdownCard = ({ salesData }) => {
 								<div className="flex justify-between text-sm">
 									<span>Daily Allocation</span>
 									<span className="font-medium">
-										฿{todayOverheadCost.toFixed(2)}
+										Ks{todayOverheadCost.toFixed(2)}
 									</span>
 								</div>
 								<div className="flex justify-between text-sm">
 									<span>Monthly Total</span>
 									<span className="font-medium">
-										฿{salesData.totalMonthlyOverheads?.toFixed(2) || "0.00"}
+										Ks{salesData.totalMonthlyOverheads?.toFixed(2) || "0.00"}
 									</span>
 								</div>
 								<div className="flex justify-between text-sm">
 									<span>Pending</span>
 									<span className="font-medium text-warning">
-										฿{salesData.pendingOverheads?.toFixed(2) || "0.00"}
+										Ks{salesData.pendingOverheads?.toFixed(2) || "0.00"}
 									</span>
 								</div>
 								{salesData.overdueOverheads > 0 && (
@@ -120,7 +120,7 @@ export const ExpenseBreakdownCard = ({ salesData }) => {
 											Overdue
 										</span>
 										<span className="font-medium">
-											฿{salesData.overdueOverheads?.toFixed(2) || "0.00"}
+											Ks{salesData.overdueOverheads?.toFixed(2) || "0.00"}
 										</span>
 									</div>
 								)}

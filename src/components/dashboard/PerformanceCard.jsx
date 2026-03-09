@@ -15,7 +15,7 @@ export const PerformanceCard = ({ salesData }) => {
 						<div className="text-right">
 							<p className="text-sm text-base-content/70">Avg Value</p>
 							<p className="text-lg font-semibold">
-								฿{salesData.avgOrderValue.toFixed(2)}
+								Ks{salesData.avgOrderValue.toFixed(2)}
 							</p>
 						</div>
 					</div>
@@ -45,19 +45,19 @@ export const PerformanceCard = ({ salesData }) => {
 							<div className="flex justify-between">
 								<span>Cash Sales</span>
 								<span className="font-medium">
-									฿{salesData.cashSales.toFixed(2)}
+									Ks{salesData.cashSales.toFixed(2)}
 								</span>
 							</div>
 							<div className="flex justify-between">
 								<span>QR Sales</span>
 								<span className="font-medium">
-									฿{salesData.qrSales.toFixed(2)}
+									Ks{salesData.qrSales.toFixed(2)}
 								</span>
 							</div>
 							<div className="flex justify-between border-t pt-2">
 								<span className="font-medium">Total</span>
 								<span className="font-bold">
-									฿{salesData.totalIncome.toFixed(2)}
+									Ks{salesData.totalIncome.toFixed(2)}
 								</span>
 							</div>
 						</div>

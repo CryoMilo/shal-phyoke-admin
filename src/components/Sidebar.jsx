@@ -90,11 +90,11 @@ const Sidebar = () => {
 			path: "/weekly-menu",
 			icon: Calendar,
 		},
-		{
-			name: "Orders",
-			path: "/orders",
-			icon: ShoppingBasket,
-		},
+		// {
+		// 	name: "Orders",
+		// 	path: "/orders",
+		// 	icon: ShoppingBasket,
+		// },
 	];
 
 	return (

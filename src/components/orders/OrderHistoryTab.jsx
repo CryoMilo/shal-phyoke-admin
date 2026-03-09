@@ -55,7 +55,7 @@ const OrderHistoryTab = () => {
 											: "Delivery"}
 									</span>
 								</td>
-								<td className="font-mono">฿{order.total_amount}</td>
+								<td className="font-mono">Ks{order.total_amount}</td>
 								<td>
 									<span
 										className={`badge ${

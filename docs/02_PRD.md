@@ -19,9 +19,15 @@
 - **Order Status Control:** Intuitive status transitions (Pending, Preparing, Ready, Delivered, Cancelled).
 
 ### 4. Menu Management (P1)
-- **Dynamic Menu Control:** Enable/disable menu items based on real-time ingredient availability.
-- **Weekly Menu Builder:** Scheduling and publishing functionality for recurring weekly menus.
-- **Menu Images:** Support for high-quality visuals and automated image processing via AI/Gemini.
+**All Menu Items Master Dashboard**
+- **Dual Catalog Management:** Seamlessly manage both 'Regular' fixed menu items and 'Rotating' daily specials from a single unified interface.
+- **Dynamic Availability Control:** Granular toggle for kitchen staff to mark items as 'Available' or 'Sold Out' in real-time, preventing customer disappointment.
+- **Advanced Category-Specific Navigation:** Contextual button groups for 'Main Dishes', 'Sides', 'Drinks', and 'Add-ons' to simplify large catalog browsing.
+- **Intelligent Filtering & Search:** High-performance search capability (by name or ingredient) combined with 'Active-only' and 'Regular-only' toggles for rapid auditing.
+- **Secure CRUD & Media Operations:** Role-based management for menu creation, pricing updates, and high-resolution dish photography uploads.
+- **Weekly Menu Integration:** Direct linking of master menu items to the scheduling engine for automated weekly menu generation.
+- **AI-Assisted Processing:** Utilization of Gemini 1.5 Flash to parse and extract data from existing physical menu uploads to accelerate catalog expansion.
+
 
 ### 5. Financial Tracking (P1)
 - **Daily Cash Flow:** Tracking of daily income and petty cash expenditures.

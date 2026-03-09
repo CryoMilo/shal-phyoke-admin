@@ -64,7 +64,7 @@ export const ItemDetailsModal = ({
 								<Calendar className="w-4 h-4 text-base-content/70" />
 								<span className="text-sm text-base-content/70">
 									{itemDetails.length} items • {totalQuantity} total quantity •
-									฿{totalRevenue.toFixed(2)} total revenue
+									Ks{totalRevenue.toFixed(2)} total revenue
 								</span>
 								{isHistorical && (
 									<span className="badge badge-sm badge-warning">
@@ -134,7 +134,7 @@ export const ItemDetailsModal = ({
 											</span>
 										</td>
 										<td className="text-right font-mono">
-											฿{item.price.toFixed(2)}
+											Ks{item.price.toFixed(2)}
 										</td>
 										<td className="text-right">
 											<span className="badge badge-lg font-mono">
@@ -142,10 +142,10 @@ export const ItemDetailsModal = ({
 											</span>
 										</td>
 										<td className="text-right font-mono font-semibold">
-											฿{item.total_revenue.toFixed(2)}
+											Ks{item.total_revenue.toFixed(2)}
 										</td>
 										<td className="text-right font-mono">
-											฿{item.avg_price.toFixed(2)}
+											Ks{item.avg_price.toFixed(2)}
 										</td>
 										<td className="text-right">
 											<div className="flex items-center justify-end">
@@ -164,10 +164,10 @@ export const ItemDetailsModal = ({
 									</td>
 									<td className="text-right text-lg">{totalQuantity}</td>
 									<td className="text-right text-lg text-primary">
-										฿{totalRevenue.toFixed(2)}
+										Ks{totalRevenue.toFixed(2)}
 									</td>
 									<td className="text-right font-mono">
-										฿{avgItemPrice.toFixed(2)}
+										Ks{avgItemPrice.toFixed(2)}
 									</td>
 									<td className="text-right">100%</td>
 									<td></td>

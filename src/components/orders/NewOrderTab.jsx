@@ -290,7 +290,7 @@ const NewOrderTab = ({
 										{item.name_english}
 									</p>
 								)}
-								<p className="text-primary font-bold mt-1">฿{item.price}</p>
+								<p className="text-primary font-bold mt-1">Ks{item.price}</p>
 								{/* Debug info - remove in production */}
 								{/* {process.env.NODE_ENV === "development" && (
 									<p className="text-xs text-gray-400 mt-1">
@@ -319,7 +319,7 @@ const NewOrderTab = ({
 								<div className="flex-1">
 									<div className="font-medium text-sm">{item.name_burmese}</div>
 									<div className="text-xs text-base-content/70">
-										฿{item.price} × {item.quantity} = ฿
+										Ks{item.price} × {item.quantity} = Ks
 										{item.price * item.quantity}
 									</div>
 								</div>
@@ -360,7 +360,7 @@ const NewOrderTab = ({
 				<div className="border-t pt-4 space-y-2">
 					<div className="flex justify-between">
 						<span>Subtotal:</span>
-						<span>฿{subtotal.toFixed(2)}</span>
+						<span>Ks{subtotal.toFixed(2)}</span>
 					</div>
 					<div className="flex justify-between">
 						<span>Discount:</span>
@@ -373,12 +373,12 @@ const NewOrderTab = ({
 								min="0"
 								max={subtotal}
 							/>
-							<span>฿</span>
+							<span>Ks</span>
 						</div>
 					</div>
 					<div className="flex justify-between font-bold text-lg border-t pt-2">
 						<span>Total:</span>
-						<span>฿{totalAmount.toFixed(2)}</span>
+						<span>Ks{totalAmount.toFixed(2)}</span>
 					</div>
 				</div>
 
@@ -424,7 +424,7 @@ const NewOrderTab = ({
 						className="btn btn-primary w-full"
 						disabled={cart.length === 0}
 						onClick={processOrder}>
-						Process Order - ฿{totalAmount.toFixed(2)}
+						Process Order - Ks{totalAmount.toFixed(2)}
 					</button>
 					<button className="btn btn-outline w-full" onClick={clearCart}>
 						Clear Order

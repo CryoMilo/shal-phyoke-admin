@@ -39,8 +39,13 @@ const RegularMenuCard = ({
 						className="w-full h-full object-cover"
 						onError={(e) => {
 							e.target.style.display = "none";
-							e.target.parentElement.classList.add("flex", "items-center", "justify-center");
-							e.target.parentElement.innerHTML = '<span class="text-gray-400 text-sm">No Image</span>';
+							e.target.parentElement.classList.add(
+								"flex",
+								"items-center",
+								"justify-center"
+							);
+							e.target.parentElement.innerHTML =
+								'<span class="text-gray-400 text-sm">No Image</span>';
 						}}
 					/>
 				) : (
@@ -78,14 +83,12 @@ const RegularMenuCard = ({
 
 				{/* Price */}
 				<div className="text-xl font-bold text-primary mt-2">
-					฿{menu.price}
+					Ks{menu.price}
 				</div>
 
 				{/* Taste Profile */}
 				{menu.taste_profile && (
-					<p className="text-xs text-gray-500 mt-1">
-						{menu.taste_profile}
-					</p>
+					<p className="text-xs text-gray-500 mt-1">{menu.taste_profile}</p>
 				)}
 
 				{/* Actions */}
@@ -96,7 +99,9 @@ const RegularMenuCard = ({
 							menu.is_active ? "btn-warning" : "btn-success"
 						}`}
 						onClick={handleToggleStatus}
-						title={menu.is_active ? "Mark as Out of Stock" : "Mark as Available"}>
+						title={
+							menu.is_active ? "Mark as Out of Stock" : "Mark as Available"
+						}>
 						{menu.is_active ? "Out of Stock" : "Mark Available"}
 					</button>
 

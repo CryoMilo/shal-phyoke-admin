@@ -32,7 +32,7 @@ const MenuTable = ({
 							<td>
 								<span className="badge badge-outline">{menu.category}</span>
 							</td>
-							<td>฿{menu.price}</td>
+							<td>Ks{menu.price}</td>
 							<td>
 								<button
 									onClick={() => toggleMenuStatus(menu.id)}
