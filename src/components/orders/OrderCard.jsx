@@ -6,7 +6,7 @@ const OrderCard = ({ order, onUpdate }) => {
 		try {
 			const { error } = await supabase
 				.from("orders")
-				.update({ order_status: newStatus })
+				.update({ pos_order_status: newStatus }) // ✅ Fixed: changed from order_status to pos_order_status
 				.eq("id", order.id);
 
 			if (error) throw error;
@@ -20,7 +20,11 @@ const OrderCard = ({ order, onUpdate }) => {
 		<div className="bg-base-100 border border-base-300 rounded-lg p-4">
 			<div className="flex justify-between items-start mb-2">
 				<div>
-					<h3 className="font-bold font-mono">{order.table_number}</h3>
+					<h3 className="font-bold font-mono">
+						{order.order_type === "dine_in"
+							? `Table ${order.table_number}`
+							: order.order_number || `#${order.id.slice(0, 8)}`}
+					</h3>
 					<span className="badge badge-ghost badge-sm">
 						{order.order_type === "dine_in"
 							? `Dine In${order.table_number ? ` T${order.table_number}` : ""}`
@@ -31,13 +35,13 @@ const OrderCard = ({ order, onUpdate }) => {
 				</div>
 				<span
 					className={`badge ${
-						order.order_status === "ready"
+						order.pos_order_status === "ready" // ✅ Fixed
 							? "badge-success"
-							: order.order_status === "preparing"
+							: order.pos_order_status === "preparing" // ✅ Fixed
 							? "badge-warning"
 							: "badge-secondary"
 					}`}>
-					{order.order_status}
+					{order.pos_order_status} {/* ✅ Fixed */}
 				</span>
 			</div>
 
@@ -49,8 +53,8 @@ const OrderCard = ({ order, onUpdate }) => {
 				{order.order_items.map((item, index) => (
 					<div key={index} className="flex justify-between">
 						<span>
-							{item.quantity}x {item.name_burmese}
-							{item.item_notes?.[item.id] && (
+							{item.quantity}x {item.name_burmese || item.name_english}
+							{order.item_notes?.[item.id] && (
 								<span className="text-warning"> *</span>
 							)}
 						</span>
@@ -62,21 +66,21 @@ const OrderCard = ({ order, onUpdate }) => {
 			<div className="flex justify-between items-center border-t pt-2">
 				<span className="font-bold">฿{order.total_amount}</span>
 				<div className="flex gap-1">
-					{order.order_status === "pending" && (
+					{order.pos_order_status === "pending" && ( // ✅ Fixed
 						<button
 							className="btn btn-xs btn-primary"
 							onClick={() => updateOrderStatus("preparing")}>
 							Start
 						</button>
 					)}
-					{order.order_status === "preparing" && (
+					{order.pos_order_status === "preparing" && ( // ✅ Fixed
 						<button
 							className="btn btn-xs btn-success"
 							onClick={() => updateOrderStatus("ready")}>
 							Ready
 						</button>
 					)}
-					{order.order_status === "ready" && (
+					{order.pos_order_status === "ready" && ( // ✅ Fixed
 						<button
 							className="btn btn-xs btn-secondary"
 							onClick={() => updateOrderStatus("completed")}>

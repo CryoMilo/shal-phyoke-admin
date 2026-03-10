@@ -15,7 +15,7 @@ const ActiveOrdersTab = () => {
 			const { data, error } = await supabase
 				.from("orders")
 				.select("*")
-				.in("pos_order_status", ["pending", "preparing", "ready"])
+				.in("pos_order_status", ["pending", "preparing", "ready"]) // ✅ Fixed
 				.order("created_at", { ascending: true });
 
 			if (error) throw error;

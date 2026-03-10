@@ -1,88 +1,47 @@
 // components/OrderHistoryTab.jsx
 import React, { useState, useEffect } from "react";
 import { supabase } from "../../services/supabase";
+import OrderCard from "./OrderCard";
 
 const OrderHistoryTab = () => {
-	const [orders, setOrders] = useState([]);
+	const [completedOrders, setCompletedOrders] = useState([]);
 
 	useEffect(() => {
-		fetchOrderHistory();
+		fetchCompletedOrders();
 	}, []);
 
-	const fetchOrderHistory = async () => {
+	const fetchCompletedOrders = async () => {
 		try {
 			const { data, error } = await supabase
 				.from("orders")
 				.select("*")
-				.in("pos_order_status", ["completed", "cancelled"])
+				.eq("pos_order_status", "completed") // ✅ Fixed
 				.order("created_at", { ascending: false })
 				.limit(50);
 
 			if (error) throw error;
-			setOrders(data || []);
+			setCompletedOrders(data || []);
 		} catch (error) {
-			console.error("Error fetching order history:", error);
+			console.error("Error fetching completed orders:", error);
 		}
 	};
 
 	return (
 		<div>
 			<h2 className="text-xl font-bold mb-4">Order History</h2>
-			<div className="overflow-x-auto">
-				<table className="table table-zebra w-full">
-					<thead>
-						<tr>
-							<th>Order #</th>
-							<th>Type</th>
-							<th>Total</th>
-							<th>Status</th>
-							<th>Payment</th>
-							<th>Time</th>
-						</tr>
-					</thead>
-					<tbody>
-						{orders.map((order) => (
-							<tr key={order.id}>
-								<td className="font-mono">{order.order_number}</td>
-								<td>
-									<span className="badge badge-ghost">
-										{order.order_type === "dine_in"
-											? `Dine In${
-													order.table_number ? ` (T${order.table_number})` : ""
-											  }`
-											: order.order_type === "takeaway"
-											? "Takeaway"
-											: "Delivery"}
-									</span>
-								</td>
-								<td className="font-mono">฿{order.total_amount}</td>
-								<td>
-									<span
-										className={`badge ${
-											order.pos_order_status === "completed"
-												? "badge-success"
-												: order.pos_order_status === "cancelled"
-												? "badge-error"
-												: "badge-warning"
-										}`}>
-										{order.pos_order_status}
-									</span>
-								</td>
-								<td>
-									<span
-										className={`badge ${
-											order.payment_status === "paid"
-												? "badge-success"
-												: "badge-warning"
-										}`}>
-										{order.payment_status}
-									</span>
-								</td>
-								<td>{new Date(order.created_at).toLocaleTimeString()}</td>
-							</tr>
-						))}
-					</tbody>
-				</table>
+			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+				{completedOrders.map((order) => (
+					<OrderCard
+						key={order.id}
+						order={order}
+						onUpdate={fetchCompletedOrders}
+					/>
+				))}
+				{completedOrders.length === 0 && (
+					<div className="col-span-full text-center py-8 text-base-content/50">
+						No completed orders
+					</div>
+				)}
 			</div>
 		</div>
 	);
