@@ -1,6 +1,7 @@
 // components/NewOrderTab.jsx
 import React, { useState, useEffect } from "react";
 import { supabase } from "../../services/supabase";
+import ItemNoteModal from "./ItemNoteModal";
 
 const getTodayWeekday = () => {
 	const d = new Date();
@@ -42,6 +43,10 @@ const NewOrderTab = ({
 	const [menuItems, setMenuItems] = useState([]);
 	const [todaysSpecialItems, setTodaysSpecialItems] = useState([]);
 	const [activeCategory, setActiveCategory] = useState("Today's Special");
+
+	// State for Item Note Modal
+	const [showNoteModal, setShowNoteModal] = useState(false);
+	const [activeItemForNote, setActiveItemForNote] = useState(null);
 
 	const fetchMenuItems = async () => {
 		try {
@@ -141,6 +146,22 @@ const NewOrderTab = ({
 			setActiveCategory(categories[0]);
 		}
 	}, [categories, activeCategory]);
+
+	// Item Note Modal Logic
+	const openNoteModal = (item) => {
+		// Include the current note in the item object passed to the modal
+		setActiveItemForNote({
+			...item,
+			note: itemNotes[item.id] || "",
+		});
+		setShowNoteModal(true);
+	};
+
+	const handleSaveNote = (combinedNote) => {
+		updateItemNote(activeItemForNote.id, combinedNote);
+		setShowNoteModal(false);
+		setActiveItemForNote(null);
+	};
 
 	return (
 		<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -262,13 +283,6 @@ const NewOrderTab = ({
 					))}
 				</div>
 
-				{/* Debug info - remove in production */}
-				{/* {process.env.NODE_ENV === "development" && (
-					<div className="text-xs text-gray-500 mb-2">
-						Debug: {filteredItems.length} items in {activeCategory}
-					</div>
-				)} */}
-
 				{/* Menu Items Grid */}
 				<div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
 					{filteredItems.length > 0 ? (
@@ -291,12 +305,6 @@ const NewOrderTab = ({
 									</p>
 								)}
 								<p className="text-primary font-bold mt-1">฿{item.price}</p>
-								{/* Debug info - remove in production */}
-								{/* {process.env.NODE_ENV === "development" && (
-									<p className="text-xs text-gray-400 mt-1">
-										Cat: {item.category}
-									</p>
-								)} */}
 							</div>
 						))
 					) : (
@@ -339,14 +347,26 @@ const NewOrderTab = ({
 									</button>
 								</div>
 							</div>
-							{/* Item-specific notes */}
-							<input
-								type="text"
-								placeholder="Add note for this item..."
-								className="input input-bordered input-xs w-full mt-1"
-								value={itemNotes[item.id] || ""}
-								onChange={(e) => updateItemNote(item.id, e.target.value)}
-							/>
+
+							{/* Item-specific notes button */}
+							<div className="mt-1">
+								{itemNotes[item.id] && (
+									<div className="text-[10px] text-accent font-medium mb-1 line-clamp-2 italic">
+										"{itemNotes[item.id]}"
+									</div>
+								)}
+								<button
+									className={`btn btn-xs w-full justify-start gap-2 ${
+										itemNotes[item.id]
+											? "btn-accent btn-outline"
+											: "btn-ghost border-base-300"
+									}`}
+									onClick={() => openNoteModal(item)}>
+									<span className="text-[10px]">
+										{itemNotes[item.id] ? "Edit Note" : "+ Add Note"}
+									</span>
+								</button>
+							</div>
 						</div>
 					))}
 					{cart.length === 0 && (
@@ -431,6 +451,14 @@ const NewOrderTab = ({
 					</button>
 				</div>
 			</div>
+
+			{/* Item Note Modal */}
+			<ItemNoteModal
+				show={showNoteModal}
+				item={activeItemForNote}
+				onClose={() => setShowNoteModal(false)}
+				onSave={handleSaveNote}
+			/>
 		</div>
 	);
 };
