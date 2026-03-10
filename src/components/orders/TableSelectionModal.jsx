@@ -1,9 +1,10 @@
 // components/TableSelectionModal.jsx
-const TableSelectionModal = ({ tableNumber, setTableNumber, onClose }) => {
+const TableSelectionModal = ({ show, onClose, onSelect, selectedTable }) => {
+	if (!show) return null;
 	const tables = Array.from({ length: 20 }, (_, i) => i + 1);
 
 	return (
-		<div className="modal modal-open">
+		<div className="modal modal-open z-[60]">
 			<div className="modal-box">
 				<h3 className="font-bold text-lg mb-4">Select Table Number</h3>
 				<div className="grid grid-cols-5 gap-2">
@@ -11,10 +12,10 @@ const TableSelectionModal = ({ tableNumber, setTableNumber, onClose }) => {
 						<button
 							key={table}
 							className={`btn btn-sm ${
-								tableNumber === table ? "btn-primary" : "btn-outline"
+								selectedTable === table ? "btn-primary" : "btn-outline"
 							}`}
 							onClick={() => {
-								setTableNumber(table);
+								onSelect(table);
 								onClose();
 							}}>
 							{table}
@@ -27,6 +28,7 @@ const TableSelectionModal = ({ tableNumber, setTableNumber, onClose }) => {
 					</button>
 				</div>
 			</div>
+			<div className="modal-backdrop bg-black/40" onClick={onClose}></div>
 		</div>
 	);
 };

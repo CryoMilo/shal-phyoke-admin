@@ -1,6 +1,7 @@
 // components/NewOrderTab.jsx
 import React, { useState, useEffect } from "react";
 import { supabase } from "../../services/supabase";
+import { Split } from "lucide-react";
 import ItemNoteModal from "./ItemNoteModal";
 
 const getTodayWeekday = () => {
@@ -37,6 +38,7 @@ const NewOrderTab = ({
 	totalAmount,
 	addToCart,
 	updateQuantity,
+	splitItem,
 	clearCart,
 	processOrder,
 }) => {
@@ -149,16 +151,16 @@ const NewOrderTab = ({
 
 	// Item Note Modal Logic
 	const openNoteModal = (item) => {
-		// Include the current note in the item object passed to the modal
+		// IMPORTANT: Using cart_id now for unique notes
 		setActiveItemForNote({
 			...item,
-			note: itemNotes[item.id] || "",
+			note: itemNotes[item.cart_id] || "",
 		});
 		setShowNoteModal(true);
 	};
 
 	const handleSaveNote = (combinedNote) => {
-		updateItemNote(activeItemForNote.id, combinedNote);
+		updateItemNote(activeItemForNote.cart_id, combinedNote);
 		setShowNoteModal(false);
 		setActiveItemForNote(null);
 	};
@@ -270,7 +272,7 @@ const NewOrderTab = ({
 				)}
 
 				{/* Menu Categories */}
-				<div className="flex gap-2 mb-4 overflow-x-auto">
+				<div className="flex gap-2 mb-4 overflow-x-auto pb-2">
 					{categories.map((category) => (
 						<button
 							key={category}
@@ -320,52 +322,66 @@ const NewOrderTab = ({
 				<h2 className="text-lg font-bold mb-4">Current Order</h2>
 
 				{/* Cart Items */}
-				<div className="space-y-2 mb-4 max-h-96 overflow-y-auto">
+				<div className="space-y-2 mb-4 max-h-[50vh] overflow-y-auto">
 					{cart.map((item) => (
-						<div key={item.id} className="bg-base-100 p-2 rounded border">
+						<div
+							key={item.cart_id}
+							className="bg-base-100 p-2 rounded border border-base-300 shadow-sm">
 							<div className="flex justify-between items-start mb-1">
 								<div className="flex-1">
 									<div className="font-medium text-sm">{item.name_burmese}</div>
-									<div className="text-xs text-base-content/70">
+									<div className="text-[10px] text-base-content/70">
 										฿{item.price} × {item.quantity} = ฿
 										{item.price * item.quantity}
 									</div>
 								</div>
-								<div className="flex items-center gap-1">
+								<div className="flex items-center gap-1 bg-base-200 rounded-full px-1">
 									<button
-										className="btn btn-xs btn-circle"
-										onClick={() => updateQuantity(item.id, -1)}>
+										className="btn btn-xs btn-circle btn-ghost"
+										onClick={() => updateQuantity(item.cart_id, -1)}>
 										-
 									</button>
-									<span className="font-mono w-6 text-center">
+									<span className="font-mono text-xs w-4 text-center">
 										{item.quantity}
 									</span>
 									<button
-										className="btn btn-xs btn-circle"
-										onClick={() => updateQuantity(item.id, 1)}>
+										className="btn btn-xs btn-circle btn-ghost"
+										onClick={() => updateQuantity(item.cart_id, 1)}>
 										+
 									</button>
 								</div>
 							</div>
 
-							{/* Item-specific notes button */}
-							<div className="mt-1">
-								{itemNotes[item.id] && (
-									<div className="text-[10px] text-accent font-medium mb-1 line-clamp-2 italic">
-										"{itemNotes[item.id]}"
-									</div>
+							{/* Note & Split Actions */}
+							<div className="mt-2 flex gap-1 items-center">
+								{/* Split Button - Only show if quantity > 1 */}
+								{item.quantity > 1 && (
+									<button
+										className="btn btn-xs btn-circle bg-base-200 text-primary hover:bg-primary hover:text-white border-none"
+										title="Split into separate lines"
+										onClick={() => splitItem(item.cart_id)}>
+										<Split className="w-3.5 h-3.5" />
+									</button>
 								)}
-								<button
-									className={`btn btn-xs w-full justify-start gap-2 ${
-										itemNotes[item.id]
-											? "btn-accent btn-outline"
-											: "btn-ghost border-base-300"
-									}`}
-									onClick={() => openNoteModal(item)}>
-									<span className="text-[10px]">
-										{itemNotes[item.id] ? "Edit Note" : "+ Add Note"}
-									</span>
-								</button>
+
+								<div className="flex-1">
+									{itemNotes[item.cart_id] && (
+										<div className="text-[10px] text-primary font-bold mb-1 line-clamp-1 italic px-1">
+											"{itemNotes[item.cart_id]}"
+										</div>
+									)}
+									<button
+										className={`btn btn-xs w-full justify-start gap-2 ${
+											itemNotes[item.cart_id]
+												? "btn-primary btn-outline"
+												: "btn-ghost border-base-300"
+										}`}
+										onClick={() => openNoteModal(item)}>
+										<span className="text-[10px]">
+											{itemNotes[item.cart_id] ? "Edit Note" : "+ Add Note"}
+										</span>
+									</button>
+								</div>
 							</div>
 						</div>
 					))}
@@ -377,17 +393,17 @@ const NewOrderTab = ({
 				</div>
 
 				{/* Totals */}
-				<div className="border-t pt-4 space-y-2">
-					<div className="flex justify-between">
+				<div className="border-t border-base-300 pt-4 space-y-2">
+					<div className="flex justify-between text-sm">
 						<span>Subtotal:</span>
 						<span>฿{subtotal.toFixed(2)}</span>
 					</div>
-					<div className="flex justify-between">
+					<div className="flex justify-between text-sm">
 						<span>Discount:</span>
 						<div className="flex items-center gap-2">
 							<input
 								type="number"
-								className="input input-bordered input-sm w-20"
+								className="input input-bordered input-xs w-20"
 								value={discountAmount}
 								onChange={(e) => setDiscountAmount(Number(e.target.value))}
 								min="0"
@@ -396,7 +412,7 @@ const NewOrderTab = ({
 							<span>฿</span>
 						</div>
 					</div>
-					<div className="flex justify-between font-bold text-lg border-t pt-2">
+					<div className="flex justify-between font-bold text-lg border-t border-base-300 pt-2">
 						<span>Total:</span>
 						<span>฿{totalAmount.toFixed(2)}</span>
 					</div>
@@ -404,14 +420,16 @@ const NewOrderTab = ({
 
 				{/* Payment Method */}
 				<div className="mt-4">
-					<label className="label">
-						<span className="label-text font-semibold">Payment Method</span>
+					<label className="label py-1">
+						<span className="label-text font-semibold text-xs">
+							Payment Method
+						</span>
 					</label>
-					<div className="flex gap-2">
+					<div className="flex gap-1">
 						{["unpaid", "cash", "qr"].map((method) => (
 							<button
 								key={method}
-								className={`btn btn-sm flex-1 ${
+								className={`btn btn-xs flex-1 ${
 									paymentMethod === method ? "btn-primary" : "btn-outline"
 								}`}
 								onClick={() => setPaymentMethod(method)}>
@@ -427,12 +445,13 @@ const NewOrderTab = ({
 
 				{/* Order Notes */}
 				<div className="mt-4">
-					<label className="label">
-						<span className="label-text">Order Notes</span>
+					<label className="label py-1">
+						<span className="label-text text-xs">Order Notes</span>
 					</label>
 					<textarea
-						className="textarea textarea-bordered w-full"
-						placeholder="Special instructions for the whole order..."
+						className="textarea textarea-bordered textarea-xs w-full"
+						placeholder="General instructions..."
+						rows="2"
 						value={notes}
 						onChange={(e) => setNotes(e.target.value)}
 					/>
@@ -446,7 +465,7 @@ const NewOrderTab = ({
 						onClick={processOrder}>
 						Process Order - ฿{totalAmount.toFixed(2)}
 					</button>
-					<button className="btn btn-outline w-full" onClick={clearCart}>
+					<button className="btn btn-outline btn-xs w-full" onClick={clearCart}>
 						Clear Order
 					</button>
 				</div>

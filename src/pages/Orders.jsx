@@ -5,10 +5,11 @@ import ActiveOrdersTab from "../components/orders/ActiveOrdersTab";
 import TableSelectionModal from "../components/orders/TableSelectionModal";
 import { supabase } from "../services/supabase";
 import OrderHistoryTab from "../components/orders/OrderHistoryTab";
+import { showToast } from "../utils/toastUtils";
 
 export const Orders = () => {
 	const [activeTab, setActiveTab] = useState("new-order");
-	const [cart, setCart] = useState([]);
+	const [cart, setCart] = useState([]); // Array of { ...menuItem, cart_id, quantity }
 	const [orderType, setOrderType] = useState("dine_in");
 	const [customerInfo, setCustomerInfo] = useState({
 		name: "",
@@ -20,7 +21,7 @@ export const Orders = () => {
 	const [paymentMethod, setPaymentMethod] = useState("unpaid");
 	const [discountAmount, setDiscountAmount] = useState(0);
 	const [notes, setNotes] = useState("");
-	const [itemNotes, setItemNotes] = useState({}); // { itemId: "note" }
+	const [itemNotes, setItemNotes] = useState({}); // { cartId: "note" }
 
 	// Calculate totals
 	const subtotal = cart.reduce(
@@ -31,33 +32,97 @@ export const Orders = () => {
 
 	const addToCart = (menuItem) => {
 		setCart((prev) => {
-			const existing = prev.find((item) => item.id === menuItem.id);
-			if (existing) {
-				return prev.map((item) =>
-					item.id === menuItem.id
-						? { ...item, quantity: item.quantity + 1 }
-						: item
-				);
+			// Find if there's an entry with the same menu ID AND NO NOTES yet
+			// This keeps "clean" items grouped until the user modifies them or splits them
+			const existingIndex = prev.findIndex(
+				(item) => item.id === menuItem.id && !itemNotes[item.cart_id]
+			);
+
+			if (existingIndex !== -1) {
+				const newCart = [...prev];
+				newCart[existingIndex] = {
+					...newCart[existingIndex],
+					quantity: newCart[existingIndex].quantity + 1,
+				};
+				return newCart;
 			}
-			return [...prev, { ...menuItem, quantity: 1 }];
+
+			// Otherwise add as a new line item
+			const cart_id = `cart_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+			return [...prev, { ...menuItem, quantity: 1, cart_id }];
 		});
 	};
 
-	const updateQuantity = (itemId, change) => {
+	const updateQuantity = (cartId, change) => {
 		setCart((prev) => {
 			const updated = prev.map((item) =>
-				item.id === itemId
+				item.cart_id === cartId
 					? { ...item, quantity: Math.max(0, item.quantity + change) }
 					: item
 			);
-			return updated.filter((item) => item.quantity > 0);
+			const filtered = updated.filter((item) => item.quantity > 0);
+			
+			// If an item is removed, clean up its notes
+			if (filtered.length < updated.length) {
+				const remainingCartIds = filtered.map(item => item.cart_id);
+				setItemNotes(prevNotes => {
+					const newNotes = { ...prevNotes };
+					Object.keys(newNotes).forEach(id => {
+						if (!remainingCartIds.includes(id)) delete newNotes[id];
+					});
+					return newNotes;
+				});
+			}
+			
+			return filtered;
 		});
 	};
 
-	const updateItemNote = (itemId, note) => {
+	const splitItem = (cartId) => {
+		setCart((prev) => {
+			const itemToSplit = prev.find((item) => item.cart_id === cartId);
+			if (!itemToSplit || itemToSplit.quantity <= 1) return prev;
+
+			const otherItems = prev.filter((item) => item.cart_id !== cartId);
+			const newItems = [];
+			
+			// Original note if any
+			const originalNote = itemNotes[cartId] || "";
+
+			for (let i = 0; i < itemToSplit.quantity; i++) {
+				const newCartId = `cart_${Date.now()}_split_${i}_${Math.random().toString(36).substr(2, 5)}`;
+				newItems.push({
+					...itemToSplit,
+					quantity: 1,
+					cart_id: newCartId
+				});
+				
+				// Copy original note to all split items initially
+				if (originalNote) {
+					setItemNotes(prevNotes => ({
+						...prevNotes,
+						[newCartId]: originalNote
+					}));
+				}
+			}
+
+			// Remove the old cartId from notes
+			if (originalNote) {
+				setItemNotes(prevNotes => {
+					const newNotes = { ...prevNotes };
+					delete newNotes[cartId];
+					return newNotes;
+				});
+			}
+
+			return [...otherItems, ...newItems];
+		});
+	};
+
+	const updateItemNote = (cartId, note) => {
 		setItemNotes((prev) => ({
 			...prev,
-			[itemId]: note,
+			[cartId]: note,
 		}));
 	};
 
@@ -72,6 +137,8 @@ export const Orders = () => {
 	};
 
 	const processOrder = async () => {
+		if (cart.length === 0) return;
+		
 		try {
 			// Auto-mark as paid if cash or QR is selected
 			const paymentStatus =
@@ -80,107 +147,97 @@ export const Orders = () => {
 			const orderData = {
 				order_type: orderType,
 				customer_name: customerInfo.name || null,
-				customer_phone: orderType === "delivery" ? customerInfo.phone : null, // Only for delivery
-				delivery_address:
-					orderType === "delivery" ? customerInfo.address : null,
+				customer_phone: orderType === "delivery" ? customerInfo.phone : null,
+				delivery_address: orderType === "delivery" ? customerInfo.address : null,
 				table_number: orderType === "dine_in" ? tableNumber : null,
-				order_items: cart,
+				order_items: cart, // Now includes cart_id for line-item tracking
 				subtotal,
 				discount_amount: discountAmount,
 				total_amount: totalAmount,
 				payment_method: paymentMethod,
 				payment_status: paymentStatus,
 				notes: notes || null,
-				item_notes: itemNotes,
+				item_notes: itemNotes, // Maps cart_id to note string
 			};
 
-			// eslint-disable-next-line no-unused-vars
-			const { data, error } = await supabase
+			const { error } = await supabase
 				.from("orders")
-				.insert([orderData])
-				.select()
-				.single();
+				.insert([orderData]);
 
 			if (error) throw error;
 
-			alert("Order created successfully!");
+			showToast.success("Order processed successfully!");
 			clearCart();
 			setActiveTab("active-orders");
 		} catch (error) {
-			console.error("Error creating order:", error);
-			alert("Error creating order: " + error.message);
+			console.error("Error processing order:", error);
+			showToast.error("Failed to process order: " + error.message);
 		}
 	};
 
 	return (
-		<div className="min-h-screen bg-base-100">
-			{/* Main Content */}
-			<div className="container mx-auto p-4">
-				{/* Tabs */}
-				<div className="tabs tabs-boxed mb-6">
-					<button
-						className={`tab ${activeTab === "new-order" ? "tab-active" : ""}`}
-						onClick={() => setActiveTab("new-order")}>
-						New Order
-					</button>
-					<button
-						className={`tab ${
-							activeTab === "active-orders" ? "tab-active" : ""
-						}`}
-						onClick={() => setActiveTab("active-orders")}>
-						Active Orders
-					</button>
-					<button
-						className={`tab ${
-							activeTab === "order-history" ? "tab-active" : ""
-						}`}
-						onClick={() => setActiveTab("order-history")}>
-						Order History
-					</button>
-				</div>
-
-				{/* Tab Content */}
-				{activeTab === "new-order" && (
-					<NewOrderTab
-						cart={cart}
-						orderType={orderType}
-						setOrderType={setOrderType}
-						customerInfo={customerInfo}
-						setCustomerInfo={setCustomerInfo}
-						tableNumber={tableNumber}
-						setTableNumber={setTableNumber}
-						showTableModal={showTableModal}
-						setShowTableModal={setShowTableModal}
-						paymentMethod={paymentMethod}
-						setPaymentMethod={setPaymentMethod}
-						discountAmount={discountAmount}
-						setDiscountAmount={setDiscountAmount}
-						notes={notes}
-						setNotes={setNotes}
-						itemNotes={itemNotes}
-						updateItemNote={updateItemNote}
-						subtotal={subtotal}
-						totalAmount={totalAmount}
-						addToCart={addToCart}
-						updateQuantity={updateQuantity}
-						clearCart={clearCart}
-						processOrder={processOrder}
-					/>
-				)}
-
-				{activeTab === "active-orders" && <ActiveOrdersTab />}
-
-				{activeTab === "order-history" && <OrderHistoryTab />}
-
-				{/* Table Selection Modal */}
-				{showTableModal && (
-					<TableSelectionModal
-						tableNumber={tableNumber}
-						setTableNumber={setTableNumber}
-						onClose={() => setShowTableModal(false)}
-					/>
-				)}
+		<div className="p-4 md:p-6 bg-base-100 min-h-screen">
+			{/* Tabs Navigation */}
+			<div className="tabs tabs-boxed mb-6 bg-base-200 p-1 w-fit">
+				<button
+					className={`tab tab-lg ${activeTab === "new-order" ? "tab-active font-bold" : ""}`}
+					onClick={() => setActiveTab("new-order")}>
+					New Order
+				</button>
+				<button
+					className={`tab tab-lg ${activeTab === "active-orders" ? "tab-active font-bold" : ""}`}
+					onClick={() => setActiveTab("active-orders")}>
+					Active Orders
+				</button>
+				<button
+					className={`tab tab-lg ${activeTab === "order-history" ? "tab-active font-bold" : ""}`}
+					onClick={() => setActiveTab("order-history")}>
+					Order History
+				</button>
 			</div>
+
+			{/* Tab Content */}
+			{activeTab === "new-order" ? (
+				<NewOrderTab
+					cart={cart}
+					orderType={orderType}
+					setOrderType={setOrderType}
+					customerInfo={customerInfo}
+					setCustomerInfo={setCustomerInfo}
+					tableNumber={tableNumber}
+					setShowTableModal={setShowTableModal}
+					paymentMethod={paymentMethod}
+					setPaymentMethod={setPaymentMethod}
+					discountAmount={discountAmount}
+					setDiscountAmount={setDiscountAmount}
+					notes={notes}
+					setNotes={setNotes}
+					itemNotes={itemNotes}
+					updateItemNote={updateItemNote}
+					subtotal={subtotal}
+					totalAmount={totalAmount}
+					addToCart={addToCart}
+					updateQuantity={updateQuantity}
+					splitItem={splitItem}
+					clearCart={clearCart}
+					processOrder={processOrder}
+				/>
+			) : activeTab === "active-orders" ? (
+				<ActiveOrdersTab />
+			) : (
+				<OrderHistoryTab />
+			)}
+
+			{/* Modals */}
+			<TableSelectionModal
+				show={showTableModal}
+				onClose={() => setShowTableModal(false)}
+				onSelect={(num) => {
+					setTableNumber(num);
+					setShowTableModal(false);
+				}}
+				selectedTable={tableNumber}
+			/>
 		</div>
 	);
 };
