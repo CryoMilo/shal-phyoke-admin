@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { menuSchema } from "../../validations/menuSchema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ALL_CATEGORIES, CATEGORY_DISPLAY_NAMES } from "../../constants";
+import ImageUploadField from "./ImageUploadField";
 
 const MenuForm = ({
 	editingMenu,
@@ -19,6 +20,7 @@ const MenuForm = ({
 		watch,
 		setValue,
 		trigger,
+		control,
 	} = useForm({
 		resolver: zodResolver(menuSchema),
 		defaultValues: editingMenu
@@ -45,7 +47,6 @@ const MenuForm = ({
 			  },
 	});
 
-	const watchImageUrl = watch("image_url");
 	const watchIsRegular = watch("is_regular");
 
 	useEffect(() => {
@@ -94,26 +95,25 @@ const MenuForm = ({
 		<form
 			onSubmit={handleSubmit(handleFormSubmit)}
 			className="space-y-4 md:space-y-6">
-			{/* Image Preview */}
-			{watchImageUrl && (
-				<div className="form-control">
+			
+			{/* Image Upload Section */}
+			<div className="bg-base-200/50 p-4 rounded-xl border border-base-300">
+				<ImageUploadField
+					name="image_url"
+					control={control}
+					label="Menu Item Image"
+					bucket="menu_items"
+					placeholder="Upload a high-quality photo of the dish"
+					required={false}
+				/>
+				{errors.image_url && (
 					<label className="label">
-						<span className="label-text font-medium">Image Preview</span>
+						<span className="label-text-alt text-error">
+							{errors.image_url.message}
+						</span>
 					</label>
-					<div className="relative w-full h-40 bg-base-200 rounded-lg overflow-hidden border border-base-300">
-						<img
-							src={watchImageUrl}
-							alt="Menu preview"
-							className="w-full h-full object-cover"
-							onError={(e) => {
-								e.target.onerror = null;
-								e.target.src =
-									"data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20width%3D'400'%20height%3D'200'%20viewBox%3D'0%200%20400%20200'%3E%3Crect%20width%3D'400'%20height%3D'200'%20fill%3D'%23e5e7eb'%2F%3E%3Ctext%20x%3D'50%25'%20y%3D'50%25'%20font-family%3D'Arial%2C%20sans-serif'%20font-size%3D'16'%20text-anchor%3D'middle'%20dy%3D'.3em'%20fill%3D'%239ca3af'%3ENo%20Image%3C%2Ftext%3E%3C%2Fsvg%3E";
-							}}
-						/>
-					</div>
-				</div>
-			)}
+				)}
+			</div>
 
 			{/* Basic Information Grid */}
 			<div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
@@ -244,36 +244,17 @@ const MenuForm = ({
 				)}
 			</div>
 
-			{/* Taste Profile and Image URL - Side by side on desktop */}
-			<div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-				<div className="form-control">
-					<label className="label">
-						<span className="label-text font-medium">Taste Profile</span>
-					</label>
-					<input
-						{...register("taste_profile")}
-						className="input input-bordered w-full"
-						placeholder="e.g., Spicy, Sweet, Savory"
-						disabled={loading}
-					/>
-				</div>
-
-				<div className="form-control">
-					<label className="label">
-						<span className="label-text font-medium">Image URL</span>
-					</label>
-					<input
-						{...register("image_url")}
-						className="input input-bordered w-full"
-						placeholder="https://example.com/image.jpg"
-						disabled={loading}
-					/>
-					<label className="label">
-						<span className="label-text-alt text-gray-500 text-xs">
-							Leave empty for no image
-						</span>
-					</label>
-				</div>
+			{/* Taste Profile */}
+			<div className="form-control">
+				<label className="label">
+					<span className="label-text font-medium">Taste Profile</span>
+				</label>
+				<input
+					{...register("taste_profile")}
+					className="input input-bordered w-full"
+					placeholder="e.g., Spicy, Sweet, Savory"
+					disabled={loading}
+				/>
 			</div>
 
 			{/* Description - Full width */}
