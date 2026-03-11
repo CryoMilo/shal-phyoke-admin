@@ -53,7 +53,7 @@ const NewOrderTab = ({
 	const fetchMenuItems = async () => {
 		try {
 			const { data, error } = await supabase
-				.from("menu_items")
+				.from("menu_items_with_extras")
 				.select("*")
 				.eq("is_active", true)
 				.eq("is_regular", true) // Only fetch regular menu items
@@ -86,19 +86,20 @@ const NewOrderTab = ({
 				return;
 			}
 
-			// 2. Fetch today's items from that menu
+			// 2. Fetch today's items from that menu using the view
 			const { data: items, error: itemsError } = await supabase
 				.from("weekly_menu_items")
 				.select(
 					`
-          menu_items (
+          menu_items_with_extras:menu_item_id (
             id,
             name_burmese,
             name_english,
             name_thai,
             price,
             category,
-            image_url
+            image_url,
+            available_extras
           )
         `
 				)
@@ -108,7 +109,7 @@ const NewOrderTab = ({
 			if (itemsError) throw itemsError;
 
 			// Flatten the data to get an array of menu_items
-			const specialItems = items.map((item) => item.menu_items);
+			const specialItems = items.map((item) => item.menu_items_with_extras);
 			setTodaysSpecialItems(specialItems);
 		} catch (error) {
 			console.error("Error fetching today's special items:", error);
@@ -159,8 +160,8 @@ const NewOrderTab = ({
 		setShowNoteModal(true);
 	};
 
-	const handleSaveNote = (combinedNote) => {
-		updateItemNote(activeItemForNote.cart_id, combinedNote);
+	const handleSaveNote = (combinedNote, extraPrice) => {
+		updateItemNote(activeItemForNote.cart_id, combinedNote, extraPrice);
 		setShowNoteModal(false);
 		setActiveItemForNote(null);
 	};

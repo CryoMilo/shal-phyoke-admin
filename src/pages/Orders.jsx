@@ -22,10 +22,14 @@ export const Orders = () => {
 	const [discountAmount, setDiscountAmount] = useState(0);
 	const [notes, setNotes] = useState("");
 	const [itemNotes, setItemNotes] = useState({}); // { cartId: "note" }
+	const [itemExtraPrices, setItemExtraPrices] = useState({}); // { cartId: extraPrice }
 
 	// Calculate totals
 	const subtotal = cart.reduce(
-		(sum, item) => sum + item.price * item.quantity,
+		(sum, item) => {
+			const extraPrice = itemExtraPrices[item.cart_id] || 0;
+			return sum + (item.price + extraPrice) * item.quantity;
+		},
 		0
 	);
 	const totalAmount = Math.max(0, subtotal - discountAmount);
@@ -62,15 +66,24 @@ export const Orders = () => {
 			);
 			const filtered = updated.filter((item) => item.quantity > 0);
 			
-			// If an item is removed, clean up its notes
+			// If an item is removed, clean up its notes and extra prices
 			if (filtered.length < updated.length) {
 				const remainingCartIds = filtered.map(item => item.cart_id);
+				
 				setItemNotes(prevNotes => {
 					const newNotes = { ...prevNotes };
 					Object.keys(newNotes).forEach(id => {
 						if (!remainingCartIds.includes(id)) delete newNotes[id];
 					});
 					return newNotes;
+				});
+
+				setItemExtraPrices(prevExtras => {
+					const newExtras = { ...prevExtras };
+					Object.keys(newExtras).forEach(id => {
+						if (!remainingCartIds.includes(id)) delete newExtras[id];
+					});
+					return newExtras;
 				});
 			}
 			
@@ -86,8 +99,9 @@ export const Orders = () => {
 			const otherItems = prev.filter((item) => item.cart_id !== cartId);
 			const newItems = [];
 			
-			// Original note if any
+			// Original note and extra price if any
 			const originalNote = itemNotes[cartId] || "";
+			const originalExtraPrice = itemExtraPrices[cartId] || 0;
 
 			for (let i = 0; i < itemToSplit.quantity; i++) {
 				const newCartId = `cart_${Date.now()}_split_${i}_${Math.random().toString(36).substr(2, 5)}`;
@@ -97,32 +111,45 @@ export const Orders = () => {
 					cart_id: newCartId
 				});
 				
-				// Copy original note to all split items initially
+				// Copy original note and extra price to all split items initially
 				if (originalNote) {
 					setItemNotes(prevNotes => ({
 						...prevNotes,
 						[newCartId]: originalNote
 					}));
 				}
+				if (originalExtraPrice) {
+					setItemExtraPrices(prevExtras => ({
+						...prevExtras,
+						[newCartId]: originalExtraPrice
+					}));
+				}
 			}
 
-			// Remove the old cartId from notes
-			if (originalNote) {
-				setItemNotes(prevNotes => {
-					const newNotes = { ...prevNotes };
-					delete newNotes[cartId];
-					return newNotes;
-				});
-			}
+			// Remove the old cartId from notes and extra prices
+			setItemNotes(prevNotes => {
+				const newNotes = { ...prevNotes };
+				delete newNotes[cartId];
+				return newNotes;
+			});
+			setItemExtraPrices(prevExtras => {
+				const newExtras = { ...prevExtras };
+				delete newExtras[cartId];
+				return newExtras;
+			});
 
 			return [...otherItems, ...newItems];
 		});
 	};
 
-	const updateItemNote = (cartId, note) => {
+	const updateItemNote = (cartId, note, extraPrice = 0) => {
 		setItemNotes((prev) => ({
 			...prev,
 			[cartId]: note,
+		}));
+		setItemExtraPrices((prev) => ({
+			...prev,
+			[cartId]: extraPrice,
 		}));
 	};
 
@@ -133,6 +160,7 @@ export const Orders = () => {
 		setDiscountAmount(0);
 		setNotes("");
 		setItemNotes({});
+		setItemExtraPrices({});
 		setPaymentMethod("unpaid");
 	};
 
@@ -150,7 +178,11 @@ export const Orders = () => {
 				customer_phone: orderType === "delivery" ? customerInfo.phone : null,
 				delivery_address: orderType === "delivery" ? customerInfo.address : null,
 				table_number: orderType === "dine_in" ? tableNumber : null,
-				order_items: cart, // Now includes cart_id for line-item tracking
+				order_items: cart.map(item => ({
+					...item,
+					extra_price: itemExtraPrices[item.cart_id] || 0,
+					final_price: (item.price + (itemExtraPrices[item.cart_id] || 0))
+				})),
 				subtotal,
 				discount_amount: discountAmount,
 				total_amount: totalAmount,
@@ -158,6 +190,7 @@ export const Orders = () => {
 				payment_status: paymentStatus,
 				notes: notes || null,
 				item_notes: itemNotes, // Maps cart_id to note string
+				item_extra_prices: itemExtraPrices,
 			};
 
 			const { error } = await supabase

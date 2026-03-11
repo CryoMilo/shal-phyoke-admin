@@ -95,7 +95,6 @@ const MenuForm = ({
 		<form
 			onSubmit={handleSubmit(handleFormSubmit)}
 			className="space-y-4 md:space-y-6">
-			
 			{/* Image Upload Section */}
 			<div className="bg-base-200/50 p-4 rounded-xl border border-base-300">
 				<ImageUploadField
