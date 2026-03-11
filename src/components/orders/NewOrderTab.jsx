@@ -160,8 +160,8 @@ const NewOrderTab = ({
 		setShowNoteModal(true);
 	};
 
-	const handleSaveNote = (combinedNote) => {
-		updateItemNote(activeItemForNote.cart_id, combinedNote);
+	const handleSaveNote = (combinedNote, extraPrice) => {
+		updateItemNote(activeItemForNote.cart_id, combinedNote, extraPrice);
 		setShowNoteModal(false);
 		setActiveItemForNote(null);
 	};

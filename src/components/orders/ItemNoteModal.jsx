@@ -143,6 +143,8 @@ const ItemNoteModal = ({ show, onClose, onSave, item }) => {
 
 	const handleSave = () => {
 		const combinedNotes = [];
+		let totalExtraPrice = 0;
+
 		if (isTakeaway) combinedNotes.push("Takeaway");
 
 		// Add taste profiles (only if not "Med")
@@ -152,8 +154,16 @@ const ItemNoteModal = ({ show, onClose, onSave, item }) => {
 			}
 		});
 
-		// Add selected toppings
-		selectedToppings.forEach((t) => combinedNotes.push(t));
+		// Add selected toppings and calculate extra price
+		selectedToppings.forEach((t) => {
+			combinedNotes.push(t);
+			const extra = availableExtras.find(
+				(e) => e.name_burmese === t || e.name_english === t
+			);
+			if (extra) {
+				totalExtraPrice += Number(extra.additional_price || 0);
+			}
+		});
 
 		// Add frequent notes
 		selectedCommonNotes.forEach((n) => combinedNotes.push(n));
@@ -163,7 +173,7 @@ const ItemNoteModal = ({ show, onClose, onSave, item }) => {
 			combinedNotes.push(customNote.trim());
 		}
 
-		onSave(combinedNotes.join(", "));
+		onSave(combinedNotes.join(", "), totalExtraPrice);
 	};
 
 	const hasChanges =
