@@ -14,6 +14,7 @@ import {
 	TrendingDown,
 	Box,
 	ShoppingCart,
+	Settings2,
 } from "lucide-react";
 
 const Sidebar = () => {
@@ -94,6 +95,11 @@ const Sidebar = () => {
 			name: "Orders",
 			path: "/orders",
 			icon: ShoppingBasket,
+		},
+		{
+			name: "Quick Note Settings",
+			path: "/orders/settings",
+			icon: Settings2,
 		},
 	];
 

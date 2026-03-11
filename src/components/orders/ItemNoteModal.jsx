@@ -1,13 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Package, X } from "lucide-react";
-import {
-	DEFAULT_ORDER_NOTES,
-	CATEGORY_SPECIFIC_NOTES,
-} from "../common/orderConstants";
-
-const TASTE_LEVELS = ["No", "Low", "Med", "High"];
-const FOOD_TASTE_CATEGORIES = ["Spicy", "Sour", "Salty"];
-const DRINK_TASTE_CATEGORIES = ["Sweet", "Sour"];
+import { supabase } from "../../services/supabase";
 
 const ItemNoteModal = ({ show, onClose, onSave, item }) => {
 	const [customNote, setCustomNote] = useState("");
@@ -15,45 +8,59 @@ const ItemNoteModal = ({ show, onClose, onSave, item }) => {
 	const [isTakeaway, setIsTakeaway] = useState(false);
 	const [selectedToppings, setSelectedToppings] = useState([]);
 	const [tasteProfiles, setTasteProfiles] = useState({});
+	
+	const [settings, setSettings] = useState([]);
+	const [loading, setLoading] = useState(true);
 
-	// Get available extras directly from the item (hydrated from menu load)
+	// Fetch settings from database
+	useEffect(() => {
+		const fetchSettings = async () => {
+			try {
+				setLoading(true);
+				const { data, error } = await supabase
+					.from("quick_note_settings")
+					.select("*")
+					.eq("is_active", true)
+					.order("sort_order", { ascending: true });
+				
+				if (error) throw error;
+				setSettings(data || []);
+			} catch (error) {
+				console.error("Error fetching quick note settings:", error);
+			} finally {
+				setLoading(false);
+			}
+		};
+
+		if (show) {
+			fetchSettings();
+		}
+	}, [show]);
+
+	// Get available extras directly from the item
 	const availableExtras = useMemo(() => {
 		return item?.available_extras || [];
 	}, [item]);
 
-	const tasteCategories = useMemo(() => {
-		return item?.category === "Drink"
-			? DRINK_TASTE_CATEGORIES
-			: FOOD_TASTE_CATEGORIES;
-	}, [item?.category]);
+	// Filter settings based on item category
+	const applicableSettings = useMemo(() => {
+		return settings.filter(s => {
+			if (!s.applicable_categories || s.applicable_categories.length === 0) return true;
+			return s.applicable_categories.includes(item?.category);
+		});
+	}, [settings, item?.category]);
 
-	const relevantNotes = useMemo(() => {
-		return item && CATEGORY_SPECIFIC_NOTES[item.category]
-			? CATEGORY_SPECIFIC_NOTES[item.category]
-			: DEFAULT_ORDER_NOTES;
-	}, [item?.category]);
+	const tasteCategories = useMemo(() => {
+		return applicableSettings.filter(s => s.type === "taste_profile");
+	}, [applicableSettings]);
 
 	const filteredFrequentNotes = useMemo(() => {
-		return relevantNotes.filter(
-			(note) =>
-				![
-					"takeaway",
-					"takeaway_drink",
-					"less_spicy",
-					"extra_spicy",
-					"no_chili",
-					"no_sweet",
-					"less_sweet",
-					"extra_sweet",
-					"normal_sweet",
-				].includes(note.id)
-		);
-	}, [relevantNotes]);
+		return applicableSettings.filter(s => s.type === "frequent_request");
+	}, [applicableSettings]);
 
-	// Parse existing notes when modal opens - NO FETCHING!
+	// Parse existing notes when modal opens or settings load
 	useEffect(() => {
-		if (show && item) {
-			// Parse existing notes
+		if (show && item && !loading) {
 			const currentNote = item.note || "";
 			const parts = currentNote
 				.split(", ")
@@ -66,9 +73,9 @@ const ItemNoteModal = ({ show, onClose, onSave, item }) => {
 			const toppings = [];
 			const tastes = {};
 
-			// Initialize tastes based on current categories
+			// Initialize tastes from settings
 			tasteCategories.forEach((cat) => {
-				tastes[cat] = "Med";
+				tastes[cat.group_name] = "Med";
 			});
 
 			const custom = [];
@@ -76,19 +83,21 @@ const ItemNoteModal = ({ show, onClose, onSave, item }) => {
 			parts.forEach((part) => {
 				if (part === "Takeaway") return;
 
-				// Parse Taste Profiles (e.g., "Low Spicy", "High Sour")
+				// Parse Taste Profiles
 				let matchedTaste = false;
 				tasteCategories.forEach((cat) => {
-					TASTE_LEVELS.forEach((level) => {
-						if (part === `${level} ${cat}`) {
-							tastes[cat] = level;
+					const levels = cat.options || ["No", "Low", "Med", "High"];
+					levels.forEach((level) => {
+						// Match against slip_label or group_name (with level prefix)
+						if (part === `${level} ${cat.slip_label}` || part === `${level} ${cat.group_name}`) {
+							tastes[cat.group_name] = level;
 							matchedTaste = true;
 						}
 					});
 				});
 				if (matchedTaste) return;
 
-				// Parse Toppings - check against available extras (already loaded!)
+				// Parse Toppings
 				const matchingExtra = availableExtras.find(
 					(extra) => extra.name_burmese === part || extra.name_english === part
 				);
@@ -97,12 +106,12 @@ const ItemNoteModal = ({ show, onClose, onSave, item }) => {
 					return;
 				}
 
-				// Parse Frequent Notes
-				const isFrequent = filteredFrequentNotes.some(
-					(fn) => fn.label === part
+				// Parse Frequent Notes (check against slip_label first, then modal_label)
+				const freqNote = filteredFrequentNotes.find(
+					(fn) => fn.slip_label === part || fn.modal_label === part
 				);
-				if (isFrequent) {
-					common.push(part);
+				if (freqNote) {
+					common.push(freqNote.modal_label);
 				} else {
 					custom.push(part);
 				}
@@ -113,7 +122,7 @@ const ItemNoteModal = ({ show, onClose, onSave, item }) => {
 			setTasteProfiles(tastes);
 			setCustomNote(custom.join(", "));
 		}
-	}, [show, item, filteredFrequentNotes, tasteCategories, availableExtras]);
+	}, [show, item, loading, filteredFrequentNotes, tasteCategories, availableExtras]);
 
 	const toggleCommonNote = (noteLabel) => {
 		setSelectedCommonNotes((prev) =>
@@ -137,7 +146,7 @@ const ItemNoteModal = ({ show, onClose, onSave, item }) => {
 		setCustomNote("");
 		setIsTakeaway(false);
 		setTasteProfiles(
-			Object.fromEntries(tasteCategories.map((cat) => [cat, "Med"]))
+			Object.fromEntries(tasteCategories.map((cat) => [cat.group_name, "Med"]))
 		);
 	};
 
@@ -147,14 +156,15 @@ const ItemNoteModal = ({ show, onClose, onSave, item }) => {
 
 		if (isTakeaway) combinedNotes.push("Takeaway");
 
-		// Add taste profiles (only if not "Med")
+		// Add taste profiles using slip_label
 		tasteCategories.forEach((cat) => {
-			if (tasteProfiles[cat] && tasteProfiles[cat] !== "Med") {
-				combinedNotes.push(`${tasteProfiles[cat]} ${cat}`);
+			const currentLevel = tasteProfiles[cat.group_name];
+			if (currentLevel && currentLevel !== "Med") {
+				combinedNotes.push(`${currentLevel} ${cat.slip_label || cat.group_name}`);
 			}
 		});
 
-		// Add selected toppings and calculate extra price
+		// Add selected toppings
 		selectedToppings.forEach((t) => {
 			combinedNotes.push(t);
 			const extra = availableExtras.find(
@@ -165,10 +175,12 @@ const ItemNoteModal = ({ show, onClose, onSave, item }) => {
 			}
 		});
 
-		// Add frequent notes
-		selectedCommonNotes.forEach((n) => combinedNotes.push(n));
+		// Add frequent notes using slip_label
+		selectedCommonNotes.forEach((n) => {
+			const noteSetting = filteredFrequentNotes.find(s => s.modal_label === n);
+			combinedNotes.push(noteSetting ? noteSetting.slip_label : n);
+		});
 
-		// Add custom note
 		if (customNote.trim()) {
 			combinedNotes.push(customNote.trim());
 		}
@@ -188,7 +200,7 @@ const ItemNoteModal = ({ show, onClose, onSave, item }) => {
 	return (
 		<div className="modal modal-open">
 			<div className="modal-box max-w-2xl w-11/12 p-0 overflow-hidden relative">
-				{/* Takeaway Button in Top Right */}
+				{/* Takeaway Button */}
 				<div className="absolute top-6 right-14">
 					<button
 						type="button"
@@ -219,113 +231,114 @@ const ItemNoteModal = ({ show, onClose, onSave, item }) => {
 				</div>
 
 				<div className="px-6 py-4 space-y-6 max-h-[70vh] overflow-y-auto pb-24">
-					{/* Toppings Section - Dynamic from pre-loaded data */}
-					{availableExtras.length > 0 && (
-						<div>
-							<div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
-								Toppings{" "}
-								{availableExtras.some((e) => e.additional_price > 0) &&
-									"(+ Extra Cost)"}
-							</div>
-							<div className="flex flex-wrap gap-2">
-								{availableExtras.map((extra) => {
-									const toppingName = extra.name_burmese || extra.name_english;
-									if (!toppingName) return null;
-
-									return (
-										<button
-											type="button"
-											key={extra.id}
-											onClick={() => toggleTopping(toppingName)}
-											className={`px-4 py-2 rounded-full border text-sm font-medium transition-all ${
-												selectedToppings.includes(toppingName)
-													? "bg-primary text-white border-primary"
-													: "border-gray-200 text-gray-600 hover:border-primary"
-											}`}>
-											{toppingName}
-											{extra.additional_price > 0 && (
-												<span className="ml-1 text-xs opacity-75">
-													+{extra.additional_price}฿
-												</span>
-											)}
-										</button>
-									);
-								})}
-							</div>
+					{loading ? (
+						<div className="py-10 text-center">
+							<span className="loading loading-spinner"></span>
 						</div>
-					)}
-
-					{/* Taste Profile Section */}
-					<div>
-						<div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
-							Taste Profile
-						</div>
-						<div className="space-y-4">
-							{tasteCategories.map((cat) => (
-								<div key={cat} className="flex items-center gap-4">
-									<div className="w-16 text-sm font-semibold text-gray-700">
-										{cat}
+					) : (
+						<>
+							{/* Toppings Section */}
+							{availableExtras.length > 0 && (
+								<div>
+									<div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
+										Toppings / Sides
 									</div>
-									<div className="flex flex-1 bg-gray-100 rounded-lg p-1">
-										{TASTE_LEVELS.map((level) => (
-											<button
-												type="button"
-												key={level}
-												onClick={() =>
-													setTasteProfiles((prev) => ({
-														...prev,
-														[cat]: level,
-													}))
-												}
-												className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${
-													tasteProfiles[cat] === level
-														? "bg-white shadow-sm text-primary"
-														: "text-gray-500 hover:text-gray-700"
-												}`}>
-												{level}
-											</button>
+									<div className="flex flex-wrap gap-2">
+										{availableExtras.map((extra) => {
+											const toppingName = extra.name_burmese || extra.name_english;
+											if (!toppingName) return null;
+											return (
+												<button
+													type="button"
+													key={extra.id}
+													onClick={() => toggleTopping(toppingName)}
+													className={`px-4 py-2 rounded-full border text-sm font-medium transition-all ${
+														selectedToppings.includes(toppingName)
+															? "bg-primary text-white border-primary"
+															: "border-gray-200 text-gray-600 hover:border-primary"
+													}`}>
+													{toppingName}
+													{extra.additional_price > 0 && (
+														<span className="ml-1 text-xs opacity-75">
+															+{extra.additional_price}฿
+														</span>
+													)}
+												</button>
+											);
+										})}
+									</div>
+								</div>
+							)}
+
+							{/* Taste Profile Section */}
+							{tasteCategories.length > 0 && (
+								<div>
+									<div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
+										Taste Profile
+									</div>
+									<div className="space-y-4">
+										{tasteCategories.map((cat) => (
+											<div key={cat.id} className="flex items-center gap-4">
+												<div className="w-20 text-sm font-semibold text-gray-700">
+													{cat.modal_label}
+												</div>
+												<div className="flex flex-1 bg-gray-100 rounded-lg p-1">
+													{(cat.options || ["No", "Low", "Med", "High"]).map((level) => (
+														<button
+															type="button"
+															key={level}
+															onClick={() =>
+																setTasteProfiles((prev) => ({
+																	...prev,
+																	[cat.group_name]: level,
+																}))
+															}
+															className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${
+																tasteProfiles[cat.group_name] === level
+																	? "bg-white shadow-sm text-primary"
+																	: "text-gray-500 hover:text-gray-700"
+															}`}>
+															{level}
+														</button>
+													))}
+												</div>
+											</div>
 										))}
 									</div>
 								</div>
-							))}
-						</div>
-					</div>
+							)}
 
-					{/* Frequent Request Section */}
-					{filteredFrequentNotes.length > 0 && (
-						<div>
-							<div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
-								Frequent Request
-							</div>
-							<div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-								{filteredFrequentNotes.map((note) => {
-									const Icon = note.icon;
-									const isSelected = selectedCommonNotes.includes(note.label);
-									return (
-										<button
-											type="button"
-											key={note.id}
-											className={`flex items-center gap-2 p-3 rounded-xl border transition-all ${
-												isSelected
-													? "bg-primary/10 text-primary border-primary"
-													: "border-gray-100 hover:border-gray-200 text-gray-600"
-											}`}
-											onClick={() => toggleCommonNote(note.label)}>
-											<Icon
-												className={`w-4 h-4 ${
-													isSelected ? "text-primary" : "text-gray-400"
-												}`}
-											/>
-											<span className="text-xs font-bold">{note.label}</span>
-										</button>
-									);
-								})}
-							</div>
-						</div>
+							{/* Frequent Request Section */}
+							{filteredFrequentNotes.length > 0 && (
+								<div>
+									<div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
+										Frequent Request
+									</div>
+									<div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+										{filteredFrequentNotes.map((note) => {
+											const isSelected = selectedCommonNotes.includes(note.modal_label);
+											return (
+												<button
+													type="button"
+													key={note.id}
+													className={`flex items-center justify-center p-3 rounded-xl border transition-all ${
+														isSelected
+															? "bg-primary/10 text-primary border-primary"
+															: "border-gray-100 hover:border-gray-200 text-gray-600"
+													}`}
+													onClick={() => toggleCommonNote(note.modal_label)}>
+													<span className="text-xs font-bold text-center">{note.modal_label}</span>
+												</button>
+											);
+										})}
+									</div>
+								</div>
+							)}
+						</>
 					)}
 				</div>
 
-				{/* Custom Field and Save - Always visible */}
+				{/* Footer */}
 				<div className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
 					<div className="flex items-center gap-2">
 						<div className="flex-1 relative">
@@ -340,7 +353,6 @@ const ItemNoteModal = ({ show, onClose, onSave, item }) => {
 								<span className="absolute right-3 top-1/2 -translate-y-1/2 w-2 h-2 bg-primary rounded-full" />
 							)}
 						</div>
-
 						{hasChanges && (
 							<button
 								type="button"
@@ -349,7 +361,6 @@ const ItemNoteModal = ({ show, onClose, onSave, item }) => {
 								Clear
 							</button>
 						)}
-
 						<button
 							type="button"
 							className="btn btn-primary px-8 h-12 min-h-12 shadow-lg shadow-primary/20 font-bold"
@@ -358,11 +369,7 @@ const ItemNoteModal = ({ show, onClose, onSave, item }) => {
 						</button>
 					</div>
 				</div>
-
-				<div
-					className="modal-backdrop bg-black/40 backdrop-blur-[2px]"
-					onClick={onClose}
-				/>
+				<div className="modal-backdrop bg-black/40 backdrop-blur-[2px]" onClick={onClose} />
 			</div>
 		</div>
 	);

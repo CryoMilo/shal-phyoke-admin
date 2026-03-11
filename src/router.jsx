@@ -10,6 +10,7 @@ import WeeklyMenu from "./pages/WeeklyMenu";
 import { MenuStatusManagement } from "./pages/MenuStatusManagement";
 import RegularMenu from "./pages/RegularMenu";
 import Orders from "./pages/Orders";
+import QuickNoteSettings from "./pages/QuickNoteSettings";
 import DailyCash from "./pages/DailyCash";
 import DailyExpenses from "./pages/DailyExpenses";
 import MonthlyOverheads from "./pages/MonthlyOverheads";
@@ -50,10 +51,16 @@ const menuStatusRoute = createRoute({
 	component: MenuStatusManagement,
 });
 
-const OrdersRoute = createRoute({
+const ordersRoute = createRoute({
 	path: "/orders",
 	getParentRoute: () => rootRoute,
 	component: Orders,
+});
+
+const ordersSettingsRoute = createRoute({
+	path: "/settings",
+	getParentRoute: () => ordersRoute,
+	component: QuickNoteSettings,
 });
 
 // Income & Expense Routes
@@ -94,7 +101,7 @@ const routeTree = rootRoute.addChildren([
 	weeklyMenuRoute,
 	menuStatusRoute,
 	regularMenuRoute,
-	OrdersRoute,
+	ordersRoute.addChildren([ordersSettingsRoute]),
 	dailyCashRoute,
 	dailyExpensesRoute,
 	monthlyOverheadsRoute,

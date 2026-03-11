@@ -5,9 +5,12 @@ import ActiveOrdersTab from "../components/orders/ActiveOrdersTab";
 import TableSelectionModal from "../components/orders/TableSelectionModal";
 import { supabase } from "../services/supabase";
 import OrderHistoryTab from "../components/orders/OrderHistoryTab";
+import { Link, useLocation, Outlet } from "@tanstack/react-router";
 import { showToast } from "../utils/toastUtils";
 
 export const Orders = () => {
+	const location = useLocation();
+	const isSettingsPath = location.pathname.endsWith("/settings");
 	const [activeTab, setActiveTab] = useState("new-order");
 	const [cart, setCart] = useState([]); // Array of { ...menuItem, cart_id, quantity }
 	const [orderType, setOrderType] = useState("dine_in");
@@ -212,53 +215,67 @@ export const Orders = () => {
 		<div className="p-4 md:p-6 bg-base-100 min-h-screen">
 			{/* Tabs Navigation */}
 			<div className="tabs tabs-boxed mb-6 bg-base-200 p-1 w-fit">
-				<button
-					className={`tab tab-lg ${activeTab === "new-order" ? "tab-active font-bold" : ""}`}
+				<Link
+					to="/orders"
+					className={`tab tab-lg ${!isSettingsPath && activeTab === "new-order" ? "tab-active font-bold" : ""}`}
 					onClick={() => setActiveTab("new-order")}>
 					New Order
-				</button>
-				<button
-					className={`tab tab-lg ${activeTab === "active-orders" ? "tab-active font-bold" : ""}`}
+				</Link>
+				<Link
+					to="/orders"
+					className={`tab tab-lg ${!isSettingsPath && activeTab === "active-orders" ? "tab-active font-bold" : ""}`}
 					onClick={() => setActiveTab("active-orders")}>
 					Active Orders
-				</button>
-				<button
-					className={`tab tab-lg ${activeTab === "order-history" ? "tab-active font-bold" : ""}`}
+				</Link>
+				<Link
+					to="/orders"
+					className={`tab tab-lg ${!isSettingsPath && activeTab === "order-history" ? "tab-active font-bold" : ""}`}
 					onClick={() => setActiveTab("order-history")}>
 					Order History
-				</button>
+				</Link>
+				<Link
+					to="/orders/settings"
+					className={`tab tab-lg ${isSettingsPath ? "tab-active font-bold" : ""}`}>
+					Quick Note Settings
+				</Link>
 			</div>
 
-			{/* Tab Content */}
-			{activeTab === "new-order" ? (
-				<NewOrderTab
-					cart={cart}
-					orderType={orderType}
-					setOrderType={setOrderType}
-					customerInfo={customerInfo}
-					setCustomerInfo={setCustomerInfo}
-					tableNumber={tableNumber}
-					setShowTableModal={setShowTableModal}
-					paymentMethod={paymentMethod}
-					setPaymentMethod={setPaymentMethod}
-					discountAmount={discountAmount}
-					setDiscountAmount={setDiscountAmount}
-					notes={notes}
-					setNotes={setNotes}
-					itemNotes={itemNotes}
-					updateItemNote={updateItemNote}
-					subtotal={subtotal}
-					totalAmount={totalAmount}
-					addToCart={addToCart}
-					updateQuantity={updateQuantity}
-					splitItem={splitItem}
-					clearCart={clearCart}
-					processOrder={processOrder}
-				/>
-			) : activeTab === "active-orders" ? (
-				<ActiveOrdersTab />
+			{/* Tab Content or Nested Route */}
+			{isSettingsPath ? (
+				<Outlet />
 			) : (
-				<OrderHistoryTab />
+				<>
+					{activeTab === "new-order" ? (
+						<NewOrderTab
+							cart={cart}
+							orderType={orderType}
+							setOrderType={setOrderType}
+							customerInfo={customerInfo}
+							setCustomerInfo={setCustomerInfo}
+							tableNumber={tableNumber}
+							setShowTableModal={setShowTableModal}
+							paymentMethod={paymentMethod}
+							setPaymentMethod={setPaymentMethod}
+							discountAmount={discountAmount}
+							setDiscountAmount={setDiscountAmount}
+							notes={notes}
+							setNotes={setNotes}
+							itemNotes={itemNotes}
+							updateItemNote={updateItemNote}
+							subtotal={subtotal}
+							totalAmount={totalAmount}
+							addToCart={addToCart}
+							updateQuantity={updateQuantity}
+							splitItem={splitItem}
+							clearCart={clearCart}
+							processOrder={processOrder}
+						/>
+					) : activeTab === "active-orders" ? (
+						<ActiveOrdersTab />
+					) : (
+						<OrderHistoryTab />
+					)}
+				</>
 			)}
 
 			{/* Modals */}
