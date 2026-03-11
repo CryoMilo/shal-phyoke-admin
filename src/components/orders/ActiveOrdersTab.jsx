@@ -8,6 +8,26 @@ const ActiveOrdersTab = () => {
 
 	useEffect(() => {
 		fetchActiveOrders();
+
+		// Set up realtime subscription
+		const channel = supabase
+			.channel("orders_changes")
+			.on(
+				"postgres_changes",
+				{
+					event: "*",
+					schema: "public",
+					table: "orders",
+				},
+				() => {
+					fetchActiveOrders();
+				}
+			)
+			.subscribe();
+
+		return () => {
+			supabase.removeChannel(channel);
+		};
 	}, []);
 
 	const fetchActiveOrders = async () => {

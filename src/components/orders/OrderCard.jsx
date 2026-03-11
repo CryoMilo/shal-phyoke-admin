@@ -54,11 +54,11 @@ const OrderCard = ({ order, onUpdate }) => {
 					<div key={index} className="flex justify-between">
 						<span>
 							{item.quantity}x {item.name_burmese || item.name_english}
-							{order.item_notes?.[item.id] && (
+							{order.item_notes?.[item.cart_id] && (
 								<span className="text-warning"> *</span>
 							)}
 						</span>
-						<span>฿{item.price * item.quantity}</span>
+						<span>฿{(item.final_price || item.price) * item.quantity}</span>
 					</div>
 				))}
 			</div>
