@@ -3,12 +3,12 @@ import { supabase } from "../services/supabase";
 import { showToast } from "../utils/toastUtils";
 import { Plus, Trash2, Edit2, Settings2 } from "lucide-react";
 import { PageHeader } from "../components/common/PageHeader";
+import useQuickNoteStore from "../stores/quickNoteStore";
 
 const CATEGORIES = ["Food", "Drink", "Noodle", "Rice", "Salad", "Appetizer"];
 
 const QuickNoteSettings = () => {
-	const [settings, setSettings] = useState([]);
-	const [loading, setLoading] = useState(true);
+	const { settings, loading, fetchAllSettings, refresh } = useQuickNoteStore();
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [editingNote, setEditingNote] = useState(null);
 	const [activeTypeTab, setActiveTypeTab] = useState("taste_profile");
@@ -23,28 +23,9 @@ const QuickNoteSettings = () => {
 		is_active: true,
 	});
 
-	const fetchSettings = async () => {
-		try {
-			setLoading(true);
-			const { data, error } = await supabase
-				.from("quick_note_settings")
-				.select("*")
-				.order("sort_order", { ascending: true });
-
-			if (error) throw error;
-			setSettings(data || []);
-		} catch (error) {
-			console.error("Error fetching quick note settings:", error);
-			// If table doesn't exist yet, we might get an error.
-			// For now, let's assume it exists or show a friendly message.
-		} finally {
-			setLoading(false);
-		}
-	};
-
 	useEffect(() => {
-		fetchSettings();
-	}, []);
+		fetchAllSettings();
+	}, [fetchAllSettings]);
 
 	const handleOpenModal = (note = null) => {
 		if (note) {
@@ -58,10 +39,7 @@ const QuickNoteSettings = () => {
 				modal_label: "",
 				slip_label: "",
 				applicable_categories: [],
-				options:
-					activeTypeTab === "taste_profile"
-						? ["No", "Low", "Med", "High"]
-						: null,
+				options: activeTypeTab === "taste_profile" ? ["No", "Low", "Med", "High"] : null,
 				is_active: true,
 			});
 		}
@@ -91,7 +69,8 @@ const QuickNoteSettings = () => {
 			}
 
 			setIsModalOpen(false);
-			fetchSettings();
+			refresh();
+			fetchAllSettings();
 		} catch (error) {
 			console.error("Error saving quick note setting:", error);
 			showToast.error("Failed to save setting");
@@ -99,8 +78,7 @@ const QuickNoteSettings = () => {
 	};
 
 	const handleDelete = async (id) => {
-		if (!window.confirm("Are you sure you want to delete this setting?"))
-			return;
+		if (!window.confirm("Are you sure you want to delete this setting?")) return;
 		try {
 			const { error } = await supabase
 				.from("quick_note_settings")
@@ -108,7 +86,8 @@ const QuickNoteSettings = () => {
 				.eq("id", id);
 			if (error) throw error;
 			showToast.success("Deleted successfully");
-			fetchSettings();
+			refresh();
+			fetchAllSettings();
 		} catch (error) {
 			console.error("Error deleting quick note setting:", error);
 			showToast.error("Failed to delete setting");

@@ -367,14 +367,14 @@ const NewOrderTab = ({
 
 								<div className="flex-1">
 									{itemNotes[item.cart_id] && (
-										<div className="text-[10px] text-primary font-bold mb-1 line-clamp-1 italic px-1">
+										<div className="text-[10px] text-accent font-bold mb-1 line-clamp-1 italic px-1">
 											"{itemNotes[item.cart_id]}"
 										</div>
 									)}
 									<button
 										className={`btn btn-xs w-full justify-start gap-2 ${
 											itemNotes[item.cart_id]
-												? "btn-primary btn-outline"
+												? "btn-accent btn-outline"
 												: "btn-ghost border-base-300"
 										}`}
 										onClick={() => openNoteModal(item)}>

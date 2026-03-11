@@ -1,5 +1,5 @@
 // pages/Orders.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import NewOrderTab from "../components/orders/NewOrderTab";
 import ActiveOrdersTab from "../components/orders/ActiveOrdersTab";
 import TableSelectionModal from "../components/orders/TableSelectionModal";
@@ -7,8 +7,15 @@ import { supabase } from "../services/supabase";
 import OrderHistoryTab from "../components/orders/OrderHistoryTab";
 import { Link, useLocation, Outlet } from "@tanstack/react-router";
 import { showToast } from "../utils/toastUtils";
+import useQuickNoteStore from "../stores/quickNoteStore";
 
 export const Orders = () => {
+	const fetchSettings = useQuickNoteStore((state) => state.fetchSettings);
+
+	useEffect(() => {
+		fetchSettings();
+	}, [fetchSettings]);
+
 	const location = useLocation();
 	const isSettingsPath = location.pathname.endsWith("/settings");
 	const [activeTab, setActiveTab] = useState("new-order");
