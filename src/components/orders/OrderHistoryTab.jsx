@@ -8,6 +8,18 @@ const OrderHistoryTab = () => {
 
 	useEffect(() => {
 		fetchCompletedOrders();
+
+		// Set up realtime broadcast subscription
+		const channel = supabase
+			.channel("orders:history", { config: { private: true } })
+			.on("broadcast", { event: "UPDATE" }, () => fetchCompletedOrders())
+			.on("broadcast", { event: "INSERT" }, () => fetchCompletedOrders())
+			.on("broadcast", { event: "DELETE" }, () => fetchCompletedOrders())
+			.subscribe();
+
+		return () => {
+			supabase.removeChannel(channel);
+		};
 	}, []);
 
 	const fetchCompletedOrders = async () => {

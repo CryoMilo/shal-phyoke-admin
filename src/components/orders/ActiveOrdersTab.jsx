@@ -9,19 +9,23 @@ const ActiveOrdersTab = () => {
 	useEffect(() => {
 		fetchActiveOrders();
 
-		// Set up realtime subscription
+		// Set up realtime broadcast subscription
 		const channel = supabase
-			.channel("orders_changes")
+			.channel("orders:changes", { config: { private: true } })
 			.on(
-				"postgres_changes",
-				{
-					event: "*",
-					schema: "public",
-					table: "orders",
-				},
-				() => {
-					fetchActiveOrders();
-				}
+				"broadcast",
+				{ event: "INSERT" },
+				() => fetchActiveOrders()
+			)
+			.on(
+				"broadcast",
+				{ event: "UPDATE" },
+				() => fetchActiveOrders()
+			)
+			.on(
+				"broadcast",
+				{ event: "DELETE" },
+				() => fetchActiveOrders()
 			)
 			.subscribe();
 
