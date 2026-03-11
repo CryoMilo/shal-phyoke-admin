@@ -6,7 +6,7 @@ import { showToast } from "../../utils/toastUtils";
 
 const ActiveOrdersTab = () => {
 	const [activeOrders, setActiveOrders] = useState([]);
-	const [selectedTable, setSelectedTable] = useState(null);
+	const [selectedTableId, setSelectedTableId] = useState(null);
 
 	useEffect(() => {
 		fetchActiveOrders();
@@ -68,6 +68,10 @@ const ActiveOrdersTab = () => {
 		});
 	}, [activeOrders]);
 
+	const currentTableData = useMemo(() => {
+		return tableGroups.find(g => g.id === selectedTableId);
+	}, [tableGroups, selectedTableId]);
+
 	const getTimeElapsed = (startTime) => {
 		const diff = Math.floor((new Date() - new Date(startTime)) / 60000);
 		return `${diff}m`;
@@ -92,7 +96,7 @@ const ActiveOrdersTab = () => {
 					<div 
 						key={group.id} 
 						className="card bg-base-100 border border-base-300 hover:border-primary transition-all cursor-pointer shadow-sm"
-						onClick={() => setSelectedTable(group)}>
+						onClick={() => setSelectedTableId(group.id)}>
 						<div className="card-body p-4">
 							<div className="flex justify-between items-start">
 								<div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold text-lg 
@@ -135,10 +139,10 @@ const ActiveOrdersTab = () => {
 				)}
 			</div>
 
-			{selectedTable && (
+			{currentTableData && (
 				<TableBillsModal 
-					table={selectedTable} 
-					onClose={() => setSelectedTable(null)} 
+					table={currentTableData} 
+					onClose={() => setSelectedTableId(null)} 
 					onUpdate={fetchActiveOrders}
 				/>
 			)}
@@ -203,13 +207,28 @@ const TableBillsModal = ({ table, onClose, onUpdate }) => {
 
 								<div className="divider my-1"></div>
 
-								<div className="space-y-1">
-									{order.order_items.map((item, idx) => (
-										<div key={idx} className="flex justify-between text-xs">
-											<span>{item.quantity}x {item.name_burmese}</span>
-											<span className="font-mono">฿{(item.final_price || item.price) * item.quantity}</span>
-										</div>
-									))}
+								<div className="space-y-2">
+									{order.order_items.map((item, idx) => {
+										const itemNote = item.note || order.item_notes?.[item.cart_id];
+										return (
+											<div key={idx} className="flex flex-col text-xs">
+												<div className="flex justify-between">
+													<span className="font-medium">{item.quantity}x {item.name_burmese}</span>
+													<span className="font-mono">฿{(item.final_price || item.price) * item.quantity}</span>
+												</div>
+												{itemNote && (
+													<ul className="ml-4 mt-0.5 space-y-0.5 opacity-70 italic text-[10px]">
+														{itemNote.split(', ').map((note, nIdx) => (
+															<li key={nIdx} className="flex items-start gap-1">
+																<span className="mt-1 w-1 h-1 rounded-full bg-base-content shrink-0"></span>
+																{note}
+															</li>
+														))}
+													</ul>
+												)}
+											</div>
+										);
+									})}
 								</div>
 
 								<div className="flex justify-between items-center mt-3 pt-2 border-t border-base-200">

@@ -6,7 +6,7 @@ import { PageHeader } from "../components/common/PageHeader";
 import useQuickNoteStore from "../stores/quickNoteStore";
 import useMenuStore from "../stores/menuStore";
 
-const CATEGORIES = ["Food", "Drink", "Noodle", "Rice", "Salad", "Appetizer"];
+const CATEGORIES = ["Food", "Drink", "Noodles", "Rice", "Salad", "Appetizer"];
 
 const QuickNoteSettings = () => {
 	const { settings, loading, fetchAllSettings, refresh } = useQuickNoteStore();
