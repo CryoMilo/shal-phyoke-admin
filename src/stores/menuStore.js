@@ -13,7 +13,10 @@ const useMenuStore = create(
 			activeCategory: "all",
 			showActiveOnly: true,
 			filteredMenus: [],
-			showRegularOnly: false, // New filter for regular vs rotating
+			showRegularOnly: false,
+			// state for menu item extras
+			menuItemExtras: [],
+			loadingExtras: false,
 
 			// ===== SETTERS =====
 			setAllMenuItems: (items) => set({ allMenuItems: items }),
@@ -210,22 +213,57 @@ const useMenuStore = create(
 				}));
 			},
 
-			// ===== DATABASE OPERATIONS =====
+			// In menuStore.js
 			fetchAllMenuItems: async () => {
 				set({ loading: true });
 				try {
-					const { data, error } = await supabase
+					// First, fetch all menu items
+					const { data: menuItems, error: menuError } = await supabase
 						.from("menu_items")
 						.select("*")
-						.order("is_regular", { ascending: false }) // Regular items first
+						.order("is_regular", { ascending: false })
 						.order("category")
 						.order("name_burmese");
 
-					if (error) throw error;
+					if (menuError) throw menuError;
+
+					// Then, fetch all menu item extras
+					const { data: extras, error: extrasError } = await supabase
+						.from("menu_item_extras")
+						.select(
+							`
+        *,
+        extra_item:extra_item_id(
+          id,
+          name_burmese,
+          name_english,
+          price,
+          category
+        )
+      `
+						)
+						.eq("is_active", true);
+
+					if (extrasError) throw extrasError;
+
+					// Group extras by menu_item_id
+					const extrasByMenuItem = (extras || []).reduce((acc, extra) => {
+						if (!acc[extra.menu_item_id]) {
+							acc[extra.menu_item_id] = [];
+						}
+						acc[extra.menu_item_id].push(extra);
+						return acc;
+					}, {});
+
+					// Attach extras to menu items
+					const menuItemsWithExtras = (menuItems || []).map((item) => ({
+						...item,
+						available_extras: extrasByMenuItem[item.id] || [],
+					}));
 
 					set({
-						allMenuItems: data || [],
-						filteredMenus: data || [],
+						allMenuItems: menuItemsWithExtras,
+						filteredMenus: menuItemsWithExtras,
 						loading: false,
 					});
 				} catch (error) {
@@ -406,6 +444,98 @@ const useMenuStore = create(
 					console.error(`Error fetching ${category} menus:`, error);
 					set({ loading: false });
 					return { data: null, error };
+				}
+			},
+
+			fetchMenuItemExtras: async (menuItemId) => {
+				set({ loadingExtras: true });
+				try {
+					const { data, error } = await supabase
+						.from("menu_item_extras")
+						.select(
+							`
+							*,
+							extra_item:extra_item_id (
+								id,
+								name_burmese,
+								name_english,
+								price,
+								category
+							)
+						`
+						)
+						.eq("menu_item_id", menuItemId)
+						.eq("is_active", true)
+						.order("sort_order");
+
+					if (error) throw error;
+					set({ menuItemExtras: data || [] });
+					return data || []; // Return the data
+				} catch (error) {
+					console.error("Error fetching menu item extras:", error);
+					return []; // Return empty array on error
+				} finally {
+					set({ loadingExtras: false });
+				}
+			},
+
+			// Add extra to menu item
+			addMenuItemExtra: async (extraData) => {
+				try {
+					const { data, error } = await supabase
+						.from("menu_item_extras")
+						.insert([extraData])
+						.select()
+						.single();
+
+					if (error) throw error;
+
+					// Refresh the list
+					await get().fetchMenuItemExtras(extraData.menu_item_id);
+
+					return data;
+				} catch (error) {
+					console.error("Error adding menu item extra:", error);
+				}
+			},
+
+			// Update menu item extra
+			updateMenuItemExtra: async (id, updates) => {
+				try {
+					const { error } = await supabase
+						.from("menu_item_extras")
+						.update(updates)
+						.eq("id", id);
+
+					if (error) throw error;
+
+					// Refresh the list for the current menu item
+					const currentItemId = get().currentMenuItem?.id;
+					if (currentItemId) {
+						await get().fetchMenuItemExtras(currentItemId);
+					}
+				} catch (error) {
+					console.error("Error updating menu item extra:", error);
+				}
+			},
+
+			// Remove extra from menu item
+			removeMenuItemExtra: async (id) => {
+				try {
+					const { error } = await supabase
+						.from("menu_item_extras")
+						.update({ is_active: false })
+						.eq("id", id);
+
+					if (error) throw error;
+
+					// Refresh the list
+					const currentItemId = get().currentMenuItem?.id;
+					if (currentItemId) {
+						await get().fetchMenuItemExtras(currentItemId);
+					}
+				} catch (error) {
+					console.error("Error removing menu item extra:", error);
 				}
 			},
 		}),
