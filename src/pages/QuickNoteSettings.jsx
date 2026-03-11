@@ -1,14 +1,17 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { supabase } from "../services/supabase";
 import { showToast } from "../utils/toastUtils";
 import { Plus, Trash2, Edit2, Settings2 } from "lucide-react";
 import { PageHeader } from "../components/common/PageHeader";
 import useQuickNoteStore from "../stores/quickNoteStore";
+import useMenuStore from "../stores/menuStore";
 
 const CATEGORIES = ["Food", "Drink", "Noodle", "Rice", "Salad", "Appetizer"];
 
 const QuickNoteSettings = () => {
 	const { settings, loading, fetchAllSettings, refresh } = useQuickNoteStore();
+	const { allMenuItems, fetchAllMenuItems, updateMenuItemById } =
+		useMenuStore();
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [editingNote, setEditingNote] = useState(null);
 	const [activeTypeTab, setActiveTypeTab] = useState("taste_profile");
@@ -25,7 +28,27 @@ const QuickNoteSettings = () => {
 
 	useEffect(() => {
 		fetchAllSettings();
-	}, [fetchAllSettings]);
+		if (allMenuItems.length === 0) {
+			fetchAllMenuItems();
+		}
+	}, [fetchAllSettings, fetchAllMenuItems, allMenuItems.length]);
+
+	const toppings = useMemo(() => {
+		return allMenuItems.filter((item) => item.category === "Extra");
+	}, [allMenuItems]);
+
+	const handleToggleToppingStatus = async (item) => {
+		const { error } = await updateMenuItemById(item.id, {
+			is_active: !item.is_active,
+		});
+		if (error) {
+			showToast.error("Failed to update status");
+		} else {
+			showToast.success(
+				`${item.name_burmese} is now ${!item.is_active ? "Active" : "Inactive"}`
+			);
+		}
+	};
 
 	const handleOpenModal = (note = null) => {
 		if (note) {
@@ -39,7 +62,10 @@ const QuickNoteSettings = () => {
 				modal_label: "",
 				slip_label: "",
 				applicable_categories: [],
-				options: activeTypeTab === "taste_profile" ? ["No", "Low", "Med", "High"] : null,
+				options:
+					activeTypeTab === "taste_profile"
+						? ["No", "Low", "Med", "High"]
+						: null,
 				is_active: true,
 			});
 		}
@@ -78,7 +104,8 @@ const QuickNoteSettings = () => {
 	};
 
 	const handleDelete = async (id) => {
-		if (!window.confirm("Are you sure you want to delete this setting?")) return;
+		if (!window.confirm("Are you sure you want to delete this setting?"))
+			return;
 		try {
 			const { error } = await supabase
 				.from("quick_note_settings")
@@ -129,22 +156,87 @@ const QuickNoteSettings = () => {
 					onClick={() => setActiveTypeTab("frequent_request")}>
 					Frequent Requests
 				</button>
-			</div>
-
-			{/* Action Bar */}
-			<div className="flex justify-end">
 				<button
-					className="btn btn-primary gap-2"
-					onClick={() => handleOpenModal()}>
-					<Plus className="w-4 h-4" />
-					Add{" "}
-					{activeTypeTab === "taste_profile" ? "Taste Profile" : "Quick Note"}
+					className={`tab ${
+						activeTypeTab === "toppings" ? "tab-active font-bold" : ""
+					}`}
+					onClick={() => setActiveTypeTab("toppings")}>
+					Toppings (Global)
 				</button>
 			</div>
 
+			{/* Action Bar */}
+			{activeTypeTab !== "toppings" && (
+				<div className="flex justify-end">
+					<button
+						className="btn btn-primary gap-2"
+						onClick={() => handleOpenModal()}>
+						<Plus className="w-4 h-4" />
+						Add{" "}
+						{activeTypeTab === "taste_profile" ? "Taste Profile" : "Quick Note"}
+					</button>
+				</div>
+			)}
+
 			{/* Settings List */}
 			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-				{loading ? (
+				{activeTypeTab === "toppings" ? (
+					toppings.length > 0 ? (
+						toppings.map((item) => (
+							<div
+								key={item.id}
+								className={`card bg-base-100 border ${
+									item.is_active
+										? "border-base-300"
+										: "border-error/20 bg-error/5"
+								} shadow-sm transition-all`}>
+								<div className="card-body p-4">
+									<div className="flex justify-between items-start">
+										<div>
+											<h3 className="font-bold text-lg">{item.name_burmese}</h3>
+											<p className="text-xs text-gray-500 italic">
+												{item.name_english || "No English Name"}
+											</p>
+											<p className="text-sm font-mono mt-1 font-bold">
+												฿{item.price}
+											</p>
+										</div>
+										<div className="flex flex-col items-end gap-2">
+											<div className="form-control">
+												<label className="label cursor-pointer p-0 gap-2">
+													<span className="label-text text-[10px] font-bold uppercase">
+														{item.is_active ? "Active" : "Disabled"}
+													</span>
+													<input
+														type="checkbox"
+														className={`toggle toggle-xs ${
+															item.is_active ? "toggle-success" : "toggle-error"
+														}`}
+														checked={item.is_active}
+														onChange={() => handleToggleToppingStatus(item)}
+													/>
+												</label>
+											</div>
+										</div>
+									</div>
+
+									<div className="mt-4 pt-3 border-t border-base-200">
+										<p className="text-[10px] text-gray-400">
+											This is a menu item. Edit details in All Menu.
+										</p>
+									</div>
+								</div>
+							</div>
+						))
+					) : (
+						<div className="col-span-full py-20 text-center bg-base-200 rounded-xl border-2 border-dashed border-base-300">
+							<Settings2 className="w-12 h-12 mx-auto text-base-content/20 mb-2" />
+							<p className="text-base-content/50">
+								No items with category "Extra" found in All Menu.
+							</p>
+						</div>
+					)
+				) : loading ? (
 					<div className="col-span-full py-20 text-center">
 						<span className="loading loading-spinner loading-lg"></span>
 					</div>
@@ -245,7 +337,7 @@ const QuickNoteSettings = () => {
 									<input
 										type="text"
 										className="input input-bordered"
-										value={formData.group_name}
+										value={formData.group_name || ""}
 										onChange={(e) =>
 											setFormData({ ...formData, group_name: e.target.value })
 										}
@@ -262,7 +354,7 @@ const QuickNoteSettings = () => {
 									<input
 										type="text"
 										className="input input-bordered"
-										value={formData.modal_label}
+										value={formData.modal_label || ""}
 										onChange={(e) =>
 											setFormData({ ...formData, modal_label: e.target.value })
 										}
@@ -276,7 +368,7 @@ const QuickNoteSettings = () => {
 									<input
 										type="text"
 										className="input input-bordered"
-										value={formData.slip_label}
+										value={formData.slip_label || ""}
 										onChange={(e) =>
 											setFormData({ ...formData, slip_label: e.target.value })
 										}
@@ -298,7 +390,7 @@ const QuickNoteSettings = () => {
 											type="button"
 											onClick={() => toggleCategory(cat)}
 											className={`btn btn-xs ${
-												formData.applicable_categories?.includes(cat)
+												(formData.applicable_categories || []).includes(cat)
 													? "btn-primary"
 													: "btn-outline"
 											}`}>
@@ -316,7 +408,7 @@ const QuickNoteSettings = () => {
 									<input
 										type="checkbox"
 										className="checkbox checkbox-primary"
-										checked={formData.is_active}
+										checked={formData.is_active || false}
 										onChange={(e) =>
 											setFormData({ ...formData, is_active: e.target.checked })
 										}

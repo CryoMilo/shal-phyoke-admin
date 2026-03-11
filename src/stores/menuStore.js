@@ -238,7 +238,8 @@ const useMenuStore = create(
           name_burmese,
           name_english,
           price,
-          category
+          category,
+          is_active
         )
       `
 						)
@@ -246,12 +247,19 @@ const useMenuStore = create(
 
 					if (extrasError) throw extrasError;
 
-					// Group extras by menu_item_id
+					// Group extras by menu_item_id, filtering out extras where the item itself is inactive
 					const extrasByMenuItem = (extras || []).reduce((acc, extra) => {
-						if (!acc[extra.menu_item_id]) {
-							acc[extra.menu_item_id] = [];
+						if (extra.extra_item && extra.extra_item.is_active) {
+							if (!acc[extra.menu_item_id]) {
+								acc[extra.menu_item_id] = [];
+							}
+							acc[extra.menu_item_id].push({
+								...extra,
+								// Flatten for easier access in UI if needed, but keeping original structure too
+								name_burmese: extra.extra_item.name_burmese,
+								name_english: extra.extra_item.name_english,
+							});
 						}
-						acc[extra.menu_item_id].push(extra);
 						return acc;
 					}, {});
 
@@ -460,7 +468,8 @@ const useMenuStore = create(
 								name_burmese,
 								name_english,
 								price,
-								category
+								category,
+								is_active
 							)
 						`
 						)
@@ -469,8 +478,18 @@ const useMenuStore = create(
 						.order("sort_order");
 
 					if (error) throw error;
-					set({ menuItemExtras: data || [] });
-					return data || []; // Return the data
+					
+					// Filter out inactive items and flatten
+					const filteredData = (data || [])
+						.filter(extra => extra.extra_item && extra.extra_item.is_active)
+						.map(extra => ({
+							...extra,
+							name_burmese: extra.extra_item.name_burmese,
+							name_english: extra.extra_item.name_english,
+						}));
+
+					set({ menuItemExtras: filteredData });
+					return filteredData;
 				} catch (error) {
 					console.error("Error fetching menu item extras:", error);
 					return []; // Return empty array on error
