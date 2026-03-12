@@ -167,13 +167,15 @@ const NewOrderTab = ({
 	};
 
 	return (
-		<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+		<div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
 			{/* Left: Menu Items */}
-			<div className="lg:col-span-2">
+			<div className="lg:col-span-3">
 				{/* Order Type Selection */}
-				<div className="bg-base-200 p-4 rounded-lg mb-4">
-					<label className="label">
-						<span className="label-text font-semibold">Order Type</span>
+				<div className="bg-base-200 p-4 rounded-lg mb-4 md:flex justify-between">
+					<label className="label mb-1">
+						<span className="label-text text-accent font-semibold">
+							Order Type
+						</span>
 					</label>
 					<div className="flex gap-2">
 						{["dine_in", "takeaway", "delivery"].map((type) => (
@@ -191,30 +193,11 @@ const NewOrderTab = ({
 							</button>
 						))}
 					</div>
-
-					{/* Table Selection for Dine In */}
-					{orderType === "dine_in" && (
-						<div className="mt-3">
-							<label className="label">
-								<span className="label-text font-semibold">Table Number</span>
-							</label>
-							<button
-								className="btn btn-outline btn-sm w-full"
-								onClick={() => setShowTableModal(true)}>
-								{tableNumber ? `Table ${tableNumber}` : "Select Table"}
-							</button>
-						</div>
-					)}
 				</div>
 
 				{/* Customer Info for Delivery */}
 				{orderType === "delivery" && (
 					<div className="bg-base-200 p-4 rounded-lg mb-4">
-						<label className="label">
-							<span className="label-text font-semibold">
-								Delivery Information
-							</span>
-						</label>
 						<div className="space-y-2">
 							<input
 								type="text"
@@ -255,11 +238,6 @@ const NewOrderTab = ({
 				{/* Customer Info for Takeaway (Name only) */}
 				{orderType === "takeaway" && (
 					<div className="bg-base-200 p-4 rounded-lg mb-4">
-						<label className="label">
-							<span className="label-text font-semibold">
-								Customer Name (Optional)
-							</span>
-						</label>
 						<input
 							type="text"
 							placeholder="Customer Name"
@@ -319,7 +297,7 @@ const NewOrderTab = ({
 			</div>
 
 			{/* Right: Order Summary */}
-			<div className="bg-base-200 rounded-lg p-4 h-fit sticky top-4">
+			<div className="rounded-lg h-fit col-span-2 sticky top-4 bg-base-200 p-4">
 				<h2 className="text-lg font-bold mb-4">Current Order</h2>
 
 				{/* Cart Items */}
@@ -327,7 +305,7 @@ const NewOrderTab = ({
 					{cart.map((item) => (
 						<div
 							key={item.cart_id}
-							className="bg-base-100 p-2 rounded border border-base-300 shadow-sm">
+							className="bg-base-100 p-2 rounded-lg border border-base-300 shadow-sm">
 							<div className="flex justify-between items-start mb-1">
 								<div className="flex-1">
 									<div className="font-medium text-sm">{item.name_burmese}</div>
@@ -358,7 +336,7 @@ const NewOrderTab = ({
 								{/* Split Button - Only show if quantity > 1 */}
 								{item.quantity > 1 && (
 									<button
-										className="btn btn-xs btn-circle bg-base-200 text-primary hover:bg-primary hover:text-white border-none"
+										className="btn btn-sm text-accent hover:bg-primary hover:text-white border-none"
 										title="Split into separate lines"
 										onClick={() => splitItem(item.cart_id)}>
 										<Split className="w-3.5 h-3.5" />
@@ -372,7 +350,7 @@ const NewOrderTab = ({
 										</div>
 									)}
 									<button
-										className={`btn btn-xs w-full justify-start gap-2 ${
+										className={`btn btn-sm w-full justify-start gap-2 ${
 											itemNotes[item.cart_id]
 												? "btn-accent btn-outline"
 												: "btn-ghost border-base-300"
@@ -419,6 +397,17 @@ const NewOrderTab = ({
 					</div>
 				</div>
 
+				{/* Table Selection for Dine In */}
+				{orderType === "dine_in" && (
+					<div className="mt-3">
+						<button
+							className="btn btn-secondary btn-sm w-full text-white"
+							onClick={() => setShowTableModal(true)}>
+							{tableNumber ? `Table ${tableNumber}` : "Select Table"}
+						</button>
+					</div>
+				)}
+
 				{/* Payment Method */}
 				<div className="mt-4">
 					<label className="label py-1">
@@ -430,7 +419,7 @@ const NewOrderTab = ({
 						{["unpaid", "cash", "qr"].map((method) => (
 							<button
 								key={method}
-								className={`btn btn-xs flex-1 ${
+								className={`btn btn-sm flex-1 ${
 									paymentMethod === method ? "btn-primary" : "btn-outline"
 								}`}
 								onClick={() => setPaymentMethod(method)}>

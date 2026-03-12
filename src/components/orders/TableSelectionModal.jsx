@@ -7,11 +7,11 @@ const TableSelectionModal = ({ show, onClose, onSelect, selectedTable }) => {
 		<div className="modal modal-open z-[60]">
 			<div className="modal-box">
 				<h3 className="font-bold text-lg mb-4">Select Table Number</h3>
-				<div className="grid grid-cols-5 gap-2">
+				<div className="grid grid-cols-5 gap-4">
 					{tables.map((table) => (
 						<button
 							key={table}
-							className={`btn btn-sm ${
+							className={`btn btn-xl ${
 								selectedTable === table ? "btn-primary" : "btn-outline"
 							}`}
 							onClick={() => {
