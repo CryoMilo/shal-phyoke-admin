@@ -32,7 +32,7 @@ const processSalesData = (orders, aggregatedSales, dateStr) => {
 	);
 
 	const cashSales = orders
-		.filter((o) => o.payment_method === "cash")
+		.filter((o) => o.payment_method?.toLowerCase() === "cash")
 		.reduce((sum, o) => sum + getSafeNumber(o.total_amount), 0);
 
 	const qrSales = totalIncome - cashSales;
@@ -59,7 +59,7 @@ const processSalesData = (orders, aggregatedSales, dateStr) => {
 		itemSalesMap[key].quantitySold += sale.quantity_sold;
 		itemSalesMap[key].totalRevenue += sale.total_revenue;
 		itemSalesMap[key].orderIds.add(sale.order_id);
-		sale.payment_method === "cash"
+		sale.payment_method?.toLowerCase() === "cash"
 			? itemSalesMap[key].cashOrders++
 			: itemSalesMap[key].qrOrders++;
 	});

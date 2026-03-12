@@ -111,11 +111,6 @@ const InventoryCard = ({ item, onAddToMarketList, onUpdateStock, onClick }) => {
 						<Plus className="w-4 h-4" />
 					</button>
 				</div>
-				{isUpdating && (
-					<span className="text-xs text-gray-400 block text-center mt-0.5">
-						Updating...
-					</span>
-				)}
 			</div>
 
 			{/* Add to Market List Button */}
@@ -128,7 +123,6 @@ const InventoryCard = ({ item, onAddToMarketList, onUpdateStock, onClick }) => {
 					disabled={item.quantity >= item.threshold + 1}
 					className="btn btn-primary btn-sm gap-1">
 					<ShoppingCart className="w-4 h-4" />
-					Add to List
 				</button>
 			</div>
 
