@@ -11,11 +11,13 @@ const OrderHistoryTab = () => {
 
 		// Set up realtime broadcast subscription
 		const channel = supabase
-			.channel("orders:history", { config: { private: true } })
+			.channel("orders:changes", { config: { private: false } })
 			.on("broadcast", { event: "UPDATE" }, () => fetchCompletedOrders())
 			.on("broadcast", { event: "INSERT" }, () => fetchCompletedOrders())
 			.on("broadcast", { event: "DELETE" }, () => fetchCompletedOrders())
-			.subscribe();
+			.subscribe((status) => {
+				console.log("Order History Realtime status:", status);
+			});
 
 		return () => {
 			supabase.removeChannel(channel);

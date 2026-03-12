@@ -12,11 +12,13 @@ const ActiveOrdersTab = () => {
 		fetchActiveOrders();
 
 		const channel = supabase
-			.channel("orders:changes", { config: { private: true } })
+			.channel("orders:changes", { config: { private: false } })
 			.on("broadcast", { event: "INSERT" }, () => fetchActiveOrders())
 			.on("broadcast", { event: "UPDATE" }, () => fetchActiveOrders())
 			.on("broadcast", { event: "DELETE" }, () => fetchActiveOrders())
-			.subscribe();
+			.subscribe((status) => {
+				console.log("Active Orders Realtime status:", status);
+			});
 
 		return () => {
 			supabase.removeChannel(channel);
