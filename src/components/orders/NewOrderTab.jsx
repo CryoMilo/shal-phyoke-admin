@@ -86,20 +86,19 @@ const NewOrderTab = ({
 				return;
 			}
 
-			// 2. Fetch today's items from that menu using the view
+			// 2. Fetch today's items from that menu using the correct join name
 			const { data: items, error: itemsError } = await supabase
 				.from("weekly_menu_items")
 				.select(
 					`
-          menu_items_with_extras:menu_item_id (
+          menu_items:menu_item_id (
             id,
             name_burmese,
             name_english,
             name_thai,
             price,
             category,
-            image_url,
-            available_extras
+            image_url
           )
         `
 				)
@@ -109,7 +108,13 @@ const NewOrderTab = ({
 			if (itemsError) throw itemsError;
 
 			// Flatten the data to get an array of menu_items
-			const specialItems = items.map((item) => item.menu_items_with_extras);
+			const specialItems = items
+				.map((item) => item.menu_items)
+				.filter(Boolean)
+				.map(item => ({
+					...item,
+					available_extras: item.available_extras || [] // Ensure it exists for the modal
+				}));
 			setTodaysSpecialItems(specialItems);
 		} catch (error) {
 			console.error("Error fetching today's special items:", error);
