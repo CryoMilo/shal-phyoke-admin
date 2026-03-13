@@ -18,9 +18,9 @@ export const PageHeader = ({
 					{title}
 				</h1>
 				{description && (
-					<p className="text-gray-600 text-sm sm:text-base mt-1">
+					<div className="text-gray-600 text-sm sm:text-base mt-1">
 						{description}
-					</p>
+					</div>
 				)}
 			</div>
 
@@ -44,6 +44,7 @@ const ButtonRenderer = ({ button }) => {
 		to,
 		variant = "primary",
 		component,
+		loading,
 		...props
 	} = button;
 
@@ -55,7 +56,11 @@ const ButtonRenderer = ({ button }) => {
 	const commonClasses = `btn btn-${variant} btn-sm sm:btn-md flex items-center`;
 	const content = (
 		<>
-			{Icon && <Icon className="w-4 h-4" />}
+			{loading ? (
+				<span className="loading loading-spinner loading-xs"></span>
+			) : (
+				Icon && <Icon className="w-4 h-4" />
+			)}
 			<span className="hidden sm:inline ml-2">{label}</span>
 		</>
 	);

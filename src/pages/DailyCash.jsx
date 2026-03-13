@@ -149,10 +149,10 @@ const DailyCash = () => {
 	// Derived Calculations
 	const expectedCash = useMemo(() => {
 		return (
-			watchedValues.opening_balance +
-			salesData.cash +
-			additionalIncome -
-			expensesData.fromDrawer
+			(watchedValues.opening_balance || 0) +
+			(salesData.cash || 0) +
+			(additionalIncome || 0) -
+			(expensesData.fromDrawer || 0)
 		);
 	}, [
 		watchedValues.opening_balance,
@@ -162,11 +162,11 @@ const DailyCash = () => {
 	]);
 
 	const variance = useMemo(() => {
-		return watchedValues.cash_collected - expectedCash;
+		return (watchedValues.cash_collected || 0) - expectedCash;
 	}, [watchedValues.cash_collected, expectedCash]);
 
 	const shortage = useMemo(() => {
-		return watchedValues.cash_collected - watchedValues.cash_deposited;
+		return (watchedValues.cash_collected || 0) - (watchedValues.cash_deposited || 0);
 	}, [watchedValues.cash_collected, watchedValues.cash_deposited]);
 
 	const handleSave = async (data) => {
@@ -175,11 +175,11 @@ const DailyCash = () => {
 			const payload = {
 				...data,
 				date: selectedDate,
-				cash_sales: salesData.cash,
-				card_sales: salesData.card,
-				online_sales: salesData.online,
+				cash_sales: salesData.cash || 0,
+				card_sales: salesData.card || 0,
+				online_sales: salesData.online || 0,
 				// closing_balance is calculated as collected - deposited
-				closing_balance: data.cash_collected - data.cash_deposited,
+				closing_balance: (data.cash_collected || 0) - (data.cash_deposited || 0),
 			};
 
 			const { error } = await supabase.from("daily_cash").upsert(payload, {
@@ -342,8 +342,8 @@ const DailyCash = () => {
 									<h3 className="text-2xl font-bold mt-1">
 										฿
 										{(
-											watchedValues.cash_collected -
-											watchedValues.cash_deposited
+											(watchedValues.cash_collected || 0) -
+											(watchedValues.cash_deposited || 0)
 										).toLocaleString()}
 									</h3>
 								</div>
@@ -427,8 +427,8 @@ const DailyCash = () => {
 											type="number"
 											readOnly
 											value={
-												watchedValues.cash_collected -
-												watchedValues.cash_deposited
+												(watchedValues.cash_collected || 0) -
+												(watchedValues.cash_deposited || 0)
 											}
 											className="input input-bordered bg-base-200 cursor-not-allowed"
 										/>
