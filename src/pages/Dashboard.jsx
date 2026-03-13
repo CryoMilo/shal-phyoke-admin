@@ -394,8 +394,10 @@ export const Dashboard = () => {
 							value={getBangkokISO(selectedDate)}
 							max={getBangkokISO(today)}
 							onChange={(e) => {
-								setSelectedDate(new Date(e.target.value));
-								setShowDatePicker(false);
+								if (e.target.value) {
+									setSelectedDate(new Date(e.target.value));
+									setShowDatePicker(false);
+								}
 							}}
 						/>
 						<div className="modal-action">

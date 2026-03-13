@@ -12,7 +12,6 @@ import {
 	ShoppingBasket,
 	DollarSign,
 	FileText,
-	Package,
 	TrendingDown,
 	Box,
 	ShoppingCart,
@@ -153,30 +152,13 @@ const Sidebar = ({ children }) => {
 							</svg>
 						</label>
 					</div>
-					<div className="flex-1">
-						<span className="text-xl font-bold">Shal Phyoke Admin</span>
-					</div>
-					<div className="flex-none">
-						<div className="dropdown dropdown-end">
-							<label tabIndex={0} className="btn btn-ghost btn-circle avatar">
-								<div className="w-10 rounded-full bg-primary flex items-center justify-center text-primary-content">
-									<User className="w-5 h-5" />
-								</div>
-							</label>
-							<ul
-								tabIndex={0}
-								className="mt-3 p-2 shadow menu menu-compact dropdown-content bg-base-100 rounded-box w-52">
-								<li className="menu-title">
-									<span>{profile?.full_name || profile?.email}</span>
-								</li>
-								<li className="menu-title">
-									<span className="badge badge-sm">{profile?.role}</span>
-								</li>
-								<li>
-									<a onClick={handleSignOut}>Logout</a>
-								</li>
-							</ul>
+					<div className="flex-1 flex items-center gap-2">
+						<div className="avatar">
+							<div className="w-8 h-8 rounded-md bg-base-100 flex items-center justify-center p-1 border border-base-300 shadow-sm">
+								<img src="/logo.svg" alt="Logo" className="object-contain" />
+							</div>
 						</div>
+						<span className="text-xl font-bold">Shal Phyoke Admin</span>
 					</div>
 				</div>
 
@@ -194,32 +176,29 @@ const Sidebar = ({ children }) => {
 
 				<aside
 					className={`min-h-full bg-base-200 transition-all duration-300 ${
-						isCollapsed ? "w-16" : "w-64"
+						isCollapsed ? "w-16" : "w-60"
 					}`}>
 					{/* Header */}
 					<div className="p-4 border-b border-base-300">
 						<div className="flex items-center justify-between">
 							{!isCollapsed && (
-								<div>
-									<p className="text-xl font-bold">Shal Phyoke</p>
-									<p className="text-sm text-gray-600">Admin Panel</p>
-									<div className="mt-2 flex items-center gap-2">
-										<div className="avatar placeholder">
-											<div className="bg-primary text-primary-content rounded-full w-8">
-												<span className="text-xs">
-													{profile?.full_name?.charAt(0) ||
-														profile?.email?.charAt(0)}
-												</span>
-											</div>
+								<div className="flex items-center gap-2">
+									<div className="avatar">
+										<div className="w-10 h-10 rounded-md bg-base-100 flex items-center justify-center p-1 border border-base-300 shadow-sm">
+											<img
+												src="/logo.svg"
+												alt="Logo"
+												className="object-contain"
+											/>
 										</div>
-										<div>
-											<p className="text-sm font-medium truncate max-w-[120px]">
-												{profile?.full_name || profile?.email}
-											</p>
-											<p className="text-xs capitalize badge badge-sm">
-												{profile?.role}
-											</p>
-										</div>
+									</div>
+									<div>
+										<p className="text-xl font-bold whitespace-nowrap">
+											Shal Phyoke
+										</p>
+										<p className="text-xs capitalize badge badge-sm">
+											{profile?.role}
+										</p>
 									</div>
 								</div>
 							)}

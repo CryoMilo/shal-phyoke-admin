@@ -238,9 +238,6 @@ const DailyExpenses = () => {
 				<div className="card-body">
 					<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 						<div className="form-control">
-							<label className="label">
-								<span className="label-text">Date</span>
-							</label>
 							<input
 								type="date"
 								value={selectedDate}
@@ -249,9 +246,6 @@ const DailyExpenses = () => {
 							/>
 						</div>
 						<div className="form-control">
-							<label className="label">
-								<span className="label-text">Category</span>
-							</label>
 							<select
 								value={selectedCategory}
 								onChange={(e) => setSelectedCategory(e.target.value)}
@@ -506,7 +500,9 @@ const DailyExpenses = () => {
 											<td>{format(new Date(expense.date), "MMM dd, yyyy")}</td>
 											<td>
 												<span
-													className={`badge ${getCategoryColor(expense.category)} text-white`}>
+													className={`badge ${getCategoryColor(
+														expense.category
+													)} text-white`}>
 													{getCategoryLabel(expense.category)}
 												</span>
 											</td>
@@ -527,7 +523,9 @@ const DailyExpenses = () => {
 											</td>
 											<td>
 												<span
-													className={`badge ${getPaidByColor(expense.paid_by)}`}>
+													className={`badge ${getPaidByColor(
+														expense.paid_by
+													)}`}>
 													{getPaidByLabel(expense.paid_by)}
 												</span>
 											</td>
