@@ -19,17 +19,12 @@ export const SummaryCards = ({ salesData }) => {
 							<h3 className="text-sm font-medium text-base-content/70">
 								Today's Income
 							</h3>
-							<p className="text-2xl font-bold">
+							<p className="text-3xl font-bold">
 								฿{salesData.totalIncome.toFixed(2)}
 							</p>
-							<div className="flex gap-2 mt-1">
-								<span className="badge badge-sm badge-success">
-									Cash: ฿{salesData.cashSales.toFixed(2)}
-								</span>
-								<span className="badge badge-sm badge-info">
-									QR: ฿{salesData.qrSales.toFixed(2)}
-								</span>
-							</div>
+							<span className="text-xs text-gray-500">
+								{salesData.totalItems} items sold
+							</span>
 						</div>
 					</div>
 				</div>
@@ -60,7 +55,7 @@ export const SummaryCards = ({ salesData }) => {
 										? (
 												(salesData.totalDailyExpenses / salesData.totalIncome) *
 												100
-											).toFixed(1) + "%"
+										  ).toFixed(1) + "%"
 										: "0%"}{" "}
 									of income
 								</span>
@@ -93,12 +88,6 @@ export const SummaryCards = ({ salesData }) => {
 										฿{salesData.totalMonthlyOverheads?.toFixed(2) || "0.00"}
 									</span>
 								</div>
-								<div className="flex justify-between text-xs">
-									<span>Pending:</span>
-									<span className="font-medium">
-										฿{salesData.pendingOverheads?.toFixed(2) || "0.00"}
-									</span>
-								</div>
 							</div>
 						</div>
 					</div>
@@ -111,7 +100,11 @@ export const SummaryCards = ({ salesData }) => {
 					<div className="flex items-center">
 						<div className="avatar placeholder">
 							<div
-								className={`${salesData.netProfit >= 0 ? "bg-primary/20 text-primary" : "bg-error/20 text-error"} rounded-full w-12 grid place-content-center place-items-center`}>
+								className={`${
+									salesData.netProfit >= 0
+										? "bg-primary/20 text-primary"
+										: "bg-error/20 text-error"
+								} rounded-full w-12 grid place-content-center place-items-center`}>
 								<BanknoteArrowUp className="w-6 h-6" />
 							</div>
 						</div>
@@ -120,7 +113,9 @@ export const SummaryCards = ({ salesData }) => {
 								Net Profit
 							</h3>
 							<p
-								className={`text-2xl font-bold ${salesData.netProfit >= 0 ? "text-primary" : "text-error"}`}>
+								className={`text-2xl font-bold ${
+									salesData.netProfit >= 0 ? "text-primary" : "text-error"
+								}`}>
 								฿{salesData.netProfit.toFixed(2)}
 							</p>
 							<div className="flex gap-2 mt-1">

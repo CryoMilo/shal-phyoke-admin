@@ -292,14 +292,14 @@ export const Dashboard = () => {
 
 	return (
 		<div className="min-h-screen bg-base-100">
-			<div className="container mx-auto p-4 md:p-6">
+			<div className="container mx-auto p-4 max-w-6xl">
 				<PageHeader
 					title="Dashboard Analytics"
 					description={
 						<div className="flex items-center gap-2">
 							<span>{formatDisplayDate(selectedDate)}</span>
 							{!isTodaySelected && (
-								<span className="badge badge-sm badge-warning">
+								<span className="hidden md:badge badge-sm badge-warning">
 									Historical View
 								</span>
 							)}
@@ -329,7 +329,7 @@ export const Dashboard = () => {
 				/>
 
 				{/* Date Navigation */}
-				<div className="mb-6 flex items-center justify-between bg-base-200 rounded-lg p-3">
+				<div className="mb-6 flex items-center justify-center md:justify-between bg-base-200 rounded-lg p-3">
 					<div className="flex items-center gap-2">
 						<button
 							className="btn btn-circle btn-sm"
@@ -348,7 +348,7 @@ export const Dashboard = () => {
 							<ChevronRight size={16} />
 						</button>
 					</div>
-					<div className="flex gap-2">
+					<div className="hidden md:flex gap-2">
 						<button
 							className={`btn btn-sm ${
 								getBangkokISO(selectedDate) === getBangkokISO(yesterday)
