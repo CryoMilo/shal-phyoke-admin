@@ -136,9 +136,9 @@ export const Dashboard = () => {
 				.from("daily_cash")
 				.select("opening_balance, cash_collected, cash_deposited, notes")
 				.eq("date", bangkokDateStr)
-				.single();
+				.maybeSingle();
 
-			if (cashError && cashError.code !== "PGRST116") {
+			if (cashError) {
 				console.error("Error fetching daily cash:", cashError);
 			}
 

@@ -55,9 +55,9 @@ const DailyCash = () => {
 				.from("daily_cash")
 				.select("*")
 				.eq("date", date)
-				.single();
+				.maybeSingle();
 
-			if (cashError && cashError.code !== "PGRST116") throw cashError;
+			if (cashError) throw cashError;
 
 			if (cash) {
 				reset({
@@ -74,7 +74,7 @@ const DailyCash = () => {
 					.from("daily_cash")
 					.select("closing_balance")
 					.eq("date", yesterday)
-					.single();
+					.maybeSingle();
 
 				reset({
 					opening_balance: prevDay?.closing_balance || 0,
