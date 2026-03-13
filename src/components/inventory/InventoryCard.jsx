@@ -37,98 +37,104 @@ const InventoryCard = ({ item, onAddToMarketList, onUpdateStock, onClick }) => {
 	return (
 		<div
 			id={`item-${item.id}`}
-			className="group flex items-center gap-3 p-3 bg-base-100 rounded-lg border border-base-200 hover:shadow-md transition-shadow cursor-pointer"
-			onClick={onClick}>
-			{/* Image */}
-			<div className="w-10 h-10 rounded-lg bg-base-300 flex items-center justify-center overflow-hidden flex-shrink-0">
-				{item.image_url ? (
-					<img
-						src={item.image_url}
-						alt={item.name}
-						className="w-full h-full object-cover"
-					/>
-				) : (
-					<Package className="w-5 h-5 text-gray-500" />
-				)}
-			</div>
-
-			{/* Item Details */}
-			<div className="flex-1 min-w-0">
-				<div className="flex items-center gap-2 flex-wrap">
-					<span className="font-medium text-sm">{item.name}</span>
-					<span className="text-xs text-gray-500">{item.category}</span>
-					{!item.is_regular && (
-						<span className="badge badge-ghost badge-xs">Occasional</span>
-					)}
-					<span className={`badge ${status.color} badge-xs`}>
-						{status.text}
-					</span>
-				</div>
-				<div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
-					<span>Unit: {item.unit}</span>
-					<span>Vendor: {item.default_vendor?.name || "—"}</span>
-					{item.threshold > 0 && <span>Alert at: {item.threshold}</span>}
-				</div>
-			</div>
-
-			{/* Stock Level Controls */}
-			<div
-				className="w-32 bg-base-200 rounded-lg p-1"
-				onClick={(e) => e.stopPropagation()}>
-				<div className="flex items-center justify-between gap-1">
-					<button
-						onClick={(e) => {
-							e.stopPropagation();
-							handleDecrement();
-						}}
-						className="btn btn-sm btn-square btn-ghost bg-base-100 hover:bg-base-300 shadow-sm"
-						disabled={isUpdating}>
-						<Minus className="w-4 h-4" />
-					</button>
-
-					<div className="flex-1 text-center">
-						<input
-							type="number"
-							value={item.quantity || 0}
-							onChange={(e) => handleStockUpdate(e.target.value)}
-							onClick={(e) => e.stopPropagation()}
-							className={`w-full text-center input input-sm input-bordered bg-base-100 font-medium ${
-								isUpdating ? "opacity-50" : ""
-							}`}
-							step="0.5"
-							min="0"
-							disabled={isUpdating}
+			className="group flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 bg-base-100 rounded-xl border border-base-200 hover:shadow-lg transition-all shadow-sm">
+			<div className="flex items-center gap-3 w-full sm:w-auto flex-1 min-w-0">
+				{/* Image */}
+				<div
+					onClick={onClick}
+					className="cursor-pointer w-12 h-12 rounded-xl bg-base-200 flex items-center justify-center overflow-hidden flex-shrink-0 border border-base-300">
+					{item.image_url ? (
+						<img
+							src={item.image_url}
+							alt={item.name}
+							className="w-full h-full object-cover"
 						/>
-					</div>
+					) : (
+						<Package className="w-6 h-6 text-base-content/30" />
+					)}
+				</div>
 
-					<button
-						onClick={(e) => {
-							e.stopPropagation();
-							handleIncrement();
-						}}
-						className="btn btn-sm btn-square btn-ghost bg-base-100 hover:bg-base-300 shadow-sm"
-						disabled={isUpdating}>
-						<Plus className="w-4 h-4" />
-					</button>
+				{/* Item Details */}
+				<div className="flex-1 min-w-0" onClick={onClick}>
+					<div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+						<span className="font-bold text-base truncate">{item.name}</span>
+						<span
+							className={`badge ${status.color} badge-xs font-bold uppercase`}>
+							{status.text}
+						</span>
+					</div>
+					<div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-base-content/60">
+						<span className="badge badge-ghost badge-sm">{item.category}</span>
+						<span>
+							Unit:{" "}
+							<span className="font-medium text-base-content">{item.unit}</span>
+						</span>
+						{!item.is_regular && (
+							<span className="text-warning font-medium">Occasional</span>
+						)}
+					</div>
 				</div>
 			</div>
 
-			{/* Add to Market List Button */}
-			<div onClick={(e) => e.stopPropagation()}>
-				<button
-					onClick={(e) => {
-						e.stopPropagation();
-						onAddToMarketList(item);
-					}}
-					disabled={item.quantity >= item.threshold + 1}
-					className="btn btn-primary btn-sm gap-1">
-					<ShoppingCart className="w-4 h-4" />
-				</button>
-			</div>
+			{/* Controls Row (Mobile friendly stack) */}
+			<div className="flex items-center justify-between gap-3 w-full sm:w-auto pt-3 sm:pt-0 border-t sm:border-t-0 border-base-200">
+				{/* Stock Level Controls */}
+				<div
+					className="w-full sm:w-36 bg-base-200 rounded-xl p-1 shadow-inner"
+					onClick={(e) => e.stopPropagation()}>
+					<div className="flex items-center justify-between gap-1">
+						<button
+							onClick={(e) => {
+								e.stopPropagation();
+								handleDecrement();
+							}}
+							className="btn btn-sm btn-square btn-ghost bg-base-100 hover:bg-base-300 shadow-sm"
+							disabled={isUpdating}>
+							<Minus className="w-4 h-4" />
+						</button>
 
-			{/* Edit indicator */}
-			<div className="opacity-0 group-hover:opacity-100 transition-opacity">
-				<Edit2 className="w-4 h-4 text-gray-400" />
+						<div className="flex-1 text-center min-w-[3rem]">
+							<input
+								type="number"
+								value={item.quantity || 0}
+								onChange={(e) => handleStockUpdate(e.target.value)}
+								onClick={(e) => e.stopPropagation()}
+								className={`w-full text-center bg-transparent border-none font-black text-sm p-0 focus:outline-none ${
+									isUpdating ? "opacity-50" : ""
+								}`}
+								step="0.5"
+								min="0"
+								disabled={isUpdating}
+							/>
+						</div>
+
+						<button
+							onClick={(e) => {
+								e.stopPropagation();
+								handleIncrement();
+							}}
+							className="btn btn-sm btn-square btn-ghost bg-base-100 hover:bg-base-300 shadow-sm"
+							disabled={isUpdating}>
+							<Plus className="w-4 h-4" />
+						</button>
+					</div>
+				</div>
+
+				{/* Action Buttons */}
+				<div
+					className="flex items-center gap-2"
+					onClick={(e) => e.stopPropagation()}>
+					<button
+						onClick={(e) => {
+							e.stopPropagation();
+							onAddToMarketList(item);
+						}}
+						disabled={item.quantity >= item.threshold + 1}
+						className="btn btn-primary btn-sm md:btn-md gap-2 shadow-md">
+						<ShoppingCart className="w-4 h-4" />
+						<span className="hidden lg:inline">Add to Market</span>
+					</button>
+				</div>
 			</div>
 		</div>
 	);

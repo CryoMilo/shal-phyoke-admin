@@ -352,11 +352,6 @@ const InventoryItemModal = ({
 									</span>
 								</label>
 							)}
-							<label className="label">
-								<span className="label-text-alt text-gray-400">
-									Set to 0 to disable alerts
-								</span>
-							</label>
 						</div>
 					</div>
 

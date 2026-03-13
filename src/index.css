@@ -38,3 +38,14 @@ h1 {
 	font-size: 3.2em;
 	line-height: 1.1;
 }
+
+/* Hide number input spinners */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+	-webkit-appearance: none;
+	margin: 0;
+}
+
+input[type="number"] {
+	-moz-appearance: textfield;
+}
