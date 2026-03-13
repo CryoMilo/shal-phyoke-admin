@@ -93,8 +93,6 @@ const useProcurementStore = create((set, get) => ({
 
 	// Add item to market list (from inventory)
 	addToMarketList: async (item) => {
-		console.log("Adding to market list:", item);
-
 		try {
 			// Check if item already exists
 			const { data: existingItems, error: checkError } = await supabase

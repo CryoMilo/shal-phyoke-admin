@@ -4,11 +4,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { Loading } from "./common/Loading";
 
 const ProtectedRoute = ({ children }) => {
-	const { user, profile, loading } = useAuth();
-
-	console.log("ProtectedRoute - user:", user);
-	console.log("ProtectedRoute - profile:", profile);
-	console.log("ProtectedRoute - loading:", loading);
+	const { user, loading } = useAuth();
 
 	if (loading) {
 		return (
@@ -20,7 +16,6 @@ const ProtectedRoute = ({ children }) => {
 
 	// If no user, redirect to login
 	if (!user) {
-		console.log("No user, redirecting to login");
 		return <Navigate to="/login" />;
 	}
 

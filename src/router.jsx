@@ -1,4 +1,4 @@
-// Updated src/router.jsx
+// src/router.jsx
 import {
 	createRouter,
 	createRootRoute,
@@ -20,30 +20,38 @@ import Procurement from "./pages/Procurement";
 import InventoryItems from "./pages/InventoryItems";
 import ProtectedRoute from "./components/ProtectedRoute";
 
-// 1. Root route
 const rootRoute = createRootRoute({
 	component: () => <App />,
 });
 
-// 2. Login route (public)
 const loginRoute = createRoute({
 	path: "/login",
 	getParentRoute: () => rootRoute,
 	component: Login,
 });
 
-// 3. Dashboard - accessible to all authenticated users
+// Admin-only routes
 const dashboardRoute = createRoute({
 	path: "/",
 	getParentRoute: () => rootRoute,
 	component: () => (
-		<ProtectedRoute>
+		<ProtectedRoute requiredRole="admin">
 			<Dashboard />
 		</ProtectedRoute>
 	),
 });
 
-// 4. Staff + Admin accessible routes
+const monthlyOverheadsRoute = createRoute({
+	path: "/monthly-overheads",
+	getParentRoute: () => rootRoute,
+	component: () => (
+		<ProtectedRoute requiredRole="admin">
+			<MonthlyOverheads />
+		</ProtectedRoute>
+	),
+});
+
+// Staff + Admin accessible routes
 const allMenuRoute = createRoute({
 	path: "/all-menu",
 	getParentRoute: () => rootRoute,
@@ -144,18 +152,6 @@ const inventoryItemsRoute = createRoute({
 	),
 });
 
-// 5. Admin-only routes
-const monthlyOverheadsRoute = createRoute({
-	path: "/monthly-overheads",
-	getParentRoute: () => rootRoute,
-	component: () => (
-		<ProtectedRoute requiredRole="admin">
-			<MonthlyOverheads />
-		</ProtectedRoute>
-	),
-});
-
-// 6. Combine all routes
 const routeTree = rootRoute.addChildren([
 	loginRoute,
 	dashboardRoute,
@@ -171,5 +167,4 @@ const routeTree = rootRoute.addChildren([
 	inventoryItemsRoute,
 ]);
 
-// 7. Create and export router
 export const router = createRouter({ routeTree });

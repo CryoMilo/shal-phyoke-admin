@@ -1,4 +1,4 @@
-// Updated src/components/Sidebar.jsx - Add conditional menu items based on role
+// src/components/Sidebar.jsx
 import { useState } from "react";
 import { Link, useLocation, Outlet } from "@tanstack/react-router";
 import { useAuth } from "../contexts/AuthContext";
@@ -26,25 +26,20 @@ const Sidebar = ({ children }) => {
 	const [isCollapsed, setIsCollapsed] = useState(false);
 	const { profile, signOut, isAdmin } = useAuth();
 
-	const isActiveRoute = (path) => {
-		return location.pathname === path;
-	};
+	const isActiveRoute = (path) => location.pathname === path;
+	const toggleSidebar = () => setIsCollapsed(!isCollapsed);
+	const handleSignOut = async () => await signOut();
 
-	const toggleSidebar = () => {
-		setIsCollapsed(!isCollapsed);
-	};
-
-	const handleSignOut = async () => {
-		await signOut();
-	};
-
-	// Base menu items accessible to all authenticated users
-	const baseMenuItems = [
+	// Admin-only items
+	const adminMenuItems = [
 		{
 			name: "Dashboard",
 			path: "/",
 			icon: Home,
 		},
+	];
+
+	const baseMenuItems = [
 		{
 			type: "divider",
 			label: "Operations",
@@ -92,10 +87,6 @@ const Sidebar = ({ children }) => {
 			path: "/inventory-items",
 			icon: Box,
 		},
-	];
-
-	// Finance menu items - only admins can see
-	const financeMenuItems = [
 		{
 			type: "divider",
 			label: "Finance",
@@ -110,6 +101,10 @@ const Sidebar = ({ children }) => {
 			path: "/daily-expenses",
 			icon: TrendingDown,
 		},
+	];
+
+	// Admin-only finance items
+	const adminFinanceItems = [
 		{
 			name: "Monthly Overheads",
 			path: "/monthly-overheads",
@@ -117,7 +112,6 @@ const Sidebar = ({ children }) => {
 		},
 	];
 
-	// Settings menu items
 	const settingsMenuItems = [
 		{
 			type: "divider",
@@ -130,10 +124,10 @@ const Sidebar = ({ children }) => {
 		},
 	];
 
-	// Combine menu items based on role
 	const menuStructure = [
+		...(isAdmin ? adminMenuItems : []),
 		...baseMenuItems,
-		...(isAdmin ? financeMenuItems : []),
+		...(isAdmin ? adminFinanceItems : []),
 		...settingsMenuItems,
 	];
 
@@ -141,7 +135,6 @@ const Sidebar = ({ children }) => {
 		<div className="drawer lg:drawer-open">
 			<input id="my-drawer-2" type="checkbox" className="drawer-toggle" />
 
-			{/* Main content area */}
 			<div className="drawer-content flex flex-col">
 				{/* Navbar for mobile */}
 				<div className="navbar bg-base-300 lg:hidden">
@@ -187,7 +180,6 @@ const Sidebar = ({ children }) => {
 					</div>
 				</div>
 
-				{/* Page content */}
 				<main className="flex-1 p-4 overflow-x-hidden">
 					{children || <Outlet />}
 				</main>
@@ -204,7 +196,7 @@ const Sidebar = ({ children }) => {
 					className={`min-h-full bg-base-200 transition-all duration-300 ${
 						isCollapsed ? "w-16" : "w-64"
 					}`}>
-					{/* Sidebar Header with User Info */}
+					{/* Header */}
 					<div className="p-4 border-b border-base-300">
 						<div className="flex items-center justify-between">
 							{!isCollapsed && (
@@ -244,7 +236,7 @@ const Sidebar = ({ children }) => {
 						</div>
 					</div>
 
-					{/* Navigation Menu */}
+					{/* Navigation */}
 					<ul className="menu p-4 space-y-1">
 						{menuStructure.map((item, index) => {
 							if (item.type === "divider") {
@@ -280,7 +272,7 @@ const Sidebar = ({ children }) => {
 						})}
 					</ul>
 
-					{/* Logout Button */}
+					{/* Logout */}
 					{!isCollapsed && (
 						<div className="p-4 border-t border-base-300">
 							<button
