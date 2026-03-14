@@ -11,7 +11,7 @@ const useInventoryStore = create((set, get) => ({
 
 	// Filter states
 	searchQuery: "",
-	selectedVendors: [], // Array of selected vendor IDs for multi-select
+	selectedVendors: [],
 	showRegularOnly: false,
 
 	// Fetch all inventory items

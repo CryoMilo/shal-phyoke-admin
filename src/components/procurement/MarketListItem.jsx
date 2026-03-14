@@ -52,13 +52,13 @@ const MarketListItem = ({ item }) => {
 				<div className="flex gap-1">
 					<button
 						onClick={() => setShowEditModal(true)}
-						className="btn btn-ghost btn-xs btn-square"
+						className="btn btn-ghost btn-sm btn-square"
 						title="Edit item">
 						<Edit2 className="w-4 h-4" />
 					</button>
 					<button
 						onClick={handleDelete}
-						className="btn btn-ghost btn-xs btn-square text-error"
+						className="btn btn-ghost btn-sm btn-square text-error"
 						title="Remove item">
 						<Trash2 className="w-4 h-4" />
 					</button>
@@ -88,13 +88,13 @@ const MarketListItem = ({ item }) => {
 				</div>
 
 				{/* Quantity Controls */}
-				<div className="w-32 bg-base-200 rounded-lg p-1">
-					<div className="flex items-center justify-between gap-1">
+				<div className="w-36 bg-base-200 rounded-lg p-1.5">
+					<div className="flex items-center justify-between gap-2">
 						<button
 							onClick={() => handleQuantityChange(-0.5)}
-							className="btn btn-xs btn-square btn-ghost bg-base-100 hover:bg-base-300 shadow-sm"
+							className="btn btn-sm btn-square btn-ghost bg-base-100 hover:bg-base-300 shadow-sm"
 							disabled={isUpdating || item.quantity <= 0.5}>
-							<Minus className="w-3 h-3" />
+							<Minus className="w-4 h-4" />
 						</button>
 
 						<div className="flex-1 text-center">
@@ -102,7 +102,7 @@ const MarketListItem = ({ item }) => {
 								type="number"
 								value={item.quantity}
 								onChange={(e) => handleDirectQuantityChange(e.target.value)}
-								className="w-full text-center input input-xs input-bordered bg-base-100 font-medium"
+								className="w-full text-center input input-sm input-bordered bg-base-100 font-medium px-1"
 								step="0.5"
 								min="0.5"
 								disabled={isUpdating}
@@ -111,12 +111,12 @@ const MarketListItem = ({ item }) => {
 
 						<button
 							onClick={() => handleQuantityChange(0.5)}
-							className="btn btn-xs btn-square btn-ghost bg-base-100 hover:bg-base-300 shadow-sm"
+							className="btn btn-sm btn-square btn-ghost bg-base-100 hover:bg-base-300 shadow-sm"
 							disabled={isUpdating}>
-							<Plus className="w-3 h-3" />
+							<Plus className="w-4 h-4" />
 						</button>
 					</div>
-					<div className="text-[10px] text-gray-400 text-center mt-0.5">
+					<div className="text-[10px] text-gray-400 text-center mt-1">
 						{item.unit}
 					</div>
 				</div>

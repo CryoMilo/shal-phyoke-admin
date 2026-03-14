@@ -47,10 +47,10 @@ const VendorAccordion = ({ vendor, isExpanded }) => {
 
 	return (
 		<>
-			<div className={`card shadow-sm border ${colors.border}`}>
+			<div className={`card shadow-sm border ${colors.border} overflow-hidden`}>
 				{/* Accordion Header */}
 				<div
-					className={`card-body p-4 cursor-pointer transition-colors ${colors.bg} ${colors.hover}`}
+					className={`card-body p-4 cursor-pointer transition-colors rounded-t-xl ${colors.bg} ${colors.hover}`}
 					onClick={() => toggleVendor(vendor.id)}>
 					<div className="flex items-center justify-between">
 						<div className="flex items-center gap-3">
