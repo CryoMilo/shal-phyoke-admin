@@ -6,6 +6,7 @@ import {
 } from "@tanstack/react-router";
 import App from "./App";
 import Login from "./pages/Login";
+import RootIndex from "./pages/RootIndex";
 import Dashboard from "./pages/Dashboard";
 import AllMenu from "./pages/AllMenu";
 import WeeklyMenu from "./pages/WeeklyMenu";
@@ -32,13 +33,20 @@ const loginRoute = createRoute({
 
 // Admin-only routes
 const dashboardRoute = createRoute({
-	path: "/",
+	path: "/dashboard",
 	getParentRoute: () => rootRoute,
 	component: () => (
 		<ProtectedRoute requiredRole="admin">
 			<Dashboard />
 		</ProtectedRoute>
 	),
+});
+
+// Root index redirect based on role
+const rootIndexRoute = createRoute({
+	path: "/",
+	getParentRoute: () => rootRoute,
+	component: RootIndex,
 });
 
 const monthlyOverheadsRoute = createRoute({
@@ -154,6 +162,7 @@ const inventoryItemsRoute = createRoute({
 
 const routeTree = rootRoute.addChildren([
 	loginRoute,
+	rootIndexRoute,
 	dashboardRoute,
 	allMenuRoute,
 	weeklyMenuRoute,

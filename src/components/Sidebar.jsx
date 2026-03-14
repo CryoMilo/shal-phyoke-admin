@@ -33,7 +33,7 @@ const Sidebar = ({ children }) => {
 	const adminMenuItems = [
 		{
 			name: "Dashboard",
-			path: "/",
+			path: "/dashboard",
 			icon: Home,
 		},
 	];

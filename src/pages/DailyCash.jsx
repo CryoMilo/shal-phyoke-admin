@@ -166,7 +166,9 @@ const DailyCash = () => {
 	}, [watchedValues.cash_collected, expectedCash]);
 
 	const shortage = useMemo(() => {
-		return (watchedValues.cash_collected || 0) - (watchedValues.cash_deposited || 0);
+		return (
+			(watchedValues.cash_collected || 0) - (watchedValues.cash_deposited || 0)
+		);
 	}, [watchedValues.cash_collected, watchedValues.cash_deposited]);
 
 	const handleSave = async (data) => {
@@ -179,7 +181,8 @@ const DailyCash = () => {
 				card_sales: salesData.card || 0,
 				online_sales: salesData.online || 0,
 				// closing_balance is calculated as collected - deposited
-				closing_balance: (data.cash_collected || 0) - (data.cash_deposited || 0),
+				closing_balance:
+					(data.cash_collected || 0) - (data.cash_deposited || 0),
 			};
 
 			const { error } = await supabase.from("daily_cash").upsert(payload, {
@@ -360,7 +363,7 @@ const DailyCash = () => {
 
 				<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 					{/* Left Column: Form Inputs */}
-					<div className="lg:col-span-2 space-y-6">
+					<div className="lg:col-span-full space-y-6">
 						<div className="card bg-base-100 border border-base-200">
 							<div className="card-body">
 								<h3 className="text-lg font-bold mb-4 flex items-center gap-2">
@@ -430,7 +433,7 @@ const DailyCash = () => {
 												(watchedValues.cash_collected || 0) -
 												(watchedValues.cash_deposited || 0)
 											}
-											className="input input-bordered bg-base-200 cursor-not-allowed"
+											className="input w-full input-bordered bg-base-200 cursor-not-allowed"
 										/>
 									</div>
 								</div>
@@ -450,46 +453,10 @@ const DailyCash = () => {
 								</div>
 							</div>
 						</div>
-
-						{/* Income/Expense Summary */}
-						<div className="card bg-base-100 border border-base-200">
-							<div className="card-body">
-								<h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-									<Receipt className="w-5 h-5 text-primary" />
-									Flow Summary
-								</h3>
-								<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-									<div className="p-4 bg-base-200 rounded-xl">
-										<p className="text-xs font-bold text-base-content/50 uppercase">
-											Additional Income
-										</p>
-										<p className="text-xl font-bold mt-1 text-success">
-											+ ฿{additionalIncome.toLocaleString()}
-										</p>
-									</div>
-									<div className="p-4 bg-base-200 rounded-xl">
-										<p className="text-xs font-bold text-base-content/50 uppercase">
-											Drawer Expenses
-										</p>
-										<p className="text-xl font-bold mt-1 text-error">
-											- ฿{expensesData.fromDrawer.toLocaleString()}
-										</p>
-									</div>
-									<div className="p-4 bg-base-200 rounded-xl">
-										<p className="text-xs font-bold text-base-content/50 uppercase">
-											Total Expenses
-										</p>
-										<p className="text-xl font-bold mt-1">
-											฿{expensesData.total.toLocaleString()}
-										</p>
-									</div>
-								</div>
-							</div>
-						</div>
 					</div>
 
 					{/* Right Column: Sales Breakdown */}
-					<div className="space-y-6">
+					{/* <div className="space-y-6">
 						<div className="card bg-base-100 border border-base-200">
 							<div className="card-body">
 								<h3 className="text-lg font-bold mb-4 flex items-center gap-2">
@@ -543,7 +510,7 @@ const DailyCash = () => {
 								</div>
 							</div>
 						</div>
-					</div>
+					</div> */}
 				</div>
 			</form>
 		</div>
