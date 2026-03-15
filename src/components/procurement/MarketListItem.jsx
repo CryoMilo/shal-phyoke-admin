@@ -1,5 +1,5 @@
 // src/components/procurement/MarketListItem.jsx
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState } from "react";
 import { Edit2, Trash2, Package, Minus, Plus } from "lucide-react";
 import useProcurementStore from "../../stores/procurementStore";
 import EditItemModal from "./EditItemModal";
@@ -7,14 +7,8 @@ import { showToast } from "../../utils/toastUtils";
 
 const MarketListItem = ({ item }) => {
 	const [showEditModal, setShowEditModal] = useState(false);
-	const [displayQuantity, setDisplayQuantity] = useState(item.quantity);
-	const { updateMarketListItem, removeFromMarketList } = useProcurementStore();
-	const debounceTimer = useRef(null);
-
-	// Sync display quantity if item.quantity changes from outside (e.g. store refresh)
-	useEffect(() => {
-		setDisplayQuantity(item.quantity);
-	}, [item.quantity]);
+	const { updateMarketListQuantity, removeFromMarketList } =
+		useProcurementStore();
 
 	const handleDelete = async () => {
 		const itemName =
@@ -33,26 +27,15 @@ const MarketListItem = ({ item }) => {
 		}
 	};
 
-	const syncQuantity = (newQty) => {
-		if (debounceTimer.current) {
-			clearTimeout(debounceTimer.current);
-		}
-
-		debounceTimer.current = setTimeout(async () => {
-			await updateMarketListItem(item.id, { quantity: newQty });
-		}, 800); // 800ms debounce
-	};
-
 	const handleQuantityChange = (delta) => {
-		const newQuantity = Math.max(0.5, displayQuantity + delta);
-		setDisplayQuantity(newQuantity);
-		syncQuantity(newQuantity);
+		const newQuantity = Math.max(0.5, item.quantity + delta);
+		updateMarketListQuantity(item.id, newQuantity);
 	};
 
 	const handleDirectQuantityChange = (newValue) => {
 		// Allow empty string to let user clear the input
 		if (newValue === "") {
-			setDisplayQuantity("");
+			updateMarketListQuantity(item.id, "");
 			return;
 		}
 
@@ -60,10 +43,9 @@ const MarketListItem = ({ item }) => {
 		if (isNaN(numValue)) {
 			return;
 		}
-		
-		setDisplayQuantity(numValue);
+
 		if (numValue >= 0.1) {
-			syncQuantity(numValue);
+			updateMarketListQuantity(item.id, numValue);
 		}
 	};
 
@@ -115,14 +97,14 @@ const MarketListItem = ({ item }) => {
 						<button
 							onClick={() => handleQuantityChange(-0.5)}
 							className="btn btn-sm btn-square btn-ghost bg-base-100 hover:bg-base-300 shadow-sm"
-							disabled={displayQuantity <= 0.5}>
+							disabled={item.quantity <= 0.5}>
 							<Minus className="w-4 h-4" />
 						</button>
 
 						<div className="flex-1 text-center">
 							<input
 								type="number"
-								value={displayQuantity}
+								value={item.quantity}
 								onChange={(e) => handleDirectQuantityChange(e.target.value)}
 								className="w-full text-center input input-sm input-bordered bg-base-100 font-medium px-1"
 								step="0.5"

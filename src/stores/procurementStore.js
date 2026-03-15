@@ -10,6 +10,8 @@ const useProcurementStore = create((set, get) => ({
 	inventoryItems: [],
 	loading: false,
 	error: null,
+	pendingUpdates: {}, // Store itemID -> newQuantity
+	syncTimeout: null,
 
 	// Procurement Order Status
 	procurementOrders: [],
@@ -58,8 +60,8 @@ const useProcurementStore = create((set, get) => ({
 	},
 
 	// Fetch market list (items to buy)
-	fetchMarketList: async () => {
-		set({ loading: true });
+	fetchMarketList: async (silent = false) => {
+		if (!silent) set({ loading: true });
 		try {
 			const { data, error } = await supabase
 				.from("market_list")
@@ -82,12 +84,21 @@ const useProcurementStore = create((set, get) => ({
 				.order("added_at", { ascending: false });
 
 			if (error) throw error;
-			set({ marketList: data || [], error: null });
+			
+			// If we have pending updates, merge them with the fetched data
+			const { pendingUpdates } = get();
+			const fetchedItems = data || [];
+			const mergedItems = fetchedItems.map(item => ({
+				...item,
+				quantity: pendingUpdates[item.id] !== undefined ? pendingUpdates[item.id] : item.quantity
+			}));
+
+			set({ marketList: mergedItems, error: null });
 		} catch (error) {
 			console.error("Error fetching market list:", error);
 			set({ error: error.message });
 		} finally {
-			set({ loading: false });
+			if (!silent) set({ loading: false });
 		}
 	},
 
@@ -135,7 +146,7 @@ const useProcurementStore = create((set, get) => ({
 			}
 
 			// Refresh list
-			await get().fetchMarketList();
+			await get().fetchMarketList(true);
 			return { success: true };
 		} catch (error) {
 			console.error("Error adding to market list:", error);
@@ -159,7 +170,7 @@ const useProcurementStore = create((set, get) => ({
 			if (error) throw error;
 
 			// Refresh list
-			await get().fetchMarketList();
+			await get().fetchMarketList(true);
 			return { success: true };
 		} catch (error) {
 			console.error("Error adding custom item:", error);
@@ -167,7 +178,7 @@ const useProcurementStore = create((set, get) => ({
 		}
 	},
 
-	// Update market list item
+	// Update market list item (General purpose, e.g. for notes)
 	updateMarketListItem: async (id, updates) => {
 		const previousList = get().marketList;
 		try {
@@ -188,10 +199,8 @@ const useProcurementStore = create((set, get) => ({
 
 			if (error) throw error;
 
-			// We don't necessarily need to fetch again if it's just a quantity update,
-			// but it helps keep other data (like updated_at) in sync.
-			// We can do it without blocking.
-			get().fetchMarketList();
+			// Silently refresh list
+			get().fetchMarketList(true);
 			return { success: true };
 		} catch (error) {
 			console.error("Error updating market list item:", error);
@@ -201,10 +210,67 @@ const useProcurementStore = create((set, get) => ({
 		}
 	},
 
+	// Debounced background sync for quantity updates
+	updateMarketListQuantity: (id, newQuantity) => {
+		// 1. Optimistically update local state
+		set((state) => ({
+			marketList: state.marketList.map((item) =>
+				item.id === id ? { ...item, quantity: newQuantity } : item
+			),
+			// 2. Add to pending updates
+			pendingUpdates: {
+				...state.pendingUpdates,
+				[id]: newQuantity
+			}
+		}));
+
+		// 3. Debounce the sync
+		const { syncTimeout } = get();
+		if (syncTimeout) clearTimeout(syncTimeout);
+
+		const timeout = setTimeout(() => {
+			get().syncPendingUpdates();
+		}, 3000); // Wait 3 seconds of inactivity before syncing
+
+		set({ syncTimeout: timeout });
+	},
+
+	// Background Sync for Market List
+	syncPendingUpdates: async () => {
+		const { pendingUpdates } = get();
+		const updateEntries = Object.entries(pendingUpdates);
+		
+		if (updateEntries.length === 0) return;
+
+		// Snapshot
+		const snapshot = { ...pendingUpdates };
+		
+		// Clear immediately
+		set({ pendingUpdates: {}, syncTimeout: null });
+
+		try {
+			const promises = updateEntries.map(([id, quantity]) => 
+				supabase
+					.from("market_list")
+					.update({ 
+						quantity,
+						updated_at: new Date()
+					})
+					.eq("id", id)
+			);
+
+			await Promise.all(promises);
+			
+			// Silently refresh to stay in sync
+			get().fetchMarketList(true);
+		} catch (error) {
+			console.error("Error syncing market list updates:", error);
+		}
+	},
+
 	// Remove from market list
 	removeFromMarketList: async (id) => {
 		try {
-			// Get item name before deleting
 			const { error } = await supabase
 				.from("market_list")
 				.delete()
@@ -212,7 +278,7 @@ const useProcurementStore = create((set, get) => ({
 
 			if (error) throw error;
 
-			await get().fetchMarketList();
+			await get().fetchMarketList(true);
 			return { success: true };
 		} catch (error) {
 			console.error("Error removing from market list:", error);
@@ -341,7 +407,7 @@ const useProcurementStore = create((set, get) => ({
 			}
 
 			// Refresh data
-			await get().fetchMarketList();
+			await get().fetchMarketList(true);
 			await get().fetchProcurementOrders();
 
 			showToast.success(`Order confirmed for ${vendorId}`);
@@ -470,7 +536,7 @@ const useProcurementStore = create((set, get) => ({
 
 			// Refresh data
 			await get().fetchProcurementOrders();
-			await get().fetchMarketList();
+			await get().fetchMarketList(true);
 
 			if (missedItems.length > 0) {
 				showToast.warning(
