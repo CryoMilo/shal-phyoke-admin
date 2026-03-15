@@ -169,7 +169,15 @@ const useProcurementStore = create((set, get) => ({
 
 	// Update market list item
 	updateMarketListItem: async (id, updates) => {
+		const previousList = get().marketList;
 		try {
+			// Optimistically update local state
+			set((state) => ({
+				marketList: state.marketList.map((item) =>
+					item.id === id ? { ...item, ...updates } : item
+				),
+			}));
+
 			const { error } = await supabase
 				.from("market_list")
 				.update({
@@ -180,10 +188,15 @@ const useProcurementStore = create((set, get) => ({
 
 			if (error) throw error;
 
-			await get().fetchMarketList();
+			// We don't necessarily need to fetch again if it's just a quantity update,
+			// but it helps keep other data (like updated_at) in sync.
+			// We can do it without blocking.
+			get().fetchMarketList();
 			return { success: true };
 		} catch (error) {
 			console.error("Error updating market list item:", error);
+			// Rollback on error
+			set({ marketList: previousList });
 			return { error: error.message };
 		}
 	},

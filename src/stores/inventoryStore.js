@@ -8,6 +8,8 @@ const useInventoryStore = create((set, get) => ({
 	vendors: [],
 	loading: false,
 	error: null,
+	pendingUpdates: {}, // Store itemID -> newQuantity
+	syncTimeout: null,
 
 	// Filter states
 	searchQuery: "",
@@ -16,6 +18,9 @@ const useInventoryStore = create((set, get) => ({
 
 	// Fetch all inventory items
 	fetchInventoryItems: async () => {
+		// If we have pending updates, we might want to be careful about refetching
+		// but typically we can just refetch and then re-apply pending updates if needed.
+		// For simplicity, we just fetch.
 		set({ loading: true });
 		try {
 			const { data, error } = await supabase
@@ -34,7 +39,16 @@ const useInventoryStore = create((set, get) => ({
 				.order("name");
 
 			if (error) throw error;
-			set({ inventoryItems: data || [], error: null });
+			
+			// If we have pending updates, merge them with the fetched data
+			const { pendingUpdates } = get();
+			const fetchedItems = data || [];
+			const mergedItems = fetchedItems.map(item => ({
+				...item,
+				quantity: pendingUpdates[item.id] !== undefined ? pendingUpdates[item.id] : item.quantity
+			}));
+
+			set({ inventoryItems: mergedItems, error: null });
 		} catch (error) {
 			console.error("Error fetching inventory items:", error);
 			set({ error: error.message });
@@ -52,7 +66,12 @@ const useInventoryStore = create((set, get) => ({
 				{ event: "*", schema: "public", table: "inventory_items" },
 				(payload) => {
 					console.log("Real-time update:", payload);
-					get().fetchInventoryItems(); // Refetch on any change
+					// Only refetch if we don't have pending updates to avoid flickering
+					// or if the update is from another source.
+					const { pendingUpdates } = get();
+					if (Object.keys(pendingUpdates).length === 0) {
+						get().fetchInventoryItems();
+					}
 				}
 			)
 			.subscribe();
@@ -60,27 +79,62 @@ const useInventoryStore = create((set, get) => ({
 		return subscription;
 	},
 
-	// Update quantity
-	updateQuantity: async (id, newQuantity) => {
+	// Update quantity (Optimistic & Debounced)
+	updateQuantity: (id, newQuantity) => {
+		// 1. Optimistically update local state
+		set((state) => ({
+			inventoryItems: state.inventoryItems.map((item) =>
+				item.id === id ? { ...item, quantity: newQuantity } : item
+			),
+			// 2. Add to pending updates
+			pendingUpdates: {
+				...state.pendingUpdates,
+				[id]: newQuantity
+			}
+		}));
+
+		// 3. Debounce the sync
+		const { syncTimeout } = get();
+		if (syncTimeout) clearTimeout(syncTimeout);
+
+		const timeout = setTimeout(() => {
+			get().syncPendingUpdates();
+		}, 3000); // Wait 3 seconds of inactivity before syncing
+
+		set({ syncTimeout: timeout });
+	},
+
+	// Actual Background Sync
+	syncPendingUpdates: async () => {
+		const { pendingUpdates } = get();
+		const updateEntries = Object.entries(pendingUpdates);
+		
+		if (updateEntries.length === 0) return;
+
+		// Snapshot of what we're about to sync
+		const snapshot = { ...pendingUpdates };
+		
+		// Clear pending state immediately to allow new updates to accumulate
+		set({ pendingUpdates: {}, syncTimeout: null });
+
 		try {
-			const { error } = await supabase
-				.from("inventory_items")
-				.update({ quantity: newQuantity })
-				.eq("id", id);
+			// Perform updates in parallel
+			const promises = updateEntries.map(([id, quantity]) => 
+				supabase
+					.from("inventory_items")
+					.update({ quantity })
+					.eq("id", id)
+			);
 
-			if (error) throw error;
-
-			// Optimistic update
-			set((state) => ({
-				inventoryItems: state.inventoryItems.map((item) =>
-					item.id === id ? { ...item, quantity: newQuantity } : item
-				),
-			}));
-
-			return { success: true };
+			const results = await Promise.all(promises);
+			const hasError = results.some(r => r.error);
+			
+			if (hasError) {
+				console.error("Some inventory updates failed", results.map(r => r.error).filter(Boolean));
+				// Optional: restore snapshot to pendingUpdates if we want to retry
+			}
 		} catch (error) {
-			console.error("Error updating quantity:", error);
-			return { error: error.message };
+			console.error("Error syncing inventory updates:", error);
 		}
 	},
 

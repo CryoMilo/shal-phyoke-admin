@@ -1,10 +1,8 @@
 // src/components/inventory/InventoryCard.jsx
-import React, { useState } from "react";
+import React from "react";
 import { ShoppingCart, Minus, Plus, Package, Edit2 } from "lucide-react";
 
 const InventoryCard = ({ item, onAddToMarketList, onUpdateStock, onClick }) => {
-	const [isUpdating, setIsUpdating] = useState(false);
-
 	const stockStatus = () => {
 		if (item.quantity <= 0)
 			return { color: "badge-error", text: "Out of Stock" };
@@ -15,13 +13,11 @@ const InventoryCard = ({ item, onAddToMarketList, onUpdateStock, onClick }) => {
 
 	const status = stockStatus();
 
-	const handleStockUpdate = async (newValue) => {
+	const handleStockUpdate = (newValue) => {
 		const numValue = parseFloat(newValue);
 		if (isNaN(numValue) || numValue < 0) return;
 
-		setIsUpdating(true);
-		await onUpdateStock(item.id, numValue);
-		setIsUpdating(false);
+		onUpdateStock(item.id, numValue);
 	};
 
 	const handleIncrement = () => {
@@ -88,8 +84,7 @@ const InventoryCard = ({ item, onAddToMarketList, onUpdateStock, onClick }) => {
 								e.stopPropagation();
 								handleDecrement();
 							}}
-							className="btn btn-sm btn-square btn-ghost bg-base-100 hover:bg-base-300 shadow-sm"
-							disabled={isUpdating}>
+							className="btn btn-sm btn-square btn-ghost bg-base-100 hover:bg-base-300 shadow-sm">
 							<Minus className="w-4 h-4" />
 						</button>
 
@@ -99,12 +94,9 @@ const InventoryCard = ({ item, onAddToMarketList, onUpdateStock, onClick }) => {
 								value={item.quantity || 0}
 								onChange={(e) => handleStockUpdate(e.target.value)}
 								onClick={(e) => e.stopPropagation()}
-								className={`w-full text-center bg-transparent border-none font-black text-sm p-0 focus:outline-none ${
-									isUpdating ? "opacity-50" : ""
-								}`}
+								className="w-full text-center bg-transparent border-none font-black text-sm p-0 focus:outline-none"
 								step="0.5"
 								min="0"
-								disabled={isUpdating}
 							/>
 						</div>
 
@@ -113,8 +105,7 @@ const InventoryCard = ({ item, onAddToMarketList, onUpdateStock, onClick }) => {
 								e.stopPropagation();
 								handleIncrement();
 							}}
-							className="btn btn-sm btn-square btn-ghost bg-base-100 hover:bg-base-300 shadow-sm"
-							disabled={isUpdating}>
+							className="btn btn-sm btn-square btn-ghost bg-base-100 hover:bg-base-300 shadow-sm">
 							<Plus className="w-4 h-4" />
 						</button>
 					</div>

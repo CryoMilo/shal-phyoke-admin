@@ -158,7 +158,7 @@ const Sidebar = ({ children }) => {
 								<img src="/logo.svg" alt="Logo" className="object-contain" />
 							</div>
 						</div>
-						<span className="text-xl font-bold">Shal Phyoke Admin</span>
+						<span className="text-xl font-bold">Shal Phyoke</span>
 					</div>
 				</div>
 
@@ -176,11 +176,11 @@ const Sidebar = ({ children }) => {
 
 				<aside
 					className={`min-h-full bg-base-200 transition-all duration-300 ${
-						isCollapsed ? "w-16" : "w-60"
+						isCollapsed ? "w-18" : "w-60"
 					}`}>
 					{/* Header */}
 					<div className="p-4 border-b border-base-300">
-						<div className="flex items-center justify-between">
+						<div className="flex items-center justify-center md:justify-around">
 							{!isCollapsed && (
 								<div className="flex items-center gap-2">
 									<div className="avatar">
