@@ -53,9 +53,8 @@ const InventoryCard = ({ item, onAddToMarketList, onUpdateStock, onClick }) => {
 				{/* Item Details */}
 				<div className="flex-1 min-w-0" onClick={onClick}>
 					<div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-						<span className="font-bold text-base truncate">{item.name}</span>
-						<span
-							className={`badge ${status.color} badge-xs font-bold uppercase`}>
+						<span className="text-base truncate">{item.name}</span>
+						<span className={`badge ${status.color} badge-xs`}>
 							{status.text}
 						</span>
 					</div>
