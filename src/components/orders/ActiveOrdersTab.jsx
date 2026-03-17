@@ -6,7 +6,6 @@ import {
 	Clock,
 	Receipt,
 	CheckCircle2,
-	XCircle,
 	CreditCard,
 	Banknote,
 } from "lucide-react";
@@ -319,12 +318,14 @@ const TableBillsModal = ({ table, onClose, onUpdate }) => {
 									<button
 										className="btn btn-xs btn-ghost text-error col-span-2 mt-2 opacity-50 hover:opacity-100"
 										onClick={() => {
-											if (window.confirm("Void this bill?"))
+											const isPaid = order.payment_status === "paid";
+											const actionLabel = isPaid ? "Refund" : "Cancel";
+											if (window.confirm(`${actionLabel} this bill?`))
 												handleAction(order.id, {
-													pos_order_status: "cancelled",
+													pos_order_status: isPaid ? "refunded" : "cancelled",
 												});
 										}}>
-										Void Bill
+										{order.payment_status === "paid" ? "Refund Bill" : "Cancel Bill"}
 									</button>
 								</div>
 							</div>

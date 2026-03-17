@@ -9,6 +9,7 @@ import {
 	CheckCircle2,
 	MoreVertical,
 	Eye,
+	XCircle,
 } from "lucide-react";
 
 const OrderHistoryTab = () => {
@@ -37,7 +38,7 @@ const OrderHistoryTab = () => {
 			const { data, error } = await supabase
 				.from("orders")
 				.select("*")
-				.eq("pos_order_status", "completed")
+				.in("pos_order_status", ["completed", "cancelled", "refunded"])
 				.order("created_at", { ascending: false })
 				.limit(100);
 
@@ -63,7 +64,7 @@ const OrderHistoryTab = () => {
 		<div className="space-y-4">
 			{/* Header & Search */}
 			<div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-				<h2 className="text-xl font-bold">Order History (Completed)</h2>
+				<h2 className="text-xl font-bold">Order History</h2>
 				<div className="relative w-full md:w-72">
 					<Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 opacity-50" />
 					<input
@@ -87,6 +88,7 @@ const OrderHistoryTab = () => {
 								<th className="font-bold">Customer</th>
 								<th className="font-bold">Total</th>
 								<th className="font-bold">Payment</th>
+								<th className="font-bold">Status</th>
 								<th className="font-bold">Time</th>
 								<th className="font-bold text-right">Actions</th>
 							</tr>
@@ -94,7 +96,7 @@ const OrderHistoryTab = () => {
 						<tbody>
 							{loading ? (
 								<tr>
-									<td colSpan="7" className="text-center py-10">
+									<td colSpan="8" className="text-center py-10">
 										<span className="loading loading-spinner loading-md"></span>
 									</td>
 								</tr>
@@ -130,8 +132,30 @@ const OrderHistoryTab = () => {
 										</td>
 										<td className="font-bold">฿{order.total_amount}</td>
 										<td>
-											<span className="badge badge-outline badge-success badge-xs font-bold uppercase p-2">
-												{order.payment_method || "Paid"}
+											<span
+												className={`badge badge-outline badge-xs font-bold uppercase p-2 ${
+													order.pos_order_status === "cancelled" ||
+													order.pos_order_status === "refunded"
+														? "badge-ghost opacity-50"
+														: "badge-success"
+												}`}>
+												{order.payment_method ||
+													(order.pos_order_status === "cancelled" ||
+													order.pos_order_status === "refunded"
+														? "N/A"
+														: "Paid")}
+											</span>
+										</td>
+										<td>
+											<span
+												className={`badge badge-xs font-bold uppercase ${
+													order.pos_order_status === "cancelled"
+														? "badge-error"
+														: order.pos_order_status === "refunded"
+														? "badge-warning"
+														: "badge-success"
+												}`}>
+												{order.pos_order_status}
 											</span>
 										</td>
 										<td>
@@ -153,8 +177,8 @@ const OrderHistoryTab = () => {
 								))
 							) : (
 								<tr>
-									<td colSpan="7" className="text-center py-20 opacity-50">
-										No completed orders found
+									<td colSpan="8" className="text-center py-20 opacity-50">
+										No history found
 									</td>
 								</tr>
 							)}
@@ -190,8 +214,22 @@ const OrderHistoryTab = () => {
 									<div className="text-xs font-bold opacity-40 uppercase">
 										Status
 									</div>
-									<div className="badge badge-success gap-1 font-bold">
-										<CheckCircle2 className="w-3 h-3" /> COMPLETED
+									<div
+										className={`badge gap-1 font-bold ${
+											selectedOrder.pos_order_status === "cancelled"
+												? "badge-error"
+												: selectedOrder.pos_order_status === "refunded"
+												? "badge-warning"
+												: "badge-success"
+										}`}>
+										{selectedOrder.pos_order_status === "cancelled" ? (
+											<XCircle className="w-3 h-3" />
+										) : selectedOrder.pos_order_status === "refunded" ? (
+											<Clock className="w-3 h-3" />
+										) : (
+											<CheckCircle2 className="w-3 h-3" />
+										)}
+										{selectedOrder.pos_order_status.toUpperCase()}
 									</div>
 								</div>
 							</div>
