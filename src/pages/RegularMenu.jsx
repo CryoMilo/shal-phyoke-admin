@@ -5,6 +5,8 @@ import { PageHeader } from "../components/common/PageHeader";
 import RegularMenuCard from "../components/menu/RegularMenuCard";
 import MenuFormModal from "../components/menu/MenuFormModal";
 import { CATEGORY_DISPLAY_NAMES } from "../constants";
+import { showToast } from "../utils/toastUtils";
+import DeleteConfirmationModal from "../components/common/DeleteConfirmationModal";
 
 const RegularMenuPage = () => {
 	const {
@@ -23,6 +25,8 @@ const RegularMenuPage = () => {
 	const [editingMenu, setEditingMenu] = useState(null);
 	const [activeCategory, setActiveCategory] = useState("all");
 	const [formLoading, setFormLoading] = useState(false);
+	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+	const [deleteTargetId, setDeleteTargetId] = useState(null);
 
 	useEffect(() => {
 		fetchRegularMenuItems();
@@ -73,31 +77,38 @@ const RegularMenuPage = () => {
 			await fetchRegularMenuItems();
 		} catch (error) {
 			console.error("Error saving menu:", error);
-			alert("Error saving menu item: " + error.message);
+			showToast.error("Error saving menu item: " + error.message);
 		} finally {
 			setFormLoading(false);
 		}
 	};
 
-	const handleDelete = async (id) => {
-		if (confirm("Are you sure you want to delete this menu item?")) {
-			try {
-				const result = await deleteMenuItemById(id);
-				if (result.error) {
-					throw result.error;
-				}
-				await fetchRegularMenuItems();
-			} catch (error) {
-				console.error("Error deleting menu:", error);
-				alert("Error deleting menu item");
+	const handleDelete = (id) => {
+		setDeleteTargetId(id);
+		setShowDeleteConfirm(true);
+	};
+
+	const confirmDelete = async () => {
+		try {
+			const result = await deleteMenuItemById(deleteTargetId);
+			if (result.error) {
+				throw result.error;
 			}
+			showToast.success("Menu item deleted successfully");
+			await fetchRegularMenuItems();
+		} catch (error) {
+			console.error("Error deleting menu:", error);
+			showToast.error("Error deleting menu item");
+		} finally {
+			setShowDeleteConfirm(false);
+			setDeleteTargetId(null);
 		}
 	};
 
 	const handleToggleStatus = async (id) => {
 		const result = await toggleMenuStatus(id);
 		if (!result.success) {
-			alert("Error updating menu status");
+			showToast.error("Error updating menu status");
 		}
 		await fetchRegularMenuItems();
 	};
@@ -197,6 +208,14 @@ const RegularMenuPage = () => {
 				handleSubmit={handleFormSubmit}
 				loading={formLoading}
 				isRegularOnly={true}
+			/>
+
+			<DeleteConfirmationModal
+				isOpen={showDeleteConfirm}
+				onClose={() => setShowDeleteConfirm(false)}
+				onConfirm={confirmDelete}
+				title="Delete Menu Item"
+				message="Are you sure you want to delete this menu item? This action cannot be undone."
 			/>
 
 			{/* Floating Action Button for Mobile */}

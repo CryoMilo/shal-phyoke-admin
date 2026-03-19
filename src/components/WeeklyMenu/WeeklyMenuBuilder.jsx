@@ -7,6 +7,7 @@ import {
 import { supabase } from "../../services/supabase";
 import { ChevronLeft, Plus, Save, X } from "lucide-react";
 import { PageHeader } from "../common/PageHeader";
+import { showToast } from "../../utils/toastUtils";
 
 export const WeeklyMenuBuilder = ({ weeklyMenu, onBack }) => {
 	const { menuItems, fetchMenuItems } = useMenuItemsStore();
@@ -151,7 +152,7 @@ export const WeeklyMenuBuilder = ({ weeklyMenu, onBack }) => {
 	// --- Save
 	const handleSave = async () => {
 		if (!weeklyMenuData.week_from || !weeklyMenuData.week_to) {
-			alert("Please set week from and to dates");
+			showToast.warning("Please set week from and to dates");
 			return;
 		}
 
@@ -210,11 +211,11 @@ export const WeeklyMenuBuilder = ({ weeklyMenu, onBack }) => {
 				if (itemsError) throw itemsError;
 			}
 
-			alert("Weekly menu saved successfully!");
+			showToast.success("Weekly menu saved successfully!");
 			onBack();
 		} catch (err) {
 			console.error("Error saving weekly menu:", err);
-			alert("Error saving weekly menu: " + err.message);
+			showToast.error("Error saving weekly menu: " + err.message);
 		} finally {
 			setLoading(false);
 		}

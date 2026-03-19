@@ -19,6 +19,8 @@ import {
 import { supabase } from "../services/supabase";
 import { PageHeader } from "../components/common/PageHeader";
 import { useForm } from "react-hook-form";
+import { showToast } from "../utils/toastUtils";
+import DeleteConfirmationModal from "../components/common/DeleteConfirmationModal";
 
 // Expense categories (same as daily expenses for consistency)
 const expenseCategories = [
@@ -44,6 +46,8 @@ const MonthlyOverheads = () => {
 	const [showAddForm, setShowAddForm] = useState(false);
 	const [showDuplicateModal, setShowDuplicateModal] = useState(false);
 	const [expandedOverhead, setExpandedOverhead] = useState(null);
+	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+	const [deleteTargetId, setDeleteTargetId] = useState(null);
 
 	const {
 		register,
@@ -176,9 +180,11 @@ const MonthlyOverheads = () => {
 				.eq("id", id);
 
 			if (error) throw error;
+			showToast.success("Marked as paid");
 			fetchOverheads();
 		} catch (error) {
 			console.error("Error marking as paid:", error);
+			showToast.error("Failed to mark as paid");
 		}
 	};
 
@@ -193,25 +199,35 @@ const MonthlyOverheads = () => {
 				.eq("id", id);
 
 			if (error) throw error;
+			showToast.success("Marked as unpaid");
 			fetchOverheads();
 		} catch (error) {
 			console.error("Error marking as unpaid:", error);
+			showToast.error("Failed to mark as unpaid");
 		}
 	};
 
-	const handleDelete = async (id) => {
-		if (!confirm("Are you sure you want to delete this overhead?")) return;
+	const handleDelete = (id) => {
+		setDeleteTargetId(id);
+		setShowDeleteConfirm(true);
+	};
 
+	const confirmDelete = async () => {
 		try {
 			const { error } = await supabase
 				.from("monthly_overheads")
 				.delete()
-				.eq("id", id);
+				.eq("id", deleteTargetId);
 
 			if (error) throw error;
+			showToast.success("Overhead deleted successfully");
 			fetchOverheads();
 		} catch (error) {
 			console.error("Error deleting overhead:", error);
+			showToast.error("Failed to delete overhead");
+		} finally {
+			setShowDeleteConfirm(false);
+			setDeleteTargetId(null);
 		}
 	};
 
@@ -234,7 +250,7 @@ const MonthlyOverheads = () => {
 			if (error) throw error;
 
 			if (!previousOverheads || previousOverheads.length === 0) {
-				alert("No recurring overheads found in previous month");
+				showToast.warning("No recurring overheads found in previous month");
 				return;
 			}
 
@@ -262,12 +278,12 @@ const MonthlyOverheads = () => {
 
 			setShowDuplicateModal(false);
 			fetchOverheads();
-			alert(
+			showToast.success(
 				`Duplicated ${newOverheads.length} recurring overheads from previous month`
 			);
 		} catch (error) {
 			console.error("Error duplicating overheads:", error);
-			alert("Error duplicating overheads: " + error.message);
+			showToast.error("Error duplicating overheads: " + error.message);
 		}
 	};
 
@@ -774,6 +790,14 @@ const MonthlyOverheads = () => {
 					</div>
 				</div>
 			)}
+
+			<DeleteConfirmationModal
+				isOpen={showDeleteConfirm}
+				onClose={() => setShowDeleteConfirm(false)}
+				onConfirm={confirmDelete}
+				title="Delete Overhead"
+				message="Are you sure you want to delete this overhead? This action cannot be undone."
+			/>
 		</div>
 	);
 };

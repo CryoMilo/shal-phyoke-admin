@@ -1,6 +1,7 @@
 // components/WeeklyMenu/WeeklyMenuPublishControl.jsx
 import { useState, useEffect } from "react";
 import { useWeeklyMenuStore } from "../../stores/weeklyMenuStore";
+import { showToast } from "../../utils/toastUtils";
 
 export const WeeklyMenuPublishControl = ({ currentWeeklyMenu }) => {
 	const { updateWeeklyMenuStatus, weeklyMenus } = useWeeklyMenuStore();
@@ -25,7 +26,7 @@ export const WeeklyMenuPublishControl = ({ currentWeeklyMenu }) => {
 					menu.id !== currentWeeklyMenu?.id && menu.status === "Published"
 			)
 		) {
-			alert("Only one Weekly Menu can be Published at a time.");
+			showToast.warning("Only one Weekly Menu can be Published at a time.");
 			return;
 		}
 
@@ -35,7 +36,7 @@ export const WeeklyMenuPublishControl = ({ currentWeeklyMenu }) => {
 			if (currentWeeklyMenu?.id) {
 				await updateWeeklyMenuStatus(currentWeeklyMenu.id, newStatus);
 			} else {
-				alert("No weekly menu selected to update.");
+				showToast.warning("No weekly menu selected to update.");
 				setStatus(previous);
 			}
 		} catch (err) {

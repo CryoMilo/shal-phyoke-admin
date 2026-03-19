@@ -4,6 +4,8 @@ import { Plus, Trash2, Edit, Save, X } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { supabase } from "../services/supabase";
 import { PageHeader } from "../components/common/PageHeader";
+import { showToast } from "../utils/toastUtils";
+import DeleteConfirmationModal from "../components/common/DeleteConfirmationModal";
 
 // Expense Categories - matching your enum
 const expenseCategories = [
@@ -38,6 +40,8 @@ const DailyExpenses = () => {
 	const [total, setTotal] = useState(0);
 	// eslint-disable-next-line no-unused-vars
 	const [otherCategoryInput, setOtherCategoryInput] = useState("");
+	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+	const [deleteTargetId, setDeleteTargetId] = useState(null);
 
 	const {
 		register,
@@ -178,19 +182,27 @@ const DailyExpenses = () => {
 		setShowForm(true);
 	};
 
-	const handleDelete = async (id) => {
-		if (!confirm("Are you sure you want to delete this expense?")) return;
+	const handleDelete = (id) => {
+		setDeleteTargetId(id);
+		setShowDeleteConfirm(true);
+	};
 
+	const confirmDelete = async () => {
 		try {
 			const { error } = await supabase
 				.from("daily_expenses")
 				.delete()
-				.eq("id", id);
+				.eq("id", deleteTargetId);
 
 			if (error) throw error;
+			showToast.success("Expense deleted successfully");
 			fetchExpenses();
 		} catch (error) {
 			console.error("Error deleting expense:", error);
+			showToast.error("Failed to delete expense");
+		} finally {
+			setShowDeleteConfirm(false);
+			setDeleteTargetId(null);
 		}
 	};
 
@@ -595,9 +607,17 @@ const DailyExpenses = () => {
 						);
 					})}
 				</div>
-			</div>
-		</div>
-	);
-};
+				</div>
+				)}
 
+				<DeleteConfirmationModal
+				isOpen={showDeleteConfirm}
+				onClose={() => setShowDeleteConfirm(false)}
+				onConfirm={confirmDelete}
+				title="Delete Expense"
+				message="Are you sure you want to delete this expense? This action cannot be undone."
+				/>
+				</div>
+				);
+				};
 export default DailyExpenses;

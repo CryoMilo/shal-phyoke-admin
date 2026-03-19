@@ -6,6 +6,7 @@ import { Loading } from "../common/Loading";
 import { WeeklyMenuPublishControl } from "./WeeklyMenuPublishControl";
 import { PageHeader } from "../common/PageHeader";
 import DailyMenuImageModal from "./DailyMenuImageModal";
+import { showToast } from "../../utils/toastUtils";
 
 export const WeeklyMenuOverview = ({ currentWeeklyMenu, onEditWeek }) => {
 	const { weeklyMenus, weeklyMenusLoading, fetchWeeklyMenus } =
@@ -101,7 +102,11 @@ const WeeklyMenuGrid = ({ currentWeeklyMenu, weeklyMenu, onEdit }) => {
 	useEffect(() => {
 		if (weeklyMenu?.id) {
 			fetchWeeklyMenuWithItems(weeklyMenu.id).then((result) => {
-				if (result.data) setMenuData(result.data);
+				if (result.data) {
+					setMenuData(result.data);
+				} else if (result.error) {
+					showToast.error("Failed to load weekly menu items");
+				}
 			});
 		}
 	}, [weeklyMenu?.id, fetchWeeklyMenuWithItems]);
