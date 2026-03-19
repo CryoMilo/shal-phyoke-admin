@@ -33,6 +33,7 @@ const useProcurementStore = create((set, get) => ({
 			set({ vendors: data || [] });
 		} catch (error) {
 			console.error("Error fetching vendors:", error);
+			showToast.error("Failed to load vendors");
 		}
 	},
 
@@ -56,6 +57,7 @@ const useProcurementStore = create((set, get) => ({
 			set({ inventoryItems: data || [] });
 		} catch (error) {
 			console.error("Error fetching inventory items:", error);
+			showToast.error("Failed to load inventory items");
 		}
 	},
 
@@ -395,6 +397,7 @@ const useProcurementStore = create((set, get) => ({
 
 			if (itemsError) throw itemsError;
 
+			const failedUpdates = [];
 			for (const item of items) {
 				const { error: updateError } = await supabase
 					.from("market_list")
@@ -403,7 +406,12 @@ const useProcurementStore = create((set, get) => ({
 
 				if (updateError) {
 					console.warn(`Failed to update item ${item.id}:`, updateError);
+					failedUpdates.push(item.inventory_item?.name || item.custom_item_name);
 				}
+			}
+
+			if (failedUpdates.length > 0) {
+				showToast.warning(`Order confirmed, but ${failedUpdates.length} items failed to update in market list.`);
 			}
 
 			// Refresh data
@@ -459,6 +467,7 @@ const useProcurementStore = create((set, get) => ({
 			set({ procurementOrders: data || [] });
 		} catch (error) {
 			console.error("Error fetching orders:", error);
+			showToast.error("Failed to load procurement orders");
 		}
 	},
 

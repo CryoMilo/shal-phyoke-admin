@@ -11,6 +11,7 @@ import {
 	Eye,
 	XCircle,
 } from "lucide-react";
+import { showToast } from "../../utils/toastUtils";
 
 const OrderHistoryTab = () => {
 	const [orders, setOrders] = useState([]);
@@ -46,6 +47,7 @@ const OrderHistoryTab = () => {
 			setOrders(data || []);
 		} catch (error) {
 			console.error("Error fetching history:", error);
+			showToast.error("Failed to load order history");
 		} finally {
 			setLoading(false);
 		}

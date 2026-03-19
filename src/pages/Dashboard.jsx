@@ -20,6 +20,7 @@ import {
 } from "../components/dashboard";
 import { formatDisplayDate, getBangkokDayRange } from "../utils/dateUtils";
 import { processDashboardData } from "../utils/processData"; // Import the refactored function
+import { showToast } from "../utils/toastUtils";
 
 // Consistent YYYY-MM-DD for Bangkok
 const getBangkokISO = (date) =>
@@ -127,7 +128,7 @@ export const Dashboard = () => {
 				.select("id, amount, category, paid_by, description, notes")
 				.eq("date", bangkokDateStr);
 
-			if (expensesError && expensesError.code !== "PGRST116") {
+			if (expensesError) {
 				console.error("Error fetching daily expenses:", expensesError);
 			}
 
@@ -155,7 +156,7 @@ export const Dashboard = () => {
 				.eq("month", currentMonthStr)
 				.order("due_date", { ascending: true });
 
-			if (overheadsError && overheadsError.code !== "PGRST116") {
+			if (overheadsError) {
 				console.error("Error fetching monthly overheads:", overheadsError);
 			}
 
@@ -174,6 +175,7 @@ export const Dashboard = () => {
 			setItemDetails(dashboardData.itemDetailsList);
 		} catch (error) {
 			console.error("Dashboard Fetch Error:", error);
+			showToast.error("Failed to load dashboard data. Please refresh.");
 			// Set default data on error
 			setSalesData({
 				dailySales: [],

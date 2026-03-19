@@ -2,6 +2,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { supabase } from "../services/supabase";
+import { showToast } from "../utils/toastUtils";
 
 const useMenuStore = create(
 	persist(
@@ -276,6 +277,7 @@ const useMenuStore = create(
 					});
 				} catch (error) {
 					console.error("Error fetching menus:", error);
+					showToast.error("Failed to load menu items");
 					set({ loading: false });
 				}
 			},
@@ -299,6 +301,7 @@ const useMenuStore = create(
 					});
 				} catch (error) {
 					console.error("Error fetching regular menus:", error);
+					showToast.error("Failed to load regular menu items");
 					set({ loading: false });
 				}
 			},
@@ -322,6 +325,7 @@ const useMenuStore = create(
 					});
 				} catch (error) {
 					console.error("Error fetching rotating menus:", error);
+					showToast.error("Failed to load rotating menu items");
 					set({ loading: false });
 				}
 			},
@@ -338,6 +342,7 @@ const useMenuStore = create(
 					return { data, error: null };
 				} catch (error) {
 					console.error("Error fetching menu by id:", error);
+					showToast.error("Failed to fetch menu item details");
 					return { data: null, error };
 				}
 			},
@@ -353,9 +358,11 @@ const useMenuStore = create(
 					if (error) throw error;
 
 					get().addMenuItem(data);
+					showToast.success("Menu item created successfully");
 					return { data, error: null };
 				} catch (error) {
 					console.error("Error creating menu:", error);
+					showToast.error("Failed to create menu item");
 					return { data: null, error };
 				}
 			},
@@ -372,9 +379,11 @@ const useMenuStore = create(
 					if (error) throw error;
 
 					get().updateMenuItem(id, data);
+					showToast.success("Menu item updated successfully");
 					return { data, error: null };
 				} catch (error) {
 					console.error("Error updating menu:", error);
+					showToast.error("Failed to update menu item");
 					return { data: null, error };
 				}
 			},
@@ -410,6 +419,7 @@ const useMenuStore = create(
 					if (error) throw error;
 
 					get().updateMenuItem(id, { is_active: newStatus });
+					showToast.success(`Menu item is now ${newStatus ? "active" : "inactive"}`);
 					return { success: true };
 				} catch (error) {
 					console.error("Error toggling menu status:", error);
@@ -450,6 +460,7 @@ const useMenuStore = create(
 					return { data, error: null };
 				} catch (error) {
 					console.error(`Error fetching ${category} menus:`, error);
+					showToast.error(`Failed to load ${category} items`);
 					set({ loading: false });
 					return { data: null, error };
 				}
@@ -492,6 +503,7 @@ const useMenuStore = create(
 					return filteredData;
 				} catch (error) {
 					console.error("Error fetching menu item extras:", error);
+					showToast.error("Failed to load extras");
 					return []; // Return empty array on error
 				} finally {
 					set({ loadingExtras: false });
@@ -511,10 +523,12 @@ const useMenuStore = create(
 
 					// Refresh the list
 					await get().fetchMenuItemExtras(extraData.menu_item_id);
+					showToast.success("Extra added successfully");
 
 					return data;
 				} catch (error) {
 					console.error("Error adding menu item extra:", error);
+					showToast.error("Failed to add extra");
 				}
 			},
 
@@ -529,12 +543,14 @@ const useMenuStore = create(
 					if (error) throw error;
 
 					// Refresh the list for the current menu item
-					const currentItemId = get().currentMenuItem?.id;
+					const currentItemId = updates.menu_item_id; // Try to get from updates
 					if (currentItemId) {
 						await get().fetchMenuItemExtras(currentItemId);
 					}
+					// No toast for silent reordering
 				} catch (error) {
 					console.error("Error updating menu item extra:", error);
+					showToast.error("Failed to update extra");
 				}
 			},
 
@@ -547,14 +563,10 @@ const useMenuStore = create(
 						.eq("id", id);
 
 					if (error) throw error;
-
-					// Refresh the list
-					const currentItemId = get().currentMenuItem?.id;
-					if (currentItemId) {
-						await get().fetchMenuItemExtras(currentItemId);
-					}
+					// No need to fetch here if it was successful, as components handle state
 				} catch (error) {
 					console.error("Error removing menu item extra:", error);
+					showToast.error("Failed to remove extra");
 				}
 			},
 		}),

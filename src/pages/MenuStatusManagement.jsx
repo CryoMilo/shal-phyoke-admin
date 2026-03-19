@@ -4,6 +4,7 @@ import { useMenuStatusStore } from "../stores/useMenuStatusStore";
 import { getDayInfo } from "../utils/getDayInfo";
 import { formatDateRange } from "../utils/formatDateRange";
 import { Loading } from "../components/common/Loading";
+import { showToast } from "../utils/toastUtils";
 
 export const MenuStatusManagement = () => {
 	const {
@@ -27,7 +28,9 @@ export const MenuStatusManagement = () => {
 		const result = await updateItemStatus(itemId, newStatus);
 
 		if (result.error) {
-			alert("Error updating status");
+			showToast.error("Error updating status");
+		} else {
+			showToast.success(`Status updated to ${newStatus}`);
 		}
 
 		setUpdating((prev) => ({ ...prev, [itemId]: false }));

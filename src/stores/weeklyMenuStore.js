@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { supabase } from "../services/supabase";
 import { persist } from "zustand/middleware";
+import { showToast } from "../utils/toastUtils";
 
 export const useWeeklyMenuStore = create(
 	persist(
@@ -19,13 +20,14 @@ export const useWeeklyMenuStore = create(
 						.select("*")
 						.order("created_at", { ascending: false }) // newest first
 						.limit(1)
-						.single();
+						.maybeSingle();
 
 					if (error) throw error;
 					set({ currentWeeklyMenu: data });
 					return { data };
 				} catch (e) {
 					console.error("Error fetching latest weekly menu:", e);
+					showToast.error("Failed to load latest weekly menu");
 					return { data: null, error: e };
 				}
 			},
@@ -41,6 +43,7 @@ export const useWeeklyMenuStore = create(
 					set({ weeklyMenus: data || [] });
 				} catch (e) {
 					console.error("Error fetching weekly menus:", e);
+					showToast.error("Failed to load weekly menus");
 				} finally {
 					set({ weeklyMenusLoading: false });
 				}
@@ -77,6 +80,7 @@ export const useWeeklyMenuStore = create(
 					return { data };
 				} catch (e) {
 					console.error("Error fetching weekly menu with items:", e);
+					showToast.error("Failed to load weekly menu items");
 					return { data: null, error: e };
 				} finally {
 					set({ currentWeeklyMenuLoading: false });
@@ -103,21 +107,28 @@ export const useWeeklyMenuStore = create(
 					return data.status;
 				} catch (e) {
 					console.error("Error fetching weekly menu status:", e);
+					showToast.error("Failed to load weekly menu status");
 					return null;
 				}
 			},
 
 			updateWeeklyMenuStatus: async (id, status) => {
-				const { error } = await supabase
-					.from("weekly_menu")
-					.update({ status })
-					.eq("id", id);
-				if (!error) {
+				try {
+					const { error } = await supabase
+						.from("weekly_menu")
+						.update({ status })
+						.eq("id", id);
+					if (error) throw error;
+					
 					set((state) => ({
 						weeklyMenus: state.weeklyMenus.map((m) =>
 							m.id === id ? { ...m, status } : m
 						),
 					}));
+					showToast.success(`Menu status updated to ${status}`);
+				} catch (e) {
+					console.error("Error updating weekly menu status:", e);
+					showToast.error("Failed to update weekly menu status");
 				}
 			},
 		}),
@@ -149,6 +160,7 @@ export const useMenuItemsStore = create(
 					set({ menuItems: data || [], loading: false });
 				} catch (error) {
 					console.error("Error fetching menu items:", error);
+					showToast.error("Failed to load menu items for builder");
 					set({ loading: false });
 				}
 			},

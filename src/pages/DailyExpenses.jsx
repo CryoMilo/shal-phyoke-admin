@@ -607,17 +607,16 @@ const DailyExpenses = () => {
 						);
 					})}
 				</div>
-				</div>
-				)}
+			</div>
 
-				<DeleteConfirmationModal
+			<DeleteConfirmationModal
 				isOpen={showDeleteConfirm}
 				onClose={() => setShowDeleteConfirm(false)}
 				onConfirm={confirmDelete}
 				title="Delete Expense"
 				message="Are you sure you want to delete this expense? This action cannot be undone."
-				/>
-				</div>
-				);
-				};
+			/>
+		</div>
+	);
+};
 export default DailyExpenses;

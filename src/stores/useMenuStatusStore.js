@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { supabase } from "../services/supabase";
+import { showToast } from "../utils/toastUtils";
 
 // Zustand Store for Menu Status Management
 export const useMenuStatusStore = create(
@@ -23,11 +24,12 @@ export const useMenuStatusStore = create(
 						.from("weekly_menu")
 						.select("*")
 						.eq("status", "Published")
-						.single();
+						.maybeSingle();
 
-					if (menuError || !publishedMenu) {
-						console.error("No published weekly menu found:", menuError);
-						set({ todayItems: [], tomorrowItems: [], loading: false });
+					if (menuError) throw menuError;
+					
+					if (!publishedMenu) {
+						set({ todayItems: [], tomorrowItems: [], loading: false, publishedWeeklyMenu: null });
 						return;
 					}
 
@@ -69,6 +71,8 @@ export const useMenuStatusStore = create(
 						.eq("weekly_menu_id", publishedMenu.id)
 						.eq("weekday", todayName);
 
+					if (todayError) throw todayError;
+
 					// Fetch tomorrow's items
 					const { data: tomorrowData, error: tomorrowError } = await supabase
 						.from("weekly_menu_items")
@@ -88,10 +92,7 @@ export const useMenuStatusStore = create(
 						.eq("weekly_menu_id", publishedMenu.id)
 						.eq("weekday", tomorrowName);
 
-					if (todayError)
-						console.error("Error fetching today items:", todayError);
-					if (tomorrowError)
-						console.error("Error fetching tomorrow items:", tomorrowError);
+					if (tomorrowError) throw tomorrowError;
 
 					set({
 						todayItems: todayData || [],
@@ -100,6 +101,7 @@ export const useMenuStatusStore = create(
 					});
 				} catch (error) {
 					console.error("Error fetching menu status:", error);
+					showToast.error("Failed to load menu status");
 					set({ loading: false });
 				}
 			},
@@ -129,6 +131,7 @@ export const useMenuStatusStore = create(
 					return { error: null };
 				} catch (error) {
 					console.error("Error updating item status:", error);
+					showToast.error("Failed to update item status");
 					return { error };
 				}
 			},

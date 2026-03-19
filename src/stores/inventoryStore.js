@@ -1,6 +1,7 @@
 // src/stores/inventoryStore.js
 import { create } from "zustand";
 import { supabase } from "../services/supabase";
+import { showToast } from "../utils/toastUtils";
 
 const useInventoryStore = create((set, get) => ({
 	// State
@@ -51,6 +52,7 @@ const useInventoryStore = create((set, get) => ({
 			set({ inventoryItems: mergedItems, error: null });
 		} catch (error) {
 			console.error("Error fetching inventory items:", error);
+			showToast.error("Failed to load inventory items");
 			set({ error: error.message });
 		} finally {
 			set({ loading: false });
@@ -74,7 +76,12 @@ const useInventoryStore = create((set, get) => ({
 					}
 				}
 			)
-			.subscribe();
+			.subscribe((status, err) => {
+				if (err || status === "CHANNEL_ERROR") {
+					console.error("Inventory subscription error:", err);
+					showToast.error("Real-time updates disconnected. Please refresh.");
+				}
+			});
 
 		return subscription;
 	},
@@ -131,10 +138,12 @@ const useInventoryStore = create((set, get) => ({
 			
 			if (hasError) {
 				console.error("Some inventory updates failed", results.map(r => r.error).filter(Boolean));
+				showToast.error("Some stock updates failed to save. Please refresh.");
 				// Optional: restore snapshot to pendingUpdates if we want to retry
 			}
 		} catch (error) {
 			console.error("Error syncing inventory updates:", error);
+			showToast.error("Failed to sync inventory updates");
 		}
 	},
 
@@ -154,9 +163,11 @@ const useInventoryStore = create((set, get) => ({
 				),
 			}));
 
+			showToast.success("Threshold updated");
 			return { success: true };
 		} catch (error) {
 			console.error("Error updating threshold:", error);
+			showToast.error("Failed to update threshold");
 			return { error: error.message };
 		}
 	},
@@ -173,6 +184,7 @@ const useInventoryStore = create((set, get) => ({
 			set({ vendors: data || [] });
 		} catch (error) {
 			console.error("Error fetching vendors:", error);
+			showToast.error("Failed to load vendors");
 		}
 	},
 
@@ -260,9 +272,11 @@ const useInventoryStore = create((set, get) => ({
 			if (error) throw error;
 
 			await get().fetchInventoryItems();
+			showToast.success("Inventory item created");
 			return { success: true };
 		} catch (error) {
 			console.error("Error creating inventory item:", error);
+			showToast.error("Failed to create inventory item");
 			return { error: error.message };
 		}
 	},
@@ -278,9 +292,11 @@ const useInventoryStore = create((set, get) => ({
 
 			// Refetch to get updated data with vendor relations
 			await get().fetchInventoryItems();
+			showToast.success("Inventory item updated");
 			return { success: true };
 		} catch (error) {
 			console.error("Error updating inventory item:", error);
+			showToast.error("Failed to update inventory item");
 			return { error: error.message };
 		}
 	},
