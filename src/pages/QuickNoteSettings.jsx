@@ -5,6 +5,7 @@ import { Plus, Trash2, Edit2, Settings2 } from "lucide-react";
 import { PageHeader } from "../components/common/PageHeader";
 import useQuickNoteStore from "../stores/quickNoteStore";
 import useMenuStore from "../stores/menuStore";
+import DeleteConfirmationModal from "../components/common/DeleteConfirmationModal";
 
 const QuickNoteSettings = () => {
 	const { settings, loading, fetchAllSettings, refresh } = useQuickNoteStore();
@@ -13,30 +14,40 @@ const QuickNoteSettings = () => {
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [editingNote, setEditingNote] = useState(null);
 	const [activeTypeTab, setActiveTypeTab] = useState("taste_profile");
+	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+	const [deleteTargetId, setDeleteTargetId] = useState(null);
 
 	// Dynamic categories from menu items
 	const menuCategories = useMemo(() => {
-		const cats = [...new Set(allMenuItems.map(item => item.category))];
+		const cats = [...new Set(allMenuItems.map((item) => item.category))];
 		return cats.sort();
 	}, [allMenuItems]);
 
 	// Smart Groups based on Regular vs Rotating status
 	const categoryGroups = useMemo(() => {
-		const rotating = [...new Set(allMenuItems.filter(i => !i.is_regular).map(i => i.category))];
-		const regular = [...new Set(allMenuItems.filter(i => i.is_regular).map(i => i.category))];
-		return { 
-			"Rotating": rotating.sort(), 
-			"Regular": regular.sort() 
+		const rotating = [
+			...new Set(
+				allMenuItems.filter((i) => !i.is_regular).map((i) => i.category)
+			),
+		];
+		const regular = [
+			...new Set(
+				allMenuItems.filter((i) => i.is_regular).map((i) => i.category)
+			),
+		];
+		return {
+			Rotating: rotating.sort(),
+			Regular: regular.sort(),
 		};
 	}, [allMenuItems]);
 
 	const applyGroup = (groupName) => {
 		const groupCats = categoryGroups[groupName];
-		setFormData(prev => {
+		setFormData((prev) => {
 			const current = prev.applicable_categories || [];
-			const allSelected = groupCats.every(c => current.includes(c));
-			const next = allSelected 
-				? current.filter(c => !groupCats.includes(c))
+			const allSelected = groupCats.every((c) => current.includes(c));
+			const next = allSelected
+				? current.filter((c) => !groupCats.includes(c))
 				: [...new Set([...current, ...groupCats])];
 			return { ...prev, applicable_categories: next };
 		});
@@ -44,40 +55,58 @@ const QuickNoteSettings = () => {
 
 	// Helper to summarize categories for display
 	const renderCategoryBadges = (applied) => {
-		if (!applied || applied.length === 0) return <span className="badge badge-sm badge-ghost">All Categories</span>;
-		
+		if (!applied || applied.length === 0)
+			return <span className="badge badge-sm badge-ghost">All Categories</span>;
+
 		const rotating = categoryGroups["Rotating"];
 		const regular = categoryGroups["Regular"];
-		
-		const hasAllRotating = rotating.length > 0 && rotating.every(c => applied.includes(c));
-		const hasAllRegular = regular.length > 0 && regular.every(c => applied.includes(c));
-		
+
+		const hasAllRotating =
+			rotating.length > 0 && rotating.every((c) => applied.includes(c));
+		const hasAllRegular =
+			regular.length > 0 && regular.every((c) => applied.includes(c));
+
 		let display = [];
 		let remaining = [...applied];
 
 		if (hasAllRotating) {
-			display.push(<span key="rot" className="badge badge-sm badge-secondary font-bold">Rotating</span>);
-			remaining = remaining.filter(c => !rotating.includes(c));
-		}
-		
-		if (hasAllRegular) {
-			display.push(<span key="reg" className="badge badge-sm badge-primary font-bold">Regular</span>);
-			remaining = remaining.filter(c => !regular.includes(c));
+			display.push(
+				<span key="rot" className="badge badge-sm badge-secondary font-bold">
+					Rotating
+				</span>
+			);
+			remaining = remaining.filter((c) => !rotating.includes(c));
 		}
 
-		remaining.forEach(cat => {
-			display.push(<span key={cat} className="badge badge-sm badge-outline">{cat}</span>);
+		if (hasAllRegular) {
+			display.push(
+				<span key="reg" className="badge badge-sm badge-primary font-bold">
+					Regular
+				</span>
+			);
+			remaining = remaining.filter((c) => !regular.includes(c));
+		}
+
+		remaining.forEach((cat) => {
+			display.push(
+				<span key={cat} className="badge badge-sm badge-outline">
+					{cat}
+				</span>
+			);
 		});
 
 		return display;
 	};
 
 	const selectAll = () => {
-		setFormData(prev => ({ ...prev, applicable_categories: [...menuCategories] }));
+		setFormData((prev) => ({
+			...prev,
+			applicable_categories: [...menuCategories],
+		}));
 	};
 
 	const clearAll = () => {
-		setFormData(prev => ({ ...prev, applicable_categories: [] }));
+		setFormData((prev) => ({ ...prev, applicable_categories: [] }));
 	};
 
 	const [formData, setFormData] = useState({
@@ -167,14 +196,17 @@ const QuickNoteSettings = () => {
 		}
 	};
 
-	const handleDelete = async (id) => {
-		if (!window.confirm("Are you sure you want to delete this setting?"))
-			return;
+	const handleDelete = (id) => {
+		setDeleteTargetId(id);
+		setShowDeleteConfirm(true);
+	};
+
+	const confirmDelete = async () => {
 		try {
 			const { error } = await supabase
 				.from("quick_note_settings")
 				.delete()
-				.eq("id", id);
+				.eq("id", deleteTargetId);
 			if (error) throw error;
 			showToast.success("Deleted successfully");
 			refresh();
@@ -182,6 +214,9 @@ const QuickNoteSettings = () => {
 		} catch (error) {
 			console.error("Error deleting quick note setting:", error);
 			showToast.error("Failed to delete setting");
+		} finally {
+			setShowDeleteConfirm(false);
+			setDeleteTargetId(null);
 		}
 	};
 
@@ -439,16 +474,24 @@ const QuickNoteSettings = () => {
 										</span>
 									</label>
 									<div className="flex gap-1">
-										<button onClick={selectAll} className="btn btn-ghost btn-xs text-primary">All</button>
-										<button onClick={clearAll} className="btn btn-ghost btn-xs text-error">None</button>
+										<button
+											onClick={selectAll}
+											className="btn btn-ghost btn-xs text-primary">
+											All
+										</button>
+										<button
+											onClick={clearAll}
+											className="btn btn-ghost btn-xs text-error">
+											None
+										</button>
 									</div>
 								</div>
-								
+
 								{/* Quick Groups */}
 								<div className="flex flex-wrap gap-1 mb-3">
-									{Object.keys(categoryGroups).map(group => (
-										<button 
-											key={group} 
+									{Object.keys(categoryGroups).map((group) => (
+										<button
+											key={group}
 											onClick={() => applyGroup(group)}
 											className="btn btn-xs btn-outline border-base-300 font-normal">
 											+ {group}
@@ -472,9 +515,11 @@ const QuickNoteSettings = () => {
 									))}
 								</div>
 								<p className="text-[10px] text-gray-500 mt-2">
-									{(formData.applicable_categories || []).length === 0 
-										? "Applicable to ALL items." 
-										: `Applied to ${(formData.applicable_categories || []).length} categories.`}
+									{(formData.applicable_categories || []).length === 0
+										? "Applicable to ALL items."
+										: `Applied to ${
+												(formData.applicable_categories || []).length
+										  } categories.`}
 								</p>
 							</div>
 
@@ -507,6 +552,14 @@ const QuickNoteSettings = () => {
 						onClick={() => setIsModalOpen(false)}></div>
 				</div>
 			)}
+
+			<DeleteConfirmationModal
+				isOpen={showDeleteConfirm}
+				onClose={() => setShowDeleteConfirm(false)}
+				onConfirm={confirmDelete}
+				title="Delete Setting"
+				message="Are you sure you want to delete this setting? This action cannot be undone."
+			/>
 		</div>
 	);
 };

@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { X, Edit2, Trash2, Plus } from "lucide-react";
 import { supabase } from "../../services/supabase";
 import { showToast } from "../../utils/toastUtils";
+import DeleteConfirmationModal from "../common/DeleteConfirmationModal";
 
 const EditVendorsModal = ({ isOpen, onClose }) => {
 	const [vendors, setVendors] = useState([]);
@@ -11,6 +12,8 @@ const EditVendorsModal = ({ isOpen, onClose }) => {
 	const [editForm, setEditForm] = useState({ name: "", line_id: "" });
 	const [newVendor, setNewVendor] = useState({ name: "", line_id: "" });
 	const [showAddForm, setShowAddForm] = useState(false);
+	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+	const [deleteTargetId, setDeleteTargetId] = useState(null);
 
 	useEffect(() => {
 		if (isOpen) {
@@ -54,11 +57,17 @@ const EditVendorsModal = ({ isOpen, onClose }) => {
 		}
 	};
 
-	const handleDelete = async (id) => {
-		if (!confirm("Are you sure you want to delete this vendor?")) return;
+	const handleDelete = (id) => {
+		setDeleteTargetId(id);
+		setShowDeleteConfirm(true);
+	};
 
+	const confirmDelete = async () => {
 		try {
-			const { error } = await supabase.from("vendors").delete().eq("id", id);
+			const { error } = await supabase
+				.from("vendors")
+				.delete()
+				.eq("id", deleteTargetId);
 
 			if (error) throw error;
 
@@ -67,6 +76,9 @@ const EditVendorsModal = ({ isOpen, onClose }) => {
 		} catch (error) {
 			console.error("Error deleting vendor:", error);
 			showToast.error("Failed to delete vendor");
+		} finally {
+			setShowDeleteConfirm(false);
+			setDeleteTargetId(null);
 		}
 	};
 
@@ -247,6 +259,14 @@ const EditVendorsModal = ({ isOpen, onClose }) => {
 				</div>
 			</div>
 			<div className="modal-backdrop" onClick={onClose} />
+
+			<DeleteConfirmationModal
+				isOpen={showDeleteConfirm}
+				onClose={() => setShowDeleteConfirm(false)}
+				onConfirm={confirmDelete}
+				title="Delete Vendor"
+				message="Are you sure you want to delete this vendor? This will not remove items already associated with this vendor but will remove the vendor from the system."
+			/>
 		</div>
 	);
 };

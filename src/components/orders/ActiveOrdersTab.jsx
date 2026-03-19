@@ -44,6 +44,7 @@ const ActiveOrdersTab = () => {
 			setActiveOrders(data || []);
 		} catch (error) {
 			console.error("Error fetching active orders:", error);
+			showToast.error("Failed to load active orders");
 		}
 	};
 
@@ -181,6 +182,8 @@ const ActiveOrdersTab = () => {
 };
 
 const TableBillsModal = ({ table, onClose, onUpdate }) => {
+	const [confirmAction, setConfirmAction] = useState(null); // { orderId, type: 'cancel' | 'refund' }
+
 	const handleAction = async (orderId, updates) => {
 		try {
 			const { error } = await supabase
@@ -315,18 +318,39 @@ const TableBillsModal = ({ table, onClose, onUpdate }) => {
 											<CheckCircle2 className="w-4 h-4" /> Complete & Close Bill
 										</button>
 									)}
-									<button
-										className="btn btn-xs btn-ghost text-error col-span-2 mt-2 opacity-50 hover:opacity-100"
-										onClick={() => {
-											const isPaid = order.payment_status === "paid";
-											const actionLabel = isPaid ? "Refund" : "Cancel";
-											if (window.confirm(`${actionLabel} this bill?`))
-												handleAction(order.id, {
-													pos_order_status: isPaid ? "refunded" : "cancelled",
+
+									{confirmAction?.orderId === order.id ? (
+										<div className="col-span-2 mt-2 flex gap-2">
+											<button
+												className="btn btn-xs btn-error flex-1"
+												onClick={() => {
+													const isPaid = order.payment_status === "paid";
+													handleAction(order.id, {
+														pos_order_status: isPaid ? "refunded" : "cancelled",
+													});
+													setConfirmAction(null);
+												}}>
+												Confirm {order.payment_status === "paid" ? "Refund" : "Cancel"}
+											</button>
+											<button
+												className="btn btn-xs btn-ghost flex-1"
+												onClick={() => setConfirmAction(null)}>
+												No, keep it
+											</button>
+										</div>
+									) : (
+										<button
+											className="btn btn-xs btn-ghost text-error col-span-2 mt-2 opacity-50 hover:opacity-100"
+											onClick={() => {
+												const isPaid = order.payment_status === "paid";
+												setConfirmAction({
+													orderId: order.id,
+													type: isPaid ? "refund" : "cancel",
 												});
-										}}>
-										{order.payment_status === "paid" ? "Refund Bill" : "Cancel Bill"}
-									</button>
+											}}>
+											{order.payment_status === "paid" ? "Refund Bill" : "Cancel Bill"}
+										</button>
+									)}
 								</div>
 							</div>
 						</div>

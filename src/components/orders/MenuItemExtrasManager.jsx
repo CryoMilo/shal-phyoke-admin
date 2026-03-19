@@ -2,12 +2,16 @@
 import React, { useState, useEffect } from "react";
 import { Plus, Trash2, Edit2, ChevronUp, ChevronDown } from "lucide-react";
 import useMenuStore from "../../stores/menuStore";
+import { showToast } from "../../utils/toastUtils";
+import DeleteConfirmationModal from "../common/DeleteConfirmationModal";
 
 const MenuItemExtrasManager = ({ menuItemId }) => {
 	const [showAddModal, setShowAddModal] = useState(false);
 	const [editingExtra, setEditingExtra] = useState(null);
 	const [availableExtras, setAvailableExtras] = useState([]);
 	const [localExtras, setLocalExtras] = useState([]);
+	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+	const [deleteTargetId, setDeleteTargetId] = useState(null);
 
 	const {
 		menuItemExtras = [],
@@ -95,9 +99,21 @@ const MenuItemExtrasManager = ({ menuItemId }) => {
 		setEditingExtra(null);
 	};
 
-	const handleRemoveExtra = async (id) => {
-		if (window.confirm("Remove this extra from the menu item?")) {
-			await removeMenuItemExtra(id);
+	const handleRemoveExtra = (id) => {
+		setDeleteTargetId(id);
+		setShowDeleteConfirm(true);
+	};
+
+	const confirmDelete = async () => {
+		try {
+			await removeMenuItemExtra(deleteTargetId);
+			showToast.success("Extra removed successfully");
+		} catch (error) {
+			console.error("Error removing extra:", error);
+			showToast.error("Failed to remove extra");
+		} finally {
+			setShowDeleteConfirm(false);
+			setDeleteTargetId(null);
 		}
 	};
 
@@ -228,6 +244,14 @@ const MenuItemExtrasManager = ({ menuItemId }) => {
 					)}
 				/>
 			)}
+
+			<DeleteConfirmationModal
+				isOpen={showDeleteConfirm}
+				onClose={() => setShowDeleteConfirm(false)}
+				onConfirm={confirmDelete}
+				title="Remove Extra"
+				message="Are you sure you want to remove this extra from the menu item?"
+			/>
 		</div>
 	);
 };
