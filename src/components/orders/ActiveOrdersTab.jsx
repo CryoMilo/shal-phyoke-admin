@@ -10,6 +10,7 @@ import {
 	Banknote,
 } from "lucide-react";
 import { showToast } from "../../utils/toastUtils";
+import PrintKitchenTicketButton from "./PrintKitchenTicketButton";
 
 const ActiveOrdersTab = () => {
 	const [activeOrders, setActiveOrders] = useState([]);
@@ -182,7 +183,7 @@ const ActiveOrdersTab = () => {
 };
 
 const TableBillsModal = ({ table, onClose, onUpdate }) => {
-	const [confirmAction, setConfirmAction] = useState(null); // { orderId, type: 'cancel' | 'refund' }
+	const [confirmAction, setConfirmAction] = useState(null);
 
 	const handleAction = async (orderId, updates) => {
 		try {
@@ -319,6 +320,11 @@ const TableBillsModal = ({ table, onClose, onUpdate }) => {
 										</button>
 									)}
 
+									{/* ── Print kitchen ticket ── */}
+									<div className="col-span-2">
+										<PrintKitchenTicketButton order={order} size="sm" />
+									</div>
+
 									{confirmAction?.orderId === order.id ? (
 										<div className="col-span-2 mt-2 flex gap-2">
 											<button
@@ -330,7 +336,8 @@ const TableBillsModal = ({ table, onClose, onUpdate }) => {
 													});
 													setConfirmAction(null);
 												}}>
-												Confirm {order.payment_status === "paid" ? "Refund" : "Cancel"}
+												Confirm{" "}
+												{order.payment_status === "paid" ? "Refund" : "Cancel"}
 											</button>
 											<button
 												className="btn btn-xs btn-ghost flex-1"
@@ -348,7 +355,9 @@ const TableBillsModal = ({ table, onClose, onUpdate }) => {
 													type: isPaid ? "refund" : "cancel",
 												});
 											}}>
-											{order.payment_status === "paid" ? "Refund Bill" : "Cancel Bill"}
+											{order.payment_status === "paid"
+												? "Refund Bill"
+												: "Cancel Bill"}
 										</button>
 									)}
 								</div>
