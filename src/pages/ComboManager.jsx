@@ -137,7 +137,7 @@ const ComboManager = () => {
 	};
 
 	const addSlot = () => {
-		setSlots([...slots, { category: ALL_CATEGORIES[0], label: ALL_CATEGORIES[0] }]);
+		setSlots([...slots, { category: ALL_CATEGORIES[0], label: ALL_CATEGORIES[0], optional: false }]);
 	};
 
 	const updateSlot = (index, field, value) => {
@@ -548,6 +548,15 @@ const ComboManager = () => {
 															onChange={(e) => updateSlot(index, "label", e.target.value)}
 														/>
 													</div>
+												</div>
+												<div className="form-control flex flex-row items-center gap-2 mt-1 px-1">
+													<input
+														type="checkbox"
+														className="checkbox checkbox-xs"
+														checked={slot.optional}
+														onChange={(e) => updateSlot(index, "optional", e.target.checked)}
+													/>
+													<span className="label-text text-[10px]">Optional</span>
 												</div>
 											</div>
 										))}

@@ -161,30 +161,38 @@ const NewOrderTab = ({
 	const filteredItems = React.useMemo(() => {
 		if (activeCategory === "Combos") {
 			const activeRegular = regularCombos
-				.filter(c => c.is_active)
-				.map(c => ({
+				.filter((c) => c.is_active)
+				.map((c) => ({
 					...c,
 					isRegularCombo: true,
+					is_regular: true,
 					image_url: null,
-					category: "Combo"
-				}))
-			
+					category: "Combo",
+				}));
+
 			const activeRotating = rotatingTemplates
-				.filter(t => t.is_active)
-				.map(t => ({
+				.filter((t) => t.is_active)
+				.map((t) => ({
 					...t,
 					isRotatingCombo: true,
+					is_regular: false,
 					image_url: null,
-					category: "Combo"
-				}))
-			
-			return [...activeRegular, ...activeRotating]
+					category: "Combo",
+				}));
+
+			return [...activeRegular, ...activeRotating];
 		}
 		if (activeCategory === "Today's Special") {
 			return todaysSpecialItems;
 		}
 		return menuItems.filter((item) => item.category === activeCategory);
-	}, [menuItems, todaysSpecialItems, activeCategory, regularCombos, rotatingTemplates]);
+	}, [
+		menuItems,
+		todaysSpecialItems,
+		activeCategory,
+		regularCombos,
+		rotatingTemplates,
+	]);
 
 	// Set default category to the first available one
 	React.useEffect(() => {
@@ -198,6 +206,7 @@ const NewOrderTab = ({
 		// IMPORTANT: Using cart_id now for unique notes
 		setActiveItemForNote({
 			...item,
+			is_regular: item.is_regular ?? false,
 			note: itemNotes[item.cart_id] || "",
 		});
 		setShowNoteModal(true);
@@ -314,31 +323,20 @@ const NewOrderTab = ({
 							<div
 								key={item.id}
 								className={`bg-base-100 border rounded-lg p-3 cursor-pointer hover:shadow-md transition-shadow relative overflow-hidden ${
-									item.isRotatingCombo || item.isRegularCombo ? "border-primary/30 ring-1 ring-primary/10" : "border-base-300"
+									item.isRotatingCombo || item.isRegularCombo
+										? "border-primary/30 ring-1 ring-primary/10"
+										: "border-base-300"
 								}`}
 								onClick={() => {
 									if (item.isRotatingCombo) {
-										setActiveRotatingCombo(item)
-										return
+										setActiveRotatingCombo(item);
+										return;
 									}
 									if (item.isRegularCombo) {
-										// Generate cart_id manually here since we need it for the note
-										const cartItem = {
-											...item,
-											quantity: 1,
-											cart_id: `cart_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-										}
-										addToCart(cartItem)
-										// Set note immediately after adding using the pre-baked note_summary
-										if (item.note_summary) {
-											// Use setTimeout to ensure cart item exists before setting note
-											setTimeout(() => {
-												updateItemNote(cartItem.cart_id, item.note_summary, 0)
-											}, 0)
-										}
-										return
+										addToCart(item, item.note_summary || null, 0);
+										return;
 									}
-									addToCart(item)
+									addToCart(item);
 								}}>
 								{(item.isRotatingCombo || item.isRegularCombo) && (
 									<div className="absolute top-0 right-0 bg-primary text-primary-content text-[8px] font-bold px-1.5 py-0.5 rounded-bl-lg uppercase tracking-tighter">
@@ -352,7 +350,9 @@ const NewOrderTab = ({
 										className="w-full h-20 object-cover rounded mb-2"
 									/>
 								)}
-								<h3 className="font-semibold text-sm line-clamp-2">{item.name_burmese}</h3>
+								<h3 className="font-semibold text-sm line-clamp-2">
+									{item.name_burmese}
+								</h3>
 								{item.name_english && (
 									<p className="text-xs text-base-content/70 truncate">
 										{item.name_english}
@@ -361,10 +361,14 @@ const NewOrderTab = ({
 								<div className="mt-1 flex flex-col">
 									<p className="text-primary font-bold">฿{item.price}</p>
 									{item.isRotatingCombo && (
-										<div className="badge badge-secondary text-[10px] h-4 mt-1">Daily</div>
+										<div className="badge badge-secondary text-[10px] h-4 mt-1">
+											Daily
+										</div>
 									)}
 									{item.isRegularCombo && (
-										<div className="badge badge-primary text-[10px] h-4 mt-1">Fixed</div>
+										<div className="badge badge-primary text-[10px] h-4 mt-1">
+											Fixed
+										</div>
 									)}
 								</div>
 							</div>
@@ -386,10 +390,16 @@ const NewOrderTab = ({
 					{cart.map((item) => (
 						<div
 							key={item.cart_id}
-							className={`bg-base-100 p-2 rounded-lg border shadow-sm ${item.isRotatingCombo || item.isRegularCombo ? "border-primary/20 bg-primary/5" : "border-base-300"}`}>
+							className={`bg-base-100 p-2 rounded-lg border shadow-sm ${
+								item.isRotatingCombo || item.isRegularCombo
+									? "border-primary/20 bg-primary/5"
+									: "border-base-300"
+							}`}>
 							<div className="flex justify-between items-start mb-1">
 								<div className="flex-1">
-									<div className="font-medium text-sm leading-tight">{item.name_burmese}</div>
+									<div className="font-medium text-sm leading-tight">
+										{item.name_burmese}
+									</div>
 									<div className="text-[10px] text-base-content/70 mt-1">
 										฿{item.price} × {item.quantity} = ฿
 										{item.price * item.quantity}
@@ -556,13 +566,8 @@ const NewOrderTab = ({
 					combo={activeRotatingCombo}
 					todayItems={todaysSpecialItems}
 					onConfirm={(cartItem, noteString) => {
-						addToCart(cartItem)
-						if (noteString) {
-							setTimeout(() => {
-								updateItemNote(cartItem.cart_id, noteString, 0)
-							}, 0)
-						}
-						setActiveRotatingCombo(null)
+						addToCart(cartItem, noteString || null, 0);
+						setActiveRotatingCombo(null);
 					}}
 					onClose={() => setActiveRotatingCombo(null)}
 				/>

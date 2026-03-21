@@ -16,6 +16,10 @@ const RotatingComboPickerModal = ({ combo, todayItems, onConfirm, onClose }) => 
 			.filter((slot) => slot.availableItems.length > 0);
 	}, [combo.slots, todayItems]);
 
+	const slotsWithItems = combo.slots.filter((slot) =>
+		todayItems.some((item) => item.category === slot.category)
+	);
+
 	const handleSelectItem = (slotIndex, item) => {
 		setSelections((prev) => ({
 			...prev,
@@ -23,8 +27,19 @@ const RotatingComboPickerModal = ({ combo, todayItems, onConfirm, onClose }) => 
 		}));
 	};
 
+	const handleSkipSlot = (slotIndex) => {
+		setSelections((prev) => {
+			const newSelections = { ...prev };
+			delete newSelections[slotIndex];
+			return newSelections;
+		});
+	};
+
 	const isReady = useMemo(() => {
-		return activeSlots.every((slot) => selections[slot.index] !== undefined);
+		return activeSlots.every((slot) => {
+			if (slot.optional) return true;
+			return selections[slot.index] !== undefined;
+		});
 	}, [activeSlots, selections]);
 
 	const handleConfirm = () => {
@@ -71,15 +86,25 @@ const RotatingComboPickerModal = ({ combo, todayItems, onConfirm, onClose }) => 
 
 				{/* Body */}
 				<div className="p-4 space-y-8 overflow-y-auto flex-1">
-					{activeSlots.length > 0 ? (
+					{slotsWithItems.length > 0 ? (
 						activeSlots.map((slot) => (
 							<div key={slot.index}>
-								<h4 className="font-semibold text-base mb-3 flex items-center gap-2">
-									<span className="w-6 h-6 rounded-full bg-primary text-primary-content flex items-center justify-center text-xs">
-										{slot.index + 1}
-									</span>
-									{slot.label}
-								</h4>
+								<div className="flex justify-between items-center mb-3">
+									<h4 className="font-semibold text-base flex items-center gap-2">
+										<span className="w-6 h-6 rounded-full bg-primary text-primary-content flex items-center justify-center text-xs">
+											{slot.index + 1}
+										</span>
+										{slot.label}
+										{!slot.optional && <span className="text-error text-xs">*</span>}
+									</h4>
+									{slot.optional && (
+										<button
+											className={`btn btn-xs ${!selections[slot.index] ? "btn-primary" : "btn-ghost"}`}
+											onClick={() => handleSkipSlot(slot.index)}>
+											{selections[slot.index] ? "Skip" : "Skipped"}
+										</button>
+									)}
+								</div>
 								<div className="grid grid-cols-2 gap-3">
 									{slot.availableItems.map((item) => {
 										const isSelected = selections[slot.index]?.id === item.id;
@@ -123,9 +148,13 @@ const RotatingComboPickerModal = ({ combo, todayItems, onConfirm, onClose }) => 
 							</div>
 						))
 					) : (
-						<div className="text-center py-8">
-							<p className="text-gray-500 italic">
-								No items from today's menu are available for this combo.
+						<div className="text-center py-10 space-y-3 px-4">
+							<p className="font-semibold text-base-content">
+								No daily specials available for this combo
+							</p>
+							<p className="text-sm text-gray-500 max-w-xs mx-auto">
+								This combo needs items from today's rotating menu. Make sure a
+								weekly menu is published for today.
 							</p>
 						</div>
 					)}
@@ -136,12 +165,14 @@ const RotatingComboPickerModal = ({ combo, todayItems, onConfirm, onClose }) => 
 					<button className="btn btn-ghost" onClick={onClose}>
 						Cancel
 					</button>
-					<button
-						className="btn btn-primary"
-						disabled={!isReady || activeSlots.length === 0}
-						onClick={handleConfirm}>
-						Add to Order ฿{combo.price}
-					</button>
+					{slotsWithItems.length > 0 && (
+						<button
+							className="btn btn-primary"
+							disabled={!isReady}
+							onClick={handleConfirm}>
+							Add to Order ฿{combo.price}
+						</button>
+					)}
 				</div>
 			</div>
 			<div className="modal-backdrop bg-black/50" onClick={onClose} />
