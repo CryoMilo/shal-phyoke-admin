@@ -10,6 +10,10 @@ import {
 	Banknote,
 } from "lucide-react";
 import { showToast } from "../../utils/toastUtils";
+import {
+	getBangkokISOString,
+	toBangkokDateString,
+} from "../../utils/dateUtils";
 
 const ActiveOrdersTab = () => {
 	const [activeOrders, setActiveOrders] = useState([]);
@@ -186,13 +190,12 @@ const TableBillsModal = ({ table, onClose, onUpdate }) => {
 	const [processingOrders, setProcessingOrders] = useState(new Set());
 
 	const handleCompleteOrder = async (orderId) => {
-		// Prevent multiple clicks
 		if (processingOrders.has(orderId)) return;
 
 		setProcessingOrders((prev) => new Set(prev).add(orderId));
 
 		try {
-			// First, get the order details with menu items
+			// Fetch order details
 			const { data: order, error: fetchError } = await supabase
 				.from("orders")
 				.select("*")
@@ -201,37 +204,40 @@ const TableBillsModal = ({ table, onClose, onUpdate }) => {
 
 			if (fetchError) throw fetchError;
 
-			// Get all menu items to get their categories
-			const menuItemIds = order.order_items.map((item) => item.id);
-			const { data: menuItems, error: menuError } = await supabase
-				.from("menu_items")
-				.select("id, category")
-				.in("id", menuItemIds);
+			// Guard: skip sales insert if already recorded for this order
+			const { data: existingSales, error: existingError } = await supabase
+				.from("monthly_sales")
+				.select("id")
+				.eq("order_id", orderId)
+				.limit(1);
 
-			if (menuError) throw menuError;
+			if (existingError) throw existingError;
 
-			// Create a map of menu item categories
-			const categoryMap = {};
-			menuItems.forEach((item) => {
-				categoryMap[item.id] = item.category;
-			});
+			if (!existingSales || existingSales.length === 0) {
+				// Fetch menu item categories
+				const menuItemIds = order.order_items.map((item) => item.id);
+				const { data: menuItems, error: menuError } = await supabase
+					.from("menu_items")
+					.select("id, category")
+					.in("id", menuItemIds);
 
-			// Prepare sales records for each menu item
-			const salesRecords = order.order_items.map((item) => {
-				// Get the category and ensure it's a valid enum value
-				const category = categoryMap[item.id];
+				if (menuError) throw menuError;
 
-				// If the category isn't a valid enum value, you might need to map it
-				// Check what values are in your menu_category enum
-				const validCategory = category; // Ensure this matches one of your enum values
+				const categoryMap = {};
+				menuItems.forEach((item) => {
+					categoryMap[item.id] = item.category;
+				});
 
-				return {
-					sale_date: new Date().toISOString().split("T")[0],
-					sale_timestamp: new Date().toISOString(),
+				const bangkokDate = toBangkokDateString();
+				const bangkokISO = getBangkokISOString();
+
+				const salesRecords = order.order_items.map((item) => ({
+					sale_date: bangkokDate,
+					sale_timestamp: bangkokISO,
 					menu_item_id: item.id,
 					menu_item_name_burmese: item.name_burmese,
 					menu_item_name_english: item.name_english || null,
-					menu_item_category: validCategory, // This must match the enum type
+					menu_item_category: categoryMap[item.id] || null,
 					menu_item_price: item.price,
 					quantity_sold: item.quantity,
 					total_revenue: (item.final_price || item.price) * item.quantity,
@@ -240,15 +246,14 @@ const TableBillsModal = ({ table, onClose, onUpdate }) => {
 					order_type: order.order_type,
 					payment_method: order.payment_method,
 					payment_status: order.payment_status,
-				};
-			});
+				}));
 
-			// Insert sales records
-			const { error: salesError } = await supabase
-				.from("monthly_sales")
-				.insert(salesRecords);
+				const { error: salesError } = await supabase
+					.from("monthly_sales")
+					.insert(salesRecords);
 
-			if (salesError) throw salesError;
+				if (salesError) throw salesError;
+			}
 
 			// Update order status to completed
 			const { error: updateError } = await supabase
@@ -262,18 +267,9 @@ const TableBillsModal = ({ table, onClose, onUpdate }) => {
 			onUpdate();
 		} catch (error) {
 			console.error("Error completing order:", error);
-
-			// Handle specific error types
-			if (error.code === "42804") {
-				showToast.error(
-					"Category type mismatch. Please check menu categories."
-				);
-				console.error("Category mapping issue:", error);
-			} else {
-				showToast.error(
-					"Failed to complete order: " + (error.message || "Unknown error")
-				);
-			}
+			showToast.error(
+				"Failed to complete order: " + (error.message || "Unknown error")
+			);
 		} finally {
 			setProcessingOrders((prev) => {
 				const newSet = new Set(prev);

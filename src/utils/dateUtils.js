@@ -40,3 +40,20 @@ export const formatDisplayDate = (date) => {
 		day: "numeric",
 	}).format(new Date(date));
 };
+
+/**
+ * Returns a full ISO string anchored to Bangkok time (UTC+7).
+ * Use this when inserting timestamps that must reflect Bangkok local time.
+ */
+export const getBangkokISOString = (date = new Date()) => {
+	const dateStr = toBangkokDateString(date); // reuse existing util
+	const timeStr = new Intl.DateTimeFormat("en-GB", {
+		timeZone: "Asia/Bangkok",
+		hour: "2-digit",
+		minute: "2-digit",
+		second: "2-digit",
+		hour12: false,
+	}).format(new Date(date));
+
+	return `${dateStr}T${timeStr}+07:00`;
+};
