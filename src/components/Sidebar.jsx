@@ -15,6 +15,7 @@ import {
 	TrendingDown,
 	Box,
 	ShoppingCart,
+	Layers2,
 	Settings2,
 	LogOut,
 	User,
@@ -52,6 +53,11 @@ const Sidebar = ({ children }) => {
 			name: "Orders",
 			path: "/orders",
 			icon: ShoppingBasket,
+		},
+		{
+			name: "Combo Manager",
+			path: "/combo-manager",
+			icon: Layers2,
 		},
 		{
 			type: "divider",

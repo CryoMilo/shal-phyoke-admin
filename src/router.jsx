@@ -19,6 +19,7 @@ import DailyExpenses from "./pages/DailyExpenses";
 import MonthlyOverheads from "./pages/MonthlyOverheads";
 import Procurement from "./pages/Procurement";
 import InventoryItems from "./pages/InventoryItems";
+import ComboManager from "./pages/ComboManager";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 const rootRoute = createRootRoute({
@@ -160,6 +161,16 @@ const inventoryItemsRoute = createRoute({
 	),
 });
 
+const comboManagerRoute = createRoute({
+	path: "/combo-manager",
+	getParentRoute: () => rootRoute,
+	component: () => (
+		<ProtectedRoute>
+			<ComboManager />
+		</ProtectedRoute>
+	),
+});
+
 const routeTree = rootRoute.addChildren([
 	loginRoute,
 	rootIndexRoute,
@@ -168,6 +179,7 @@ const routeTree = rootRoute.addChildren([
 	weeklyMenuRoute,
 	menuStatusRoute,
 	regularMenuRoute,
+	comboManagerRoute,
 	ordersRoute.addChildren([ordersSettingsRoute]),
 	dailyCashRoute,
 	dailyExpensesRoute,

@@ -25,7 +25,7 @@ const useOrderStore = create(
 			setDiscountAmount: (amount) => set({ discountAmount: amount }),
 			setNotes: (notes) => set({ notes }),
 
-			addToCart: (menuItem) => {
+			addToCart: (menuItem, initialNote = null, initialExtraPrice = 0) => {
 				const { cart, itemNotes } = get();
 				
 				// Find if there's an entry with the same menu ID AND NO NOTES yet
@@ -42,7 +42,20 @@ const useOrderStore = create(
 					set({ cart: newCart });
 				} else {
 					const cart_id = `cart_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-					set({ cart: [...cart, { ...menuItem, quantity: 1, cart_id }] });
+					
+					const newItemNotes = initialNote
+						? { ...itemNotes, [cart_id]: initialNote }
+						: itemNotes
+
+					const newItemExtraPrices = initialExtraPrice
+						? { ...get().itemExtraPrices, [cart_id]: initialExtraPrice }
+						: get().itemExtraPrices
+
+					set({
+						cart: [...cart, { ...menuItem, quantity: 1, cart_id }],
+						itemNotes: newItemNotes,
+						itemExtraPrices: newItemExtraPrices
+					})
 				}
 			},
 

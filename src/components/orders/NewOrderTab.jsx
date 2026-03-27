@@ -1,8 +1,10 @@
 // components/NewOrderTab.jsx
 import React, { useState, useEffect } from "react";
 import { supabase } from "../../services/supabase";
-import { Split } from "lucide-react";
+import { Split, Info } from "lucide-react";
 import ItemNoteModal from "./ItemNoteModal";
+import useComboStore from "../../stores/comboStore";
+import RotatingComboPickerModal from "./RotatingComboPickerModal";
 
 const getTodayWeekday = () => {
 	const d = new Date();
@@ -50,6 +52,10 @@ const NewOrderTab = ({
 	const [showNoteModal, setShowNoteModal] = useState(false);
 	const [activeItemForNote, setActiveItemForNote] = useState(null);
 
+	// Combo Store
+	const { regularCombos, rotatingTemplates, fetchAllCombos } = useComboStore();
+	const [activeRotatingCombo, setActiveRotatingCombo] = useState(null);
+
 	const fetchMenuItems = async () => {
 		try {
 			const { data, error } = await supabase
@@ -79,7 +85,7 @@ const NewOrderTab = ({
 				.single();
 
 			if (menuError || !weeklyMenu) {
-				if (menuError.code !== "PGRST116") {
+				if (menuError && menuError.code !== "PGRST116") {
 					// PGRST116: no rows found, which is fine
 					console.error("Error fetching weekly menu:", menuError);
 				}
@@ -98,7 +104,8 @@ const NewOrderTab = ({
             name_thai,
             price,
             category,
-            image_url
+            image_url,
+            is_active
           )
         `
 				)
@@ -111,6 +118,7 @@ const NewOrderTab = ({
 			const specialItems = items
 				.map((item) => item.menu_items)
 				.filter(Boolean)
+				.filter(item => item.is_active)
 				.map(item => ({
 					...item,
 					available_extras: item.available_extras || [] // Ensure it exists for the modal
@@ -124,6 +132,7 @@ const NewOrderTab = ({
 	useEffect(() => {
 		fetchMenuItems();
 		fetchTodaysSpecialItems();
+		fetchAllCombos();
 	}, []);
 
 	// Dynamically get categories from the actual data
@@ -134,19 +143,56 @@ const NewOrderTab = ({
 
 		const allCategories = [];
 
+		const hasAnyCombos = 
+			regularCombos.some(c => c.is_active) || 
+			rotatingTemplates.some(t => t.is_active)
+		
+		if (hasAnyCombos) {
+			allCategories.push("Combos")
+		}
+
 		if (todaysSpecialItems.length > 0) {
 			allCategories.push("Today's Special");
 		}
 
 		return [...allCategories, ...regularCategories];
-	}, [menuItems, todaysSpecialItems]);
+	}, [menuItems, todaysSpecialItems, regularCombos, rotatingTemplates]);
 
 	const filteredItems = React.useMemo(() => {
+		if (activeCategory === "Combos") {
+			const activeRegular = regularCombos
+				.filter((c) => c.is_active)
+				.map((c) => ({
+					...c,
+					isRegularCombo: true,
+					is_regular: true,
+					image_url: null,
+					category: "Combo",
+				}));
+
+			const activeRotating = rotatingTemplates
+				.filter((t) => t.is_active)
+				.map((t) => ({
+					...t,
+					isRotatingCombo: true,
+					is_regular: false,
+					image_url: null,
+					category: "Combo",
+				}));
+
+			return [...activeRegular, ...activeRotating];
+		}
 		if (activeCategory === "Today's Special") {
 			return todaysSpecialItems;
 		}
 		return menuItems.filter((item) => item.category === activeCategory);
-	}, [menuItems, todaysSpecialItems, activeCategory]);
+	}, [
+		menuItems,
+		todaysSpecialItems,
+		activeCategory,
+		regularCombos,
+		rotatingTemplates,
+	]);
 
 	// Set default category to the first available one
 	React.useEffect(() => {
@@ -160,6 +206,7 @@ const NewOrderTab = ({
 		// IMPORTANT: Using cart_id now for unique notes
 		setActiveItemForNote({
 			...item,
+			is_regular: item.is_regular ?? false,
 			note: itemNotes[item.cart_id] || "",
 		});
 		setShowNoteModal(true);
@@ -260,7 +307,7 @@ const NewOrderTab = ({
 					{categories.map((category) => (
 						<button
 							key={category}
-							className={`btn btn-sm ${
+							className={`btn btn-sm whitespace-nowrap ${
 								activeCategory === category ? "btn-primary" : "btn-outline"
 							}`}
 							onClick={() => setActiveCategory(category)}>
@@ -275,8 +322,27 @@ const NewOrderTab = ({
 						filteredItems.map((item) => (
 							<div
 								key={item.id}
-								className="bg-base-100 border border-base-300 rounded-lg p-3 cursor-pointer hover:shadow-md transition-shadow"
-								onClick={() => addToCart(item)}>
+								className={`bg-base-100 border rounded-lg p-3 cursor-pointer hover:shadow-md transition-shadow relative overflow-hidden ${
+									item.isRotatingCombo || item.isRegularCombo
+										? "border-primary/30 ring-1 ring-primary/10"
+										: "border-base-300"
+								}`}
+								onClick={() => {
+									if (item.isRotatingCombo) {
+										setActiveRotatingCombo(item);
+										return;
+									}
+									if (item.isRegularCombo) {
+										addToCart(item, item.note_summary || null, 0);
+										return;
+									}
+									addToCart(item);
+								}}>
+								{(item.isRotatingCombo || item.isRegularCombo) && (
+									<div className="absolute top-0 right-0 bg-primary text-primary-content text-[8px] font-bold px-1.5 py-0.5 rounded-bl-lg uppercase tracking-tighter">
+										Combo
+									</div>
+								)}
 								{item.image_url && (
 									<img
 										src={item.image_url}
@@ -284,13 +350,27 @@ const NewOrderTab = ({
 										className="w-full h-20 object-cover rounded mb-2"
 									/>
 								)}
-								<h3 className="font-semibold text-sm">{item.name_burmese}</h3>
+								<h3 className="font-semibold text-sm line-clamp-2">
+									{item.name_burmese}
+								</h3>
 								{item.name_english && (
-									<p className="text-xs text-base-content/70">
+									<p className="text-xs text-base-content/70 truncate">
 										{item.name_english}
 									</p>
 								)}
-								<p className="text-primary font-bold mt-1">฿{item.price}</p>
+								<div className="mt-1 flex flex-col">
+									<p className="text-primary font-bold">฿{item.price}</p>
+									{item.isRotatingCombo && (
+										<div className="badge badge-secondary text-[10px] h-4 mt-1">
+											Daily
+										</div>
+									)}
+									{item.isRegularCombo && (
+										<div className="badge badge-primary text-[10px] h-4 mt-1">
+											Fixed
+										</div>
+									)}
+								</div>
 							</div>
 						))
 					) : (
@@ -310,11 +390,17 @@ const NewOrderTab = ({
 					{cart.map((item) => (
 						<div
 							key={item.cart_id}
-							className="bg-base-100 p-2 rounded-lg border border-base-300 shadow-sm">
+							className={`bg-base-100 p-2 rounded-lg border shadow-sm ${
+								item.isRotatingCombo || item.isRegularCombo
+									? "border-primary/20 bg-primary/5"
+									: "border-base-300"
+							}`}>
 							<div className="flex justify-between items-start mb-1">
 								<div className="flex-1">
-									<div className="font-medium text-sm">{item.name_burmese}</div>
-									<div className="text-[10px] text-base-content/70">
+									<div className="font-medium text-sm leading-tight">
+										{item.name_burmese}
+									</div>
+									<div className="text-[10px] text-base-content/70 mt-1">
 										฿{item.price} × {item.quantity} = ฿
 										{item.price * item.quantity}
 									</div>
@@ -473,6 +559,19 @@ const NewOrderTab = ({
 				onClose={() => setShowNoteModal(false)}
 				onSave={handleSaveNote}
 			/>
+
+			{/* Rotating Combo Picker Modal */}
+			{activeRotatingCombo && (
+				<RotatingComboPickerModal
+					combo={activeRotatingCombo}
+					todayItems={todaysSpecialItems}
+					onConfirm={(cartItem, noteString) => {
+						addToCart(cartItem, noteString || null, 0);
+						setActiveRotatingCombo(null);
+					}}
+					onClose={() => setActiveRotatingCombo(null)}
+				/>
+			)}
 		</div>
 	);
 };

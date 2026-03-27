@@ -51,7 +51,7 @@ const InventoryCard = ({ item, onAddToMarketList, onUpdateStock, onClick }) => {
 				</div>
 
 				{/* Item Details */}
-				<div className="flex-1 min-w-0" onClick={onClick}>
+				<div className="flex-1 min-w-0">
 					<div className="flex flex-wrap items-center gap-x-2 gap-y-1">
 						<span className="text-base truncate">{item.name}</span>
 						<span className={`badge ${status.color} badge-xs`}>
@@ -89,13 +89,12 @@ const InventoryCard = ({ item, onAddToMarketList, onUpdateStock, onClick }) => {
 
 						<div className="flex-1 text-center min-w-[3rem]">
 							<input
-								type="number"
+								type="text"
+								inputMode="decimal"
 								value={item.quantity || 0}
 								onChange={(e) => handleStockUpdate(e.target.value)}
 								onClick={(e) => e.stopPropagation()}
 								className="w-full text-center bg-transparent border-none font-black text-sm p-0 focus:outline-none"
-								step="0.5"
-								min="0"
 							/>
 						</div>
 

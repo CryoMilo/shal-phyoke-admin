@@ -208,7 +208,7 @@ const AllMenuPage = () => {
 				message="Are you sure you want to delete this menu item? This action cannot be undone."
 			/>
 
-			{/* Details Modal - You'll need to create this component */}
+			{/* Details Modal */}
 			{showDetailsModal && selectedMenu && (
 				<div className="modal modal-open">
 					<div className="modal-box">
