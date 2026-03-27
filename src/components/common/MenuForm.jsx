@@ -26,6 +26,7 @@ const MenuForm = ({
 		defaultValues: editingMenu
 			? {
 					...editingMenu,
+					is_vegan: editingMenu?.is_vegan ?? false,
 					sensitive_ingredients: Array.isArray(
 						editingMenu.sensitive_ingredients
 					)
@@ -44,6 +45,7 @@ const MenuForm = ({
 					sensitive_ingredients: "",
 					is_active: true,
 					is_regular: isRegularOnly ? true : false,
+					is_vegan: false,
 			  },
 	});
 
@@ -53,6 +55,7 @@ const MenuForm = ({
 		if (editingMenu) {
 			reset({
 				...editingMenu,
+				is_vegan: editingMenu?.is_vegan ?? false,
 				sensitive_ingredients: Array.isArray(editingMenu.sensitive_ingredients)
 					? editingMenu.sensitive_ingredients.join(", ")
 					: editingMenu.sensitive_ingredients || "",
@@ -70,6 +73,7 @@ const MenuForm = ({
 				sensitive_ingredients: "",
 				is_active: true,
 				is_regular: isRegularOnly ? true : false,
+				is_vegan: false,
 			});
 		}
 	}, [editingMenu, reset, isRegularOnly]);
@@ -294,6 +298,23 @@ const MenuForm = ({
 						/>
 						<div className="flex flex-col">
 							<span className="label-text font-medium">Active Menu</span>
+						</div>
+					</label>
+				</div>
+
+				<div className="form-control">
+					<label className="label cursor-pointer justify-start gap-3 p-0">
+						<input
+							{...register("is_vegan")}
+							type="checkbox"
+							className="toggle toggle-success"
+							disabled={loading}
+						/>
+						<div className="flex flex-col">
+							<span className="label-text font-medium">Vegan</span>
+							<span className="label-text-alt text-gray-500">
+								Mark this item as vegan-friendly
+							</span>
 						</div>
 					</label>
 				</div>

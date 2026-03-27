@@ -64,11 +64,26 @@ export const Orders = () => {
 				delivery_address:
 					orderType === "delivery" ? customerInfo.address : null,
 				table_number: orderType === "dine_in" ? tableNumber : null,
-				order_items: cart.map((item) => ({
-					...item,
-					extra_price: itemExtraPrices[item.cart_id] || 0,
-					final_price: item.price + (itemExtraPrices[item.cart_id] || 0),
-				})),
+				order_items: cart.map((item) => {
+					// Strip UI-only flags and combo store data
+					// before persisting to the database
+					const {
+						isFixedCombo,
+						isRotatingCombo,
+						isComboTemplate,
+						combo_members,
+						combo_slots,
+						combo_note_summary,
+						available_extras,
+						...cleanItem
+					} = item;
+
+					return {
+						...cleanItem,
+						extra_price: itemExtraPrices[item.cart_id] || 0,
+						final_price: item.price + (itemExtraPrices[item.cart_id] || 0),
+					};
+				}),
 				subtotal,
 				discount_amount: discountAmount,
 				total_amount: totalAmount,

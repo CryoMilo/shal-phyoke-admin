@@ -182,20 +182,141 @@ const ActiveOrdersTab = () => {
 };
 
 const TableBillsModal = ({ table, onClose, onUpdate }) => {
-	const [confirmAction, setConfirmAction] = useState(null); // { orderId, type: 'cancel' | 'refund' }
+	const [confirmAction, setConfirmAction] = useState(null);
+	const [processingOrders, setProcessingOrders] = useState(new Set());
+
+	const handleCompleteOrder = async (orderId) => {
+		// Prevent multiple clicks
+		if (processingOrders.has(orderId)) return;
+
+		setProcessingOrders((prev) => new Set(prev).add(orderId));
+
+		try {
+			// First, get the order details with menu items
+			const { data: order, error: fetchError } = await supabase
+				.from("orders")
+				.select("*")
+				.eq("id", orderId)
+				.single();
+
+			if (fetchError) throw fetchError;
+
+			// Get all menu items to get their categories
+			const menuItemIds = order.order_items.map((item) => item.id);
+			const { data: menuItems, error: menuError } = await supabase
+				.from("menu_items")
+				.select("id, category")
+				.in("id", menuItemIds);
+
+			if (menuError) throw menuError;
+
+			// Create a map of menu item categories
+			const categoryMap = {};
+			menuItems.forEach((item) => {
+				categoryMap[item.id] = item.category;
+			});
+
+			// Prepare sales records for each menu item
+			const salesRecords = order.order_items.map((item) => {
+				// Get the category and ensure it's a valid enum value
+				const category = categoryMap[item.id];
+
+				// If the category isn't a valid enum value, you might need to map it
+				// Check what values are in your menu_category enum
+				const validCategory = category; // Ensure this matches one of your enum values
+
+				return {
+					sale_date: new Date().toISOString().split("T")[0],
+					sale_timestamp: new Date().toISOString(),
+					menu_item_id: item.id,
+					menu_item_name_burmese: item.name_burmese,
+					menu_item_name_english: item.name_english || null,
+					menu_item_category: validCategory, // This must match the enum type
+					menu_item_price: item.price,
+					quantity_sold: item.quantity,
+					total_revenue: (item.final_price || item.price) * item.quantity,
+					order_id: order.id,
+					order_number: order.order_number,
+					order_type: order.order_type,
+					payment_method: order.payment_method,
+					payment_status: order.payment_status,
+				};
+			});
+
+			// Insert sales records
+			const { error: salesError } = await supabase
+				.from("monthly_sales")
+				.insert(salesRecords);
+
+			if (salesError) throw salesError;
+
+			// Update order status to completed
+			const { error: updateError } = await supabase
+				.from("orders")
+				.update({ pos_order_status: "completed" })
+				.eq("id", orderId);
+
+			if (updateError) throw updateError;
+
+			showToast.success("Order completed and recorded successfully");
+			onUpdate();
+		} catch (error) {
+			console.error("Error completing order:", error);
+
+			// Handle specific error types
+			if (error.code === "42804") {
+				showToast.error(
+					"Category type mismatch. Please check menu categories."
+				);
+				console.error("Category mapping issue:", error);
+			} else {
+				showToast.error(
+					"Failed to complete order: " + (error.message || "Unknown error")
+				);
+			}
+		} finally {
+			setProcessingOrders((prev) => {
+				const newSet = new Set(prev);
+				newSet.delete(orderId);
+				return newSet;
+			});
+		}
+	};
 
 	const handleAction = async (orderId, updates) => {
 		try {
-			const { error } = await supabase
-				.from("orders")
-				.update(updates)
-				.eq("id", orderId);
-			if (error) throw error;
-			showToast.success("Updated successfully");
-			onUpdate();
+			// If this is a payment update, just update the order
+			if (updates.payment_status === "paid") {
+				const { error } = await supabase
+					.from("orders")
+					.update(updates)
+					.eq("id", orderId);
+
+				if (error) throw error;
+				showToast.success("Payment recorded successfully");
+				onUpdate();
+			}
+			// If this is cancel/refund
+			else if (
+				updates.pos_order_status === "cancelled" ||
+				updates.pos_order_status === "refunded"
+			) {
+				const { error } = await supabase
+					.from("orders")
+					.update(updates)
+					.eq("id", orderId);
+
+				if (error) throw error;
+				showToast.success(
+					`Order ${
+						updates.pos_order_status === "cancelled" ? "cancelled" : "refunded"
+					} successfully`
+				);
+				onUpdate();
+			}
 		} catch (error) {
 			console.error("Error updating order:", error);
-			showToast.error("Update failed");
+			showToast.error("Update failed: " + (error.message || "Unknown error"));
 		}
 	};
 
@@ -310,12 +431,14 @@ const TableBillsModal = ({ table, onClose, onUpdate }) => {
 									) : (
 										<button
 											className="btn btn-sm btn-primary col-span-2 gap-2"
-											onClick={() =>
-												handleAction(order.id, {
-													pos_order_status: "completed",
-												})
-											}>
-											<CheckCircle2 className="w-4 h-4" /> Complete & Close Bill
+											onClick={() => handleCompleteOrder(order.id)}
+											disabled={processingOrders.has(order.id)}>
+											{processingOrders.has(order.id) ? (
+												<span className="loading loading-spinner loading-xs"></span>
+											) : (
+												<CheckCircle2 className="w-4 h-4" />
+											)}
+											Complete & Close Bill
 										</button>
 									)}
 
@@ -330,7 +453,8 @@ const TableBillsModal = ({ table, onClose, onUpdate }) => {
 													});
 													setConfirmAction(null);
 												}}>
-												Confirm {order.payment_status === "paid" ? "Refund" : "Cancel"}
+												Confirm{" "}
+												{order.payment_status === "paid" ? "Refund" : "Cancel"}
 											</button>
 											<button
 												className="btn btn-xs btn-ghost flex-1"
@@ -348,7 +472,9 @@ const TableBillsModal = ({ table, onClose, onUpdate }) => {
 													type: isPaid ? "refund" : "cancel",
 												});
 											}}>
-											{order.payment_status === "paid" ? "Refund Bill" : "Cancel Bill"}
+											{order.payment_status === "paid"
+												? "Refund Bill"
+												: "Cancel Bill"}
 										</button>
 									)}
 								</div>

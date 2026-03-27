@@ -129,6 +129,24 @@ const useMenuStore = create(
 				);
 			},
 
+			getActiveFixedCombos: () => {
+				return get().allMenuItems.filter(
+					(item) =>
+						item.is_combo === true &&
+						item.combo_type === "fixed" &&
+						item.is_active === true
+				);
+			},
+
+			getActiveRotatingCombos: () => {
+				return get().allMenuItems.filter(
+					(item) =>
+						item.is_combo === true &&
+						item.combo_type === "rotating" &&
+						item.is_active === true
+				);
+			},
+
 			getItemsByCategory: (category) => {
 				const state = get();
 				return state.allMenuItems.filter(
@@ -336,7 +354,7 @@ const useMenuStore = create(
 						.from("menu_items")
 						.select("*")
 						.eq("id", id)
-						.single();
+						.maybeSingle();
 
 					if (error) throw error;
 					return { data, error: null };
@@ -353,11 +371,13 @@ const useMenuStore = create(
 						.from("menu_items")
 						.insert([menuData])
 						.select()
-						.single();
+						.maybeSingle();
 
 					if (error) throw error;
 
-					get().addMenuItem(data);
+					if (data) {
+						get().addMenuItem(data);
+					}
 					showToast.success("Menu item created successfully");
 					return { data, error: null };
 				} catch (error) {
@@ -369,18 +389,50 @@ const useMenuStore = create(
 
 			updateMenuItemById: async (id, menuData) => {
 				try {
+					// First, check if the item exists
+					const { data: existingItem, error: checkError } = await supabase
+						.from("menu_items")
+						.select("id")
+						.eq("id", id)
+						.maybeSingle();
+
+					if (checkError) throw checkError;
+
+					if (!existingItem) {
+						showToast.error("Menu item not found");
+						return { data: null, error: new Error("Menu item not found") };
+					}
+
+					// Perform the update
 					const { data, error } = await supabase
 						.from("menu_items")
 						.update(menuData)
 						.eq("id", id)
-						.select()
-						.single();
+						.select(); // Remove .maybeSingle() to get array
 
 					if (error) throw error;
 
-					get().updateMenuItem(id, data);
+					// Check if we got data back
+					if (!data || data.length === 0) {
+						// If no data returned, fetch the updated item separately
+						const { data: refreshedData, error: refreshError } = await supabase
+							.from("menu_items")
+							.select("*")
+							.eq("id", id)
+							.single();
+
+						if (refreshError) throw refreshError;
+
+						get().updateMenuItem(id, refreshedData);
+						showToast.success("Menu item updated successfully");
+						return { data: refreshedData, error: null };
+					}
+
+					// Use the first item from the returned array
+					const updatedItem = data[0];
+					get().updateMenuItem(id, updatedItem);
 					showToast.success("Menu item updated successfully");
-					return { data, error: null };
+					return { data: updatedItem, error: null };
 				} catch (error) {
 					console.error("Error updating menu:", error);
 					showToast.error("Failed to update menu item");
@@ -419,7 +471,9 @@ const useMenuStore = create(
 					if (error) throw error;
 
 					get().updateMenuItem(id, { is_active: newStatus });
-					showToast.success(`Menu item is now ${newStatus ? "active" : "inactive"}`);
+					showToast.success(
+						`Menu item is now ${newStatus ? "active" : "inactive"}`
+					);
 					return { success: true };
 				} catch (error) {
 					console.error("Error toggling menu status:", error);
@@ -489,11 +543,11 @@ const useMenuStore = create(
 						.order("sort_order");
 
 					if (error) throw error;
-					
+
 					// Filter out inactive items and flatten
 					const filteredData = (data || [])
-						.filter(extra => extra.extra_item && extra.extra_item.is_active)
-						.map(extra => ({
+						.filter((extra) => extra.extra_item && extra.extra_item.is_active)
+						.map((extra) => ({
 							...extra,
 							name_burmese: extra.extra_item.name_burmese,
 							name_english: extra.extra_item.name_english,

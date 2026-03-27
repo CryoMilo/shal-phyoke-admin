@@ -52,6 +52,15 @@ const MenuDetailsModal = ({ selectedMenu, setShowDetailsModal }) => {
 							<strong>Taste Profile:</strong> {selectedMenu.taste_profile}
 						</div>
 					)}
+					<div>
+						<strong>Vegan:</strong>
+						<span
+							className={`badge badge-sm ml-2 ${
+								selectedMenu.is_vegan ? "badge-success" : "badge-ghost"
+							}`}>
+							{selectedMenu.is_vegan ? "🌱 Yes" : "No"}
+						</span>
+					</div>
 					{selectedMenu.description && (
 						<div>
 							<strong>Description:</strong> {selectedMenu.description}

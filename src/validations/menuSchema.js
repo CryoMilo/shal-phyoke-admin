@@ -1,4 +1,4 @@
-// schemas/creatorData.js
+// src/validations/menuSchema.js
 import { z } from "zod";
 
 export const menuSchema = z.object({
@@ -21,13 +21,21 @@ export const menuSchema = z.object({
 		"Extra",
 		"Combo",
 		"Other",
+		"Comfort",
 	]),
 	taste_profile: z.string().optional(),
 	description: z.string().optional(),
 	image_url: z.string().optional(),
 	sensitive_ingredients: z.string().optional(),
 	is_active: z.boolean().default(true),
-	is_regular: z.boolean().default(false), // Make sure this is included
+	is_regular: z.boolean().default(false),
+	is_vegan: z.boolean().default(false),
+	// Combo fields (optional/nullable since most items are not combos)
+	is_combo: z.boolean().default(false),
+	combo_type: z.enum(["fixed", "rotating"]).nullable().optional(),
+	combo_members: z.any().nullable().optional(),
+	combo_slots: z.any().nullable().optional(),
+	combo_note_summary: z.string().nullable().optional(),
 });
 
 // For regular menu page

@@ -34,21 +34,30 @@ const MenuTable = ({
 							</td>
 							<td>฿{menu.price}</td>
 							<td>
-								<button
-									onClick={() => toggleMenuStatus(menu.id)}
-									className="btn btn-ghost btn-xs"
-									title={
-										menu.is_active ? "Click to deactivate" : "Click to activate"
-									}>
-									{menu.is_active ? (
-										<ToggleRight className="w-5 h-5 text-success" />
-									) : (
-										<ToggleLeft className="w-5 h-5 text-error" />
+								<div className="flex items-center">
+									<button
+										onClick={() => toggleMenuStatus(menu.id)}
+										className="btn btn-ghost btn-xs"
+										title={
+											menu.is_active
+												? "Click to deactivate"
+												: "Click to activate"
+										}>
+										{menu.is_active ? (
+											<ToggleRight className="w-5 h-5 text-success" />
+										) : (
+											<ToggleLeft className="w-5 h-5 text-error" />
+										)}
+										<span className="ml-1">
+											{menu.is_active ? "Active" : "Inactive"}
+										</span>
+									</button>
+									{menu.is_vegan && (
+										<span className="badge badge-success badge-xs ml-2">
+											🌱
+										</span>
 									)}
-									<span className="ml-1">
-										{menu.is_active ? "Active" : "Inactive"}
-									</span>
-								</button>
+								</div>
 							</td>
 							<td>
 								<div className="flex gap-2">

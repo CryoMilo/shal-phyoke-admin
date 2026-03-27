@@ -6,7 +6,7 @@ const RotatingComboPickerModal = ({ combo, todayItems, onConfirm, onClose }) => 
 
 	// Filter slots that actually have items available today
 	const activeSlots = useMemo(() => {
-		return combo.slots
+		return (combo.combo_slots || [])
 			.map((slot, index) => {
 				const availableItems = todayItems.filter(
 					(item) => item.category === slot.category
@@ -14,9 +14,9 @@ const RotatingComboPickerModal = ({ combo, todayItems, onConfirm, onClose }) => 
 				return { ...slot, index, availableItems };
 			})
 			.filter((slot) => slot.availableItems.length > 0);
-	}, [combo.slots, todayItems]);
+	}, [combo.combo_slots, todayItems]);
 
-	const slotsWithItems = combo.slots.filter((slot) =>
+	const slotsWithItems = (combo.combo_slots || []).filter((slot) =>
 		todayItems.some((item) => item.category === slot.category)
 	);
 

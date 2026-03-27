@@ -77,9 +77,13 @@ const RegularMenuCard = ({
 				)}
 
 				{/* Price */}
-				<div className="text-xl font-bold text-primary mt-2">
-					฿{menu.price}
-				</div>
+				<div className="text-xl font-bold text-primary mt-2">฿{menu.price}</div>
+
+				{menu.is_vegan && (
+					<span className="badge badge-success badge-sm gap-1 mt-1">
+						🌱 Vegan
+					</span>
+				)}
 
 				{/* Taste Profile */}
 				{menu.taste_profile && (

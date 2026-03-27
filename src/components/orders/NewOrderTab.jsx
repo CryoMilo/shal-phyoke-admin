@@ -1,9 +1,9 @@
 // components/NewOrderTab.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { supabase } from "../../services/supabase";
 import { Split, Info } from "lucide-react";
 import ItemNoteModal from "./ItemNoteModal";
-import useComboStore from "../../stores/comboStore";
+import useMenuStore from "../../stores/menuStore";
 import RotatingComboPickerModal from "./RotatingComboPickerModal";
 
 const getTodayWeekday = () => {
@@ -44,7 +44,13 @@ const NewOrderTab = ({
 	clearCart,
 	processOrder,
 }) => {
-	const [menuItems, setMenuItems] = useState([]);
+	const {
+		allMenuItems,
+		fetchAllMenuItems,
+		getActiveFixedCombos,
+		getActiveRotatingCombos,
+	} = useMenuStore();
+
 	const [todaysSpecialItems, setTodaysSpecialItems] = useState([]);
 	const [activeCategory, setActiveCategory] = useState("Today's Special");
 
@@ -52,25 +58,19 @@ const NewOrderTab = ({
 	const [showNoteModal, setShowNoteModal] = useState(false);
 	const [activeItemForNote, setActiveItemForNote] = useState(null);
 
-	// Combo Store
-	const { regularCombos, rotatingTemplates, fetchAllCombos } = useComboStore();
 	const [activeRotatingCombo, setActiveRotatingCombo] = useState(null);
 
-	const fetchMenuItems = async () => {
-		try {
-			const { data, error } = await supabase
-				.from("menu_items_with_extras")
-				.select("*")
-				.eq("is_active", true)
-				.eq("is_regular", true) // Only fetch regular menu items
-				.order("category")
-				.order("name_burmese");
-			if (error) throw error;
-			setMenuItems(data || []);
-		} catch (error) {
-			console.error("Error fetching regular menu items:", error);
-		}
-	};
+	const fixedCombos = useMemo(() => getActiveFixedCombos(), [allMenuItems]);
+	const rotatingCombos = useMemo(
+		() => getActiveRotatingCombos(),
+		[allMenuItems]
+	);
+
+	const menuItems = useMemo(
+		() =>
+			allMenuItems.filter((i) => i.is_regular && i.is_active && !i.is_combo),
+		[allMenuItems]
+	);
 
 	const fetchTodaysSpecialItems = async () => {
 		const today = getTodayWeekday();
@@ -82,7 +82,7 @@ const NewOrderTab = ({
 				.eq("status", "Published")
 				.order("created_at", { ascending: false })
 				.limit(1)
-				.single();
+				.maybeSingle();
 
 			if (menuError || !weeklyMenu) {
 				if (menuError && menuError.code !== "PGRST116") {
@@ -130,9 +130,10 @@ const NewOrderTab = ({
 	};
 
 	useEffect(() => {
-		fetchMenuItems();
+		if (allMenuItems.length === 0) {
+			fetchAllMenuItems();
+		}
 		fetchTodaysSpecialItems();
-		fetchAllCombos();
 	}, []);
 
 	// Dynamically get categories from the actual data
@@ -143,12 +144,10 @@ const NewOrderTab = ({
 
 		const allCategories = [];
 
-		const hasAnyCombos = 
-			regularCombos.some(c => c.is_active) || 
-			rotatingTemplates.some(t => t.is_active)
-		
+		const hasAnyCombos = fixedCombos.length > 0 || rotatingCombos.length > 0;
+
 		if (hasAnyCombos) {
-			allCategories.push("Combos")
+			allCategories.push("Combos");
 		}
 
 		if (todaysSpecialItems.length > 0) {
@@ -156,31 +155,20 @@ const NewOrderTab = ({
 		}
 
 		return [...allCategories, ...regularCategories];
-	}, [menuItems, todaysSpecialItems, regularCombos, rotatingTemplates]);
+	}, [menuItems, todaysSpecialItems, fixedCombos, rotatingCombos]);
 
 	const filteredItems = React.useMemo(() => {
 		if (activeCategory === "Combos") {
-			const activeRegular = regularCombos
-				.filter((c) => c.is_active)
-				.map((c) => ({
+			return [
+				...fixedCombos.map((c) => ({
 					...c,
-					isRegularCombo: true,
-					is_regular: true,
-					image_url: null,
-					category: "Combo",
-				}));
-
-			const activeRotating = rotatingTemplates
-				.filter((t) => t.is_active)
-				.map((t) => ({
+					isFixedCombo: true,
+				})),
+				...rotatingCombos.map((t) => ({
 					...t,
 					isRotatingCombo: true,
-					is_regular: false,
-					image_url: null,
-					category: "Combo",
-				}));
-
-			return [...activeRegular, ...activeRotating];
+				})),
+			];
 		}
 		if (activeCategory === "Today's Special") {
 			return todaysSpecialItems;
@@ -190,8 +178,8 @@ const NewOrderTab = ({
 		menuItems,
 		todaysSpecialItems,
 		activeCategory,
-		regularCombos,
-		rotatingTemplates,
+		fixedCombos,
+		rotatingCombos,
 	]);
 
 	// Set default category to the first available one
@@ -323,22 +311,22 @@ const NewOrderTab = ({
 							<div
 								key={item.id}
 								className={`bg-base-100 border rounded-lg p-3 cursor-pointer hover:shadow-md transition-shadow relative overflow-hidden ${
-									item.isRotatingCombo || item.isRegularCombo
+									item.isRotatingCombo || item.isFixedCombo
 										? "border-primary/30 ring-1 ring-primary/10"
 										: "border-base-300"
 								}`}
 								onClick={() => {
+									if (item.isFixedCombo) {
+										addToCart(item, item.combo_note_summary || null, 0);
+										return;
+									}
 									if (item.isRotatingCombo) {
 										setActiveRotatingCombo(item);
 										return;
 									}
-									if (item.isRegularCombo) {
-										addToCart(item, item.note_summary || null, 0);
-										return;
-									}
 									addToCart(item);
 								}}>
-								{(item.isRotatingCombo || item.isRegularCombo) && (
+								{(item.isRotatingCombo || item.isFixedCombo) && (
 									<div className="absolute top-0 right-0 bg-primary text-primary-content text-[8px] font-bold px-1.5 py-0.5 rounded-bl-lg uppercase tracking-tighter">
 										Combo
 									</div>
@@ -360,15 +348,15 @@ const NewOrderTab = ({
 								)}
 								<div className="mt-1 flex flex-col">
 									<p className="text-primary font-bold">฿{item.price}</p>
-									{item.isRotatingCombo && (
-										<div className="badge badge-secondary text-[10px] h-4 mt-1">
-											Daily
-										</div>
+									{item.isFixedCombo && (
+										<span className="badge badge-primary badge-xs mt-1">
+											Fixed Set
+										</span>
 									)}
-									{item.isRegularCombo && (
-										<div className="badge badge-primary text-[10px] h-4 mt-1">
-											Fixed
-										</div>
+									{item.isRotatingCombo && (
+										<span className="badge badge-secondary badge-xs mt-1">
+											Daily Set
+										</span>
 									)}
 								</div>
 							</div>
@@ -391,7 +379,7 @@ const NewOrderTab = ({
 						<div
 							key={item.cart_id}
 							className={`bg-base-100 p-2 rounded-lg border shadow-sm ${
-								item.isRotatingCombo || item.isRegularCombo
+								item.isRotatingCombo || item.isFixedCombo
 									? "border-primary/20 bg-primary/5"
 									: "border-base-300"
 							}`}>
