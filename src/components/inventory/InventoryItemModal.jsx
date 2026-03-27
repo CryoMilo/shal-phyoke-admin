@@ -309,9 +309,8 @@ const InventoryItemModal = ({
 							</label>
 							<input
 								id="quantity"
-								type="number"
-								step="0.5"
-								min="0"
+								type="text"
+								inputMode="decimal"
 								{...register("quantity", validationRules.quantity)}
 								placeholder="0"
 								className={`input input-bordered w-full ${
@@ -336,9 +335,8 @@ const InventoryItemModal = ({
 							</label>
 							<input
 								id="threshold"
-								type="number"
-								step="0.5"
-								min="0"
+								type="text"
+								inputMode="decimal"
 								{...register("threshold", validationRules.threshold)}
 								placeholder="0"
 								className={`input input-bordered w-full ${
