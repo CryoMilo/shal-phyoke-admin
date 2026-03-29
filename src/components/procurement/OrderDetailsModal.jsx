@@ -5,12 +5,13 @@ import useProcurementStore from "../../stores/procurementStore";
 import { showToast } from "../../utils/toastUtils";
 
 const OrderDetailsModal = ({ isOpen, onClose, order, readOnly = false }) => {
+	const safeItems = order?.items ?? [];
 	const [receivedItems, setReceivedItems] = useState(
-		order.items?.reduce((acc, item) => {
+		safeItems.reduce((acc, item) => {
 			// For read-only mode, set based on actual received status
 			acc[item.id] = readOnly ? item.received : false;
 			return acc;
-		}, {}) || {}
+		}, {})
 	);
 	const [notes, setNotes] = useState("");
 	const [isSubmitting, setIsSubmitting] = useState(false);
@@ -29,6 +30,10 @@ const OrderDetailsModal = ({ isOpen, onClose, order, readOnly = false }) => {
 
 	const handleSubmit = async () => {
 		if (readOnly) return;
+		if (!order.items || order.items.length === 0) {
+			showToast.error("Order has no items to process");
+			return;
+		}
 
 		const received = order.items.filter((item) => receivedItems[item.id]);
 		const missed = order.items.filter((item) => !receivedItems[item.id]);
@@ -63,8 +68,7 @@ const OrderDetailsModal = ({ isOpen, onClose, order, readOnly = false }) => {
 		(Object.values(receivedItems).some((v) => v === true) ||
 			Object.values(receivedItems).some((v) => v === false));
 
-	const missedCount =
-		order.items?.filter((item) => !receivedItems[item.id]).length || 0;
+	const missedCount = safeItems.filter((item) => !receivedItems[item.id]).length;
 
 	return (
 		<div className="modal modal-open">
@@ -127,7 +131,7 @@ const OrderDetailsModal = ({ isOpen, onClose, order, readOnly = false }) => {
 				)}
 
 				<div className="space-y-2 max-h-60 overflow-y-auto mb-4">
-					{order.items?.map((item) => {
+					{safeItems.map((item) => {
 						const isReceived = readOnly
 							? item.received
 							: receivedItems[item.id];

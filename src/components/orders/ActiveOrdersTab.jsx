@@ -15,6 +15,9 @@ import {
 	toBangkokDateString,
 } from "../../utils/dateUtils";
 
+// Synchronous guard to prevent duplicate order completions across re-renders
+const inProgressOrders = new Set();
+
 const ActiveOrdersTab = () => {
 	const [activeOrders, setActiveOrders] = useState([]);
 	const [selectedTableId, setSelectedTableId] = useState(null);
@@ -190,12 +193,14 @@ const TableBillsModal = ({ table, onClose, onUpdate }) => {
 	const [processingOrders, setProcessingOrders] = useState(new Set());
 
 	const handleCompleteOrder = async (orderId) => {
-		if (processingOrders.has(orderId)) return;
+		// Synchronous check using module-level Set (not affected by React render cycle)
+		if (inProgressOrders.has(orderId)) return;
+		inProgressOrders.add(orderId);
 
+		// Also update UI state to show loading spinner
 		setProcessingOrders((prev) => new Set(prev).add(orderId));
 
 		try {
-			// Fetch order details
 			const { data: order, error: fetchError } = await supabase
 				.from("orders")
 				.select("*")
@@ -204,7 +209,6 @@ const TableBillsModal = ({ table, onClose, onUpdate }) => {
 
 			if (fetchError) throw fetchError;
 
-			// Guard: skip sales insert if already recorded for this order
 			const { data: existingSales, error: existingError } = await supabase
 				.from("monthly_sales")
 				.select("id")
@@ -214,7 +218,6 @@ const TableBillsModal = ({ table, onClose, onUpdate }) => {
 			if (existingError) throw existingError;
 
 			if (!existingSales || existingSales.length === 0) {
-				// Fetch menu item categories
 				const menuItemIds = order.order_items.map((item) => item.id);
 				const { data: menuItems, error: menuError } = await supabase
 					.from("menu_items")
@@ -255,7 +258,6 @@ const TableBillsModal = ({ table, onClose, onUpdate }) => {
 				if (salesError) throw salesError;
 			}
 
-			// Update order status to completed
 			const { error: updateError } = await supabase
 				.from("orders")
 				.update({ pos_order_status: "completed" })
@@ -271,6 +273,8 @@ const TableBillsModal = ({ table, onClose, onUpdate }) => {
 				"Failed to complete order: " + (error.message || "Unknown error")
 			);
 		} finally {
+			// Remove from both guards
+			inProgressOrders.delete(orderId);
 			setProcessingOrders((prev) => {
 				const newSet = new Set(prev);
 				newSet.delete(orderId);
