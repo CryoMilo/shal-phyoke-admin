@@ -5,7 +5,6 @@ import ActiveOrdersTab from "../components/orders/ActiveOrdersTab";
 import TableSelectionModal from "../components/orders/TableSelectionModal";
 import { supabase } from "../services/supabase";
 import OrderHistoryTab from "../components/orders/OrderHistoryTab";
-import { Link, useLocation, Outlet } from "@tanstack/react-router";
 import { showToast } from "../utils/toastUtils";
 import useQuickNoteStore from "../stores/quickNoteStore";
 import useOrderStore from "../stores/orderStore";
@@ -43,9 +42,6 @@ export const Orders = () => {
 	useEffect(() => {
 		fetchActiveNotes();
 	}, [fetchActiveNotes]);
-
-	const location = useLocation();
-	const isSettingsPath = location.pathname.endsWith("/settings");
 
 	const subtotal = getSubtotal();
 	const totalAmount = getTotalAmount();
@@ -111,82 +107,62 @@ export const Orders = () => {
 		<div className="p-4 bg-base-100 min-h-screen">
 			{/* Tabs Navigation */}
 			<div className="tabs tabs-boxed mb-3 bg-base-200 p-1 w-fit rounded-lg">
-				<Link
-					to="/orders"
+				<button
 					className={`tab tab-lg ${
-						!isSettingsPath && activeTab === "new-order"
-							? "tab-active font-bold"
-							: ""
+						activeTab === "new-order" ? "tab-active font-bold" : ""
 					}`}
 					onClick={() => setActiveTab("new-order")}>
 					New Order
-				</Link>
-				<Link
-					to="/orders"
+				</button>
+				<button
 					className={`tab tab-lg ${
-						!isSettingsPath && activeTab === "active-orders"
-							? "tab-active font-bold"
-							: ""
+						activeTab === "active-orders" ? "tab-active font-bold" : ""
 					}`}
 					onClick={() => setActiveTab("active-orders")}>
 					Active Orders
-				</Link>
-				<Link
-					to="/orders"
+				</button>
+				<button
 					className={`tab tab-lg ${
-						!isSettingsPath && activeTab === "order-history"
-							? "tab-active font-bold"
-							: ""
+						activeTab === "order-history" ? "tab-active font-bold" : ""
 					}`}
 					onClick={() => setActiveTab("order-history")}>
 					Order History
-				</Link>
-				<Link
-					to="/orders/settings"
-					className={`tab tab-lg ${
-						isSettingsPath ? "tab-active font-bold" : ""
-					}`}>
-					Quick Note Settings
-				</Link>
+				</button>
 			</div>
 
-			{/* Tab Content or Nested Route */}
-			{isSettingsPath ? (
-				<Outlet />
-			) : (
-				<>
-					{activeTab === "new-order" ? (
-						<NewOrderTab
-							cart={cart}
-							orderType={orderType}
-							setOrderType={setOrderType}
-							customerInfo={customerInfo}
-							setCustomerInfo={setCustomerInfo}
-							tableNumber={tableNumber}
-							setShowTableModal={setShowTableModal}
-							paymentMethod={paymentMethod}
-							setPaymentMethod={setPaymentMethod}
-							discountAmount={discountAmount}
-							setDiscountAmount={setDiscountAmount}
-							notes={notes}
-							setNotes={setNotes}
-							itemNotes={itemNotes}
-							updateItemNote={updateItemNote}
-							subtotal={subtotal}
-							totalAmount={totalAmount}
-							addToCart={addToCart}
-							updateQuantity={updateQuantity}
-							splitItem={splitItem}
-							clearCart={clearCart}
-							processOrder={processOrder}
-						/>
-					) : activeTab === "active-orders" ? (
-						<ActiveOrdersTab />
-					) : (
-						<OrderHistoryTab />
-					)}
-				</>
-			)}
+			{/* Tab Content */}
+			<>
+				{activeTab === "new-order" ? (
+					<NewOrderTab
+						cart={cart}
+						orderType={orderType}
+						setOrderType={setOrderType}
+						customerInfo={customerInfo}
+						setCustomerInfo={setCustomerInfo}
+						tableNumber={tableNumber}
+						setShowTableModal={setShowTableModal}
+						paymentMethod={paymentMethod}
+						setPaymentMethod={setPaymentMethod}
+						discountAmount={discountAmount}
+						setDiscountAmount={setDiscountAmount}
+						notes={notes}
+						setNotes={setNotes}
+						itemNotes={itemNotes}
+						updateItemNote={updateItemNote}
+						subtotal={subtotal}
+						totalAmount={totalAmount}
+						addToCart={addToCart}
+						updateQuantity={updateQuantity}
+						splitItem={splitItem}
+						clearCart={clearCart}
+						processOrder={processOrder}
+					/>
+				) : activeTab === "active-orders" ? (
+					<ActiveOrdersTab />
+				) : (
+					<OrderHistoryTab />
+				)}
+			</>
 
 			{/* Modals */}
 			<TableSelectionModal

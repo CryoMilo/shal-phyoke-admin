@@ -124,7 +124,7 @@ const Sidebar = ({ children }) => {
 		},
 		{
 			name: "Quick Note Settings",
-			path: "/orders/settings",
+			path: "/quick-note-settings",
 			icon: Settings2,
 		},
 	];

@@ -111,9 +111,9 @@ const ordersRoute = createRoute({
 	),
 });
 
-const ordersSettingsRoute = createRoute({
-	path: "/settings",
-	getParentRoute: () => ordersRoute,
+const quickNoteSettingsRoute = createRoute({
+	path: "/quick-note-settings",
+	getParentRoute: () => rootRoute,
 	component: () => (
 		<ProtectedRoute>
 			<QuickNoteSettings />
@@ -180,7 +180,8 @@ const routeTree = rootRoute.addChildren([
 	menuStatusRoute,
 	regularMenuRoute,
 	comboManagerRoute,
-	ordersRoute.addChildren([ordersSettingsRoute]),
+	ordersRoute,
+	quickNoteSettingsRoute,
 	dailyCashRoute,
 	dailyExpensesRoute,
 	monthlyOverheadsRoute,
