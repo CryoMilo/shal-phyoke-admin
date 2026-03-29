@@ -18,13 +18,13 @@ import {
 	ExpenseBreakdownCard,
 	ItemDetailsModal,
 } from "../components/dashboard";
-import { formatDisplayDate, getBangkokDayRange } from "../utils/dateUtils";
+import {
+	formatDisplayDate,
+	getBangkokDayRange,
+	toBangkokDateString,
+} from "../utils/dateUtils";
 import { processDashboardData } from "../utils/processData"; // Import the refactored function
 import { showToast } from "../utils/toastUtils";
-
-// Consistent YYYY-MM-DD for Bangkok
-const getBangkokISO = (date) =>
-	new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok" }).format(date);
 
 export const Dashboard = () => {
 	const [salesData, setSalesData] = useState({
@@ -68,7 +68,7 @@ export const Dashboard = () => {
 
 	// Derived state: Is the selected date "Today" in Bangkok?
 	const isTodaySelected = useMemo(
-		() => getBangkokISO(selectedDate) === getBangkokISO(today),
+		() => toBangkokDateString(selectedDate) === toBangkokDateString(today),
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 		[selectedDate]
 	);
@@ -82,7 +82,7 @@ export const Dashboard = () => {
 		try {
 			isRefresh ? setRefreshing(true) : setLoading(true);
 
-			const bangkokDateStr = getBangkokISO(selectedDate);
+			const bangkokDateStr = toBangkokDateString(selectedDate);
 			const { start, end } = getBangkokDayRange(selectedDate);
 
 			// 1. Fetch orders using exact UTC window
@@ -146,7 +146,7 @@ export const Dashboard = () => {
 			// 5. Fetch monthly overheads for current month
 			const currentMonthStart = new Date(selectedDate);
 			currentMonthStart.setDate(1);
-			const currentMonthStr = getBangkokISO(currentMonthStart);
+			const currentMonthStr = toBangkokDateString(currentMonthStart);
 
 			const { data: monthlyOverheads, error: overheadsError } = await supabase
 				.from("monthly_overheads")
@@ -201,7 +201,7 @@ export const Dashboard = () => {
 				overheadToIncomeRatio: 0,
 				dailyExpenses: [],
 				monthlyOverheads: [],
-				date: getBangkokISO(selectedDate),
+				date: toBangkokDateString(selectedDate),
 			});
 			setItemDetails([]);
 		} finally {
@@ -279,7 +279,7 @@ export const Dashboard = () => {
 		});
 		const link = document.createElement("a");
 		link.href = URL.createObjectURL(blob);
-		link.download = `dashboard_${getBangkokISO(selectedDate)}.csv`;
+		link.download = `dashboard_${toBangkokDateString(selectedDate)}.csv`;
 		link.click();
 	};
 
@@ -353,7 +353,7 @@ export const Dashboard = () => {
 					<div className="hidden md:flex gap-2">
 						<button
 							className={`btn btn-sm ${
-								getBangkokISO(selectedDate) === getBangkokISO(yesterday)
+								toBangkokDateString(selectedDate) === toBangkokDateString(yesterday)
 									? "btn-primary"
 									: "btn-ghost"
 							}`}
@@ -393,11 +393,14 @@ export const Dashboard = () => {
 						<input
 							type="date"
 							className="input input-bordered w-full"
-							value={getBangkokISO(selectedDate)}
-							max={getBangkokISO(today)}
+							value={toBangkokDateString(selectedDate)}
+							max={toBangkokDateString(today)}
 							onChange={(e) => {
 								if (e.target.value) {
-									setSelectedDate(new Date(e.target.value));
+									// Parse as noon Bangkok time (UTC+7) to avoid UTC midnight boundary issues.
+									// Appending T12:00:00+07:00 ensures the Date object represents midday
+									// in Bangkok regardless of the server/browser timezone.
+									setSelectedDate(new Date(e.target.value + "T12:00:00+07:00"));
 									setShowDatePicker(false);
 								}
 							}}

@@ -356,7 +356,7 @@ const useProcurementStore = create((set, get) => ({
 	},
 
 	// Confirm order (move from market list to orders)
-	confirmOrder: async (vendorId, items, estimatedArrival, notes = "") => {
+	confirmOrder: async (vendorId, vendorName, items, estimatedArrival, notes = "") => {
 		try {
 			set({ loading: true });
 
@@ -395,7 +395,11 @@ const useProcurementStore = create((set, get) => ({
 				.from("procurement_order_items")
 				.insert(orderItems);
 
-			if (itemsError) throw itemsError;
+			if (itemsError) {
+				// Rollback: delete the orphaned order record
+				await supabase.from("procurement_orders").delete().eq("id", order.id);
+				throw itemsError;
+			}
 
 			const failedUpdates = [];
 			for (const item of items) {
@@ -418,7 +422,7 @@ const useProcurementStore = create((set, get) => ({
 			await get().fetchMarketList(true);
 			await get().fetchProcurementOrders();
 
-			showToast.success(`Order confirmed for ${vendorId}`);
+			showToast.success(`Order confirmed for ${vendorName}`);
 			return { success: true, order };
 		} catch (error) {
 			console.error("Error confirming order:", error);

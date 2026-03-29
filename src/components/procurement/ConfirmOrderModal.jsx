@@ -32,6 +32,7 @@ const ConfirmOrderModal = ({ isOpen, onClose, vendor, items }) => {
 		setIsConfirming(true);
 		const result = await confirmOrder(
 			vendor.id,
+			vendor.name,
 			items,
 			estimatedArrival,
 			notes
