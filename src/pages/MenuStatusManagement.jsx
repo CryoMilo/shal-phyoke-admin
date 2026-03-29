@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { RefreshCw } from "lucide-react";
 import { useMenuStatusStore } from "../stores/useMenuStatusStore";
-import { getDayInfo } from "../utils/getDayInfo";
-import { formatDateRange } from "../utils/formatDateRange";
+import { getDayInfo, formatDateRange } from "../utils/dateUtils";
 import { Loading } from "../components/common/Loading";
 import { showToast } from "../utils/toastUtils";
 

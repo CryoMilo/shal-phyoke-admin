@@ -1,4 +1,4 @@
-// utils/dateUtils.js
+// src/utils/dateUtils.js
 
 /**
  * Returns a YYYY-MM-DD string for Bangkok time.
@@ -56,4 +56,52 @@ export const getBangkokISOString = (date = new Date()) => {
 	}).format(new Date(date));
 
 	return `${dateStr}T${timeStr}+07:00`;
+};
+
+/**
+ * Format a date range (e.g., "M/D/YYYY to M/D/YYYY")
+ */
+export const formatDateRange = (weekFrom, weekTo) => {
+	const from = new Date(weekFrom).toLocaleDateString();
+	const to = new Date(weekTo).toLocaleDateString();
+	return `${from} to ${to}`;
+};
+
+/**
+ * Get day name and formatted date string with an optional day offset.
+ */
+export const getDayInfo = (offset = 0) => {
+	const date = new Date();
+	date.setDate(date.getDate() + offset);
+	const dayNames = [
+		"Sunday",
+		"Monday",
+		"Tuesday",
+		"Wednesday",
+		"Thursday",
+		"Friday",
+		"Saturday",
+	];
+	return {
+		name: dayNames[date.getDay()],
+		date: date.toLocaleDateString("en-US", {
+			month: "numeric",
+			day: "numeric",
+			year: "numeric",
+		}),
+	};
+};
+
+/**
+ * Get tomorrow's date formatted (e.g., "Feb 5, 2026")
+ */
+export const getTomorrowDate = () => {
+	const tomorrow = new Date();
+	tomorrow.setDate(tomorrow.getDate() + 1);
+
+	return new Intl.DateTimeFormat("en-US", {
+		day: "numeric",
+		month: "short",
+		year: "numeric",
+	}).format(tomorrow);
 };

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { X, Type } from "lucide-react";
-import { getTomorrowDate } from "../../utils/getTomorrowDate";
+import { getTomorrowDate } from "../../utils/dateUtils";
 import logo from "../../assets/logo.png";
 
 const DailyMenuImageModal = ({
