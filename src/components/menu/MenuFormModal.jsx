@@ -26,8 +26,9 @@ const MenuFormModal = ({
 
 			{/* Modal */}
 			<div className="modal modal-open z-50">
-				<div className="modal-box relative max-w-3xl w-full mx-2 md:mx-auto max-h-[90vh] overflow-y-auto">
-					<div className="bg-base-100 border-b border-base-300 -mx-6 px-6 z-30 sticky top-0">
+				<div className="modal-box p-0 relative max-w-3xl w-full mx-2 md:mx-auto max-h-[90vh] overflow-y-auto">
+					{/* Sticky Header */}
+					<div className="bg-base-100 border-b border-base-300 px-6 pt-6 pb-0 z-30 sticky top-0">
 						<div className="flex justify-between items-center">
 							<h3 className="font-bold text-lg md:text-xl">
 								{editingMenu ? "Edit Menu Item" : "Create New Menu Item"}
@@ -45,34 +46,32 @@ const MenuFormModal = ({
 							</p>
 						)}
 
-						{/* Tabs */}
-						{editingMenu && (
-							<div className="flex gap-2 mt-4 shadow-2xl">
-								<button
-									onClick={() => setActiveTab("basic")}
-									className={`px-4 py-2 font-medium text-sm rounded-t-lg transition-colors ${
-										activeTab === "basic"
-											? "bg-primary text-white"
-											: "hover:bg-base-200"
-									}`}>
-									Basic Information
-								</button>
-								<button
-									onClick={() => setActiveTab("extras")}
-									className={`px-4 py-2 font-medium text-sm rounded-t-lg transition-colors ${
-										activeTab === "extras"
-											? "bg-primary text-white"
-											: "hover:bg-base-200"
-									}`}>
-									Extras / Toppings
-								</button>
-							</div>
-						)}
+						{/* Tabs - Always show them now */}
+						<div className="flex gap-2 mt-4">
+							<button
+								onClick={() => setActiveTab("basic")}
+								className={`px-4 py-2 font-medium text-sm rounded-t-lg transition-colors ${
+									activeTab === "basic"
+										? "bg-primary text-white"
+										: "hover:bg-base-200"
+								}`}>
+								Basic Information
+							</button>
+							<button
+								onClick={() => setActiveTab("extras")}
+								className={`px-4 py-2 font-medium text-sm rounded-t-lg transition-colors ${
+									activeTab === "extras"
+										? "bg-primary text-white"
+										: "hover:bg-base-200"
+								}`}>
+								Extras / Toppings
+							</button>
+						</div>
 					</div>
 
 					{/* Form Content */}
-					<div className="mt-4">
-						{activeTab === "basic" || !editingMenu ? (
+					<div className="p-6 pt-4">
+						{activeTab === "basic" ? (
 							<MenuForm
 								editingMenu={editingMenu}
 								onSubmit={handleSubmit}
@@ -82,16 +81,35 @@ const MenuFormModal = ({
 							/>
 						) : (
 							<div className="py-4">
-								<MenuItemExtrasManager menuItemId={editingMenu.id} />
+								{editingMenu ? (
+									<>
+										<MenuItemExtrasManager menuItemId={editingMenu.id} />
 
-								{/* Done button */}
-								<div className="flex justify-end mt-6 pt-4 border-t border-base-300">
-									<button
-										onClick={() => setShowModal(false)}
-										className="btn btn-primary">
-										Done
-									</button>
-								</div>
+										{/* Done button */}
+										<div className="flex justify-end mt-6 pt-4 border-t border-base-300">
+											<button
+												onClick={() => setShowModal(false)}
+												className="btn btn-primary">
+												Done
+											</button>
+										</div>
+									</>
+								) : (
+									<div className="text-center py-12 bg-base-200 rounded-xl border-2 border-dashed border-base-300">
+										<div className="max-w-xs mx-auto">
+											<h4 className="font-bold text-lg mb-2">Item Not Created Yet</h4>
+											<p className="text-sm text-gray-500 mb-6">
+												You need to save this menu item first before you can
+												manage its extras and toppings.
+											</p>
+											<button
+												onClick={() => setActiveTab("basic")}
+												className="btn btn-primary btn-sm">
+												Return to Basic Info
+											</button>
+										</div>
+									</div>
+								)}
 							</div>
 						)}
 					</div>

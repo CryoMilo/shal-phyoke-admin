@@ -53,9 +53,7 @@ const MenuTable = ({
 										</span>
 									</button>
 									{menu.is_vegan && (
-										<span className="badge badge-success badge-xs ml-2">
-											🌱
-										</span>
+										<span className="badge badge-xs ml-2">🌱</span>
 									)}
 								</div>
 							</td>
