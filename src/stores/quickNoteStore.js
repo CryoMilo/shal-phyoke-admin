@@ -1,92 +1,168 @@
 import { create } from "zustand";
 import { supabase } from "../services/supabase";
+import { showToast } from "../utils/toastUtils";
 
 const useQuickNoteStore = create((set, get) => ({
 	// State
-	settings: [], // all settings for management page
-	activeSettings: [], // is_active true only, for POS use
+	notes: [], // All notes for the management library
+	activeNotes: [], // Only active notes for ordering/assignment
 	loading: false,
 	initialized: false,
 
 	// Actions
-	fetchSettings: async (force = false) => {
+	
+	// Fetch all notes (for Management Library)
+	fetchAllNotes: async () => {
+		set({ loading: true });
+		try {
+			const { data, error } = await supabase
+				.from("quick_notes")
+				.select("*")
+				.order("created_at", { ascending: false });
+
+			if (error) throw error;
+
+			set({
+				notes: data || [],
+				loading: false,
+			});
+		} catch (error) {
+			console.error("Error fetching all quick notes:", error);
+			showToast.error("Failed to load quick notes library");
+			set({ loading: false });
+		}
+	},
+
+	// Fetch only active notes (for UI Pickers)
+	fetchActiveNotes: async (force = false) => {
 		if (get().initialized && !force) return;
 
 		set({ loading: true });
 		try {
 			const { data, error } = await supabase
-				.from("quick_note_settings")
+				.from("quick_notes")
 				.select("*")
 				.eq("is_active", true)
-				.order("created_at", { ascending: true });
+				.order("label", { ascending: true });
 
 			if (error) throw error;
 
 			set({
-				activeSettings: data || [],
+				activeNotes: data || [],
 				initialized: true,
 				loading: false,
 			});
 		} catch (error) {
-			console.error("Error fetching active quick note settings:", error);
+			console.error("Error fetching active quick notes:", error);
 			set({ loading: false });
 		}
 	},
 
-	fetchAllSettings: async () => {
+	// CRUD for the Library
+	addNote: async (noteData) => {
 		set({ loading: true });
 		try {
 			const { data, error } = await supabase
-				.from("quick_note_settings")
-				.select("*")
-				.order("created_at", { ascending: true });
+				.from("quick_notes")
+				.insert([
+					{
+						...noteData,
+						created_at: new Date().toISOString(),
+						updated_at: new Date().toISOString(),
+					},
+				])
+				.select()
+				.single();
 
 			if (error) throw error;
 
-			set({
-				settings: data || [],
+			set((state) => ({
+				notes: [data, ...state.notes],
+				activeNotes: data.is_active ? [...state.activeNotes, data] : state.activeNotes,
 				loading: false,
-			});
+			}));
+			
+			showToast.success("Quick Note added to library");
+			return { success: true, data };
 		} catch (error) {
-			console.error("Error fetching all quick note settings:", error);
+			console.error("Error adding quick note:", error);
+			showToast.error("Failed to add quick note");
 			set({ loading: false });
+			return { success: false, error };
 		}
 	},
 
-	getSettingsByItem: (item) => {
-		const activeSettings = get().activeSettings;
-		if (!item) return [];
+	updateNote: async (id, updates) => {
+		set({ loading: true });
+		try {
+			const { data, error } = await supabase
+				.from("quick_notes")
+				.update({
+					...updates,
+					updated_at: new Date().toISOString(),
+				})
+				.eq("id", id)
+				.select()
+				.single();
 
-		const isCombo = item.category === "Combo";
-		const isRegular = item.is_regular === true;
-		const category = item.category;
+			if (error) throw error;
 
-		return activeSettings.filter((s) => {
-			// Condition 1: Scope check
-			let scopeMatch = false;
-			if (s.scope === "all") {
-				scopeMatch = true;
-			} else if (s.scope === "combo" && isCombo) {
-				scopeMatch = true;
-			} else if (s.scope === "regular" && isRegular && !isCombo) {
-				scopeMatch = true;
-			} else if (s.scope === "rotating" && !isRegular && !isCombo) {
-				scopeMatch = true;
-			}
+			set((state) => ({
+				notes: state.notes.map((n) => (n.id === id ? data : n)),
+				activeNotes: data.is_active 
+					? state.activeNotes.some(n => n.id === id) 
+						? state.activeNotes.map(n => n.id === id ? data : n)
+						: [...state.activeNotes, data].sort((a,b) => a.label.localeCompare(b.label))
+					: state.activeNotes.filter(n => n.id !== id),
+				loading: false,
+			}));
 
-			if (!scopeMatch) return false;
+			showToast.success("Quick Note updated");
+			return { success: true, data };
+		} catch (error) {
+			console.error("Error updating quick note:", error);
+			showToast.error("Failed to update quick note");
+			set({ loading: false });
+			return { success: false, error };
+		}
+	},
 
-			// Condition 2: Category narrowing
-			if (!s.applicable_categories || s.applicable_categories.length === 0) {
-				return true; // No narrowing, applies to whole scope
-			}
+	deleteNote: async (id) => {
+		set({ loading: true });
+		try {
+			const { error } = await supabase
+				.from("quick_notes")
+				.delete()
+				.eq("id", id);
 
-			return s.applicable_categories.includes(category);
-		});
+			if (error) throw error;
+
+			set((state) => ({
+				notes: state.notes.filter((n) => n.id !== id),
+				activeNotes: state.activeNotes.filter((n) => n.id !== id),
+				loading: false,
+			}));
+
+			showToast.success("Quick Note removed from library");
+			return { success: true };
+		} catch (error) {
+			console.error("Error deleting quick note:", error);
+			showToast.error("Failed to delete quick note");
+			set({ loading: false });
+			return { success: false, error };
+		}
+	},
+
+	// Helper to get notes by their IDs (for the ordering UI)
+	getNotesByIds: (ids) => {
+		if (!ids || !Array.isArray(ids)) return [];
+		const activeNotes = get().activeNotes;
+		return activeNotes.filter(note => ids.includes(note.id));
 	},
 
 	refresh: () => {
-		get().fetchSettings(true);
+		get().fetchActiveNotes(true);
+		get().fetchAllNotes();
 	},
 }));
 

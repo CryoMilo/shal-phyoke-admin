@@ -3,7 +3,7 @@ import { Package, X } from "lucide-react";
 import useQuickNoteStore from "../../stores/quickNoteStore";
 
 const ItemNoteModal = ({ show, onClose, onSave, item }) => {
-	const { getSettingsByItem } = useQuickNoteStore();
+	const { getNotesByIds, fetchActiveNotes } = useQuickNoteStore();
 
 	const [customNote, setCustomNote] = useState("");
 	const [selectedCommonNotes, setSelectedCommonNotes] = useState([]);
@@ -11,21 +11,22 @@ const ItemNoteModal = ({ show, onClose, onSave, item }) => {
 	const [selectedToppings, setSelectedToppings] = useState([]);
 	const [tasteProfiles, setTasteProfiles] = useState({});
 
+	useEffect(() => {
+		fetchActiveNotes();
+	}, [fetchActiveNotes]);
+
 	const applicableSettings = useMemo(() => {
-		if (!item) return [];
-		return getSettingsByItem({
-			category: item.category,
-			is_regular: item.is_regular ?? false,
-		});
-	}, [item?.id, item?.category, item?.is_regular, getSettingsByItem]);
+		if (!item || !item.quick_note_ids) return [];
+		return getNotesByIds(item.quick_note_ids);
+	}, [item?.quick_note_ids, getNotesByIds]);
 
 	const tasteCategories = useMemo(
-		() => applicableSettings.filter((s) => s.type === "taste_profile"),
+		() => applicableSettings.filter((s) => s.type === "radio"),
 		[applicableSettings]
 	);
 
 	const frequentNotes = useMemo(
-		() => applicableSettings.filter((s) => s.type === "frequent_request"),
+		() => applicableSettings.filter((s) => s.type === "multiple"),
 		[applicableSettings]
 	);
 
@@ -46,9 +47,10 @@ const ItemNoteModal = ({ show, onClose, onSave, item }) => {
 			const toppings = [];
 			const tastes = {};
 
-			// Initialize tastes from settings
+			// Initialize tastes from settings - default to Med if available, else first option
 			tasteCategories.forEach((cat) => {
-				tastes[cat.group_name] = "Med";
+				const hasMed = cat.options?.includes("Med");
+				tastes[cat.id] = hasMed ? "Med" : (cat.options?.[0] || "");
 			});
 
 			const custom = [];
@@ -59,10 +61,10 @@ const ItemNoteModal = ({ show, onClose, onSave, item }) => {
 				// 1. Parse Taste Profiles
 				let matchedTaste = false;
 				tasteCategories.forEach((cat) => {
-					const levels = cat.options || ["No", "Low", "Med", "High"];
+					const levels = cat.options || [];
 					levels.forEach((level) => {
 						if (part === `${level} ${cat.label}`) {
-							tastes[cat.group_name] = level;
+							tastes[cat.id] = level;
 							matchedTaste = true;
 						}
 					});
@@ -78,11 +80,16 @@ const ItemNoteModal = ({ show, onClose, onSave, item }) => {
 					return;
 				}
 
-				// 3. Parse Frequent Notes
-				const freqNote = frequentNotes.find((n) => n.label === part);
-				if (freqNote) {
-					common.push(freqNote.label);
-				} else {
+				// 3. Parse Frequent Notes (Multi-select options)
+				let matchedFreq = false;
+				frequentNotes.forEach((note) => {
+					if (note.options?.includes(part)) {
+						common.push(part);
+						matchedFreq = true;
+					}
+				});
+				
+				if (!matchedFreq) {
 					// 4. Otherwise → add to custom array
 					custom.push(part);
 				}
@@ -95,11 +102,11 @@ const ItemNoteModal = ({ show, onClose, onSave, item }) => {
 		}
 	}, [show, item, frequentNotes, tasteCategories, availableExtras]);
 
-	const toggleCommonNote = (noteLabel) => {
+	const toggleCommonNote = (noteOption) => {
 		setSelectedCommonNotes((prev) =>
-			prev.includes(noteLabel)
-				? prev.filter((n) => n !== noteLabel)
-				: [...prev, noteLabel]
+			prev.includes(noteOption)
+				? prev.filter((n) => n !== noteOption)
+				: [...prev, noteOption]
 		);
 	};
 
@@ -117,7 +124,10 @@ const ItemNoteModal = ({ show, onClose, onSave, item }) => {
 		setCustomNote("");
 		setIsTakeaway(false);
 		setTasteProfiles(
-			Object.fromEntries(tasteCategories.map((cat) => [cat.group_name, "Med"]))
+			Object.fromEntries(tasteCategories.map((cat) => {
+				const hasMed = cat.options?.includes("Med");
+				return [cat.id, hasMed ? "Med" : (cat.options?.[0] || "")];
+			}))
 		);
 	};
 
@@ -128,8 +138,10 @@ const ItemNoteModal = ({ show, onClose, onSave, item }) => {
 		if (isTakeaway) combinedNotes.push("Takeaway");
 
 		tasteCategories.forEach((cat) => {
-			const currentLevel = tasteProfiles[cat.group_name];
-			if (currentLevel && currentLevel !== "Med") {
+			const currentLevel = tasteProfiles[cat.id];
+			const hasMed = cat.options?.includes("Med");
+			// Only add if it's NOT the default (Med)
+			if (currentLevel && (!hasMed || currentLevel !== "Med")) {
 				combinedNotes.push(`${currentLevel} ${cat.label}`);
 			}
 		});
@@ -160,7 +172,11 @@ const ItemNoteModal = ({ show, onClose, onSave, item }) => {
 		selectedCommonNotes.length > 0 ||
 		customNote.trim() !== "" ||
 		isTakeaway ||
-		Object.values(tasteProfiles).some((v) => v !== "Med");
+		Object.entries(tasteProfiles).some(([id, val]) => {
+			const cat = tasteCategories.find(c => c.id === id);
+			const hasMed = cat?.options?.includes("Med");
+			return hasMed ? val !== "Med" : val !== cat?.options?.[0];
+		});
 
 	if (!show) return null;
 
@@ -250,7 +266,7 @@ const ItemNoteModal = ({ show, onClose, onSave, item }) => {
 													{cat.label}
 												</div>
 												<div className="flex flex-1 bg-gray-100 rounded-lg p-1">
-													{(cat.options || ["No", "Low", "Med", "High"]).map(
+													{(cat.options || []).map(
 														(level) => (
 															<button
 																type="button"
@@ -258,11 +274,11 @@ const ItemNoteModal = ({ show, onClose, onSave, item }) => {
 																onClick={() =>
 																	setTasteProfiles((prev) => ({
 																		...prev,
-																		[cat.group_name]: level,
+																		[cat.id]: level,
 																	}))
 																}
 																className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${
-																	tasteProfiles[cat.group_name] === level
+																	tasteProfiles[cat.id] === level
 																		? "bg-white shadow-sm text-primary"
 																		: "text-gray-500 hover:text-gray-700"
 																}`}>
@@ -278,30 +294,34 @@ const ItemNoteModal = ({ show, onClose, onSave, item }) => {
 							)}
 
 							{frequentNotes.length > 0 && (
-								<div>
-									<div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
-										Frequent Request
-									</div>
-									<div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-										{frequentNotes.map((note) => {
-											const isSelected = selectedCommonNotes.includes(note.label);
-											return (
-												<button
-													type="button"
-													key={note.id}
-													className={`flex items-center justify-center p-3 rounded-xl border transition-all ${
-														isSelected
-															? "bg-primary/10 text-primary border-primary"
-															: "border-gray-100 hover:border-gray-200 text-gray-600"
-													}`}
-													onClick={() => toggleCommonNote(note.label)}>
-													<span className="text-xs font-bold text-center">
-														{note.label}
-													</span>
-												</button>
-											);
-										})}
-									</div>
+								<div className="space-y-6">
+									{frequentNotes.map((note) => (
+										<div key={note.id}>
+											<div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
+												{note.label}
+											</div>
+											<div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+												{note.options?.map((option) => {
+													const isSelected = selectedCommonNotes.includes(option);
+													return (
+														<button
+															type="button"
+															key={option}
+															className={`flex items-center justify-center p-3 rounded-xl border transition-all ${
+																isSelected
+																	? "bg-primary/10 text-primary border-primary"
+																	: "border-gray-100 hover:border-gray-200 text-gray-600"
+															}`}
+															onClick={() => toggleCommonNote(option)}>
+															<span className="text-xs font-bold text-center">
+																{option}
+															</span>
+														</button>
+													);
+												})}
+											</div>
+										</div>
+									))}
 								</div>
 							)}
 						</>

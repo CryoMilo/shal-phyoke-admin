@@ -11,7 +11,7 @@ import useQuickNoteStore from "../stores/quickNoteStore";
 import useOrderStore from "../stores/orderStore";
 
 export const Orders = () => {
-	const fetchSettings = useQuickNoteStore((state) => state.fetchSettings);
+	const fetchActiveNotes = useQuickNoteStore((state) => state.fetchActiveNotes);
 	const {
 		cart,
 		orderType,
@@ -41,8 +41,8 @@ export const Orders = () => {
 	const [showTableModal, setShowTableModal] = useState(false);
 
 	useEffect(() => {
-		fetchSettings();
-	}, [fetchSettings]);
+		fetchActiveNotes();
+	}, [fetchActiveNotes]);
 
 	const location = useLocation();
 	const isSettingsPath = location.pathname.endsWith("/settings");

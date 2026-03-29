@@ -27,7 +27,7 @@ const MenuFormModal = ({
 			{/* Modal */}
 			<div className="modal modal-open z-50">
 				<div className="modal-box relative max-w-3xl w-full mx-2 md:mx-auto max-h-[90vh] overflow-y-auto">
-					<div className="bg-base-100 pb-4 border-b border-base-300 -mx-6 px-6 z-30 sticky top-0">
+					<div className="bg-base-100 border-b border-base-300 -mx-6 px-6 z-30 sticky top-0">
 						<div className="flex justify-between items-center">
 							<h3 className="font-bold text-lg md:text-xl">
 								{editingMenu ? "Edit Menu Item" : "Create New Menu Item"}
@@ -47,7 +47,7 @@ const MenuFormModal = ({
 
 						{/* Tabs */}
 						{editingMenu && (
-							<div className="flex gap-2 mt-4 border-b border-base-300 pb-2">
+							<div className="flex gap-2 mt-4 shadow-2xl">
 								<button
 									onClick={() => setActiveTab("basic")}
 									className={`px-4 py-2 font-medium text-sm rounded-t-lg transition-colors ${

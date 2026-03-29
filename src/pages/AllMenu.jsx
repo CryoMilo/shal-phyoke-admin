@@ -128,7 +128,7 @@ const AllMenuPage = () => {
 		<div className="container mx-auto p-3 md:p-6">
 			{/* Header */}
 			<PageHeader
-				title="All Menu Items"
+				title="Menu Manager"
 				description="Manage both regular and rotating menu items"
 				buttons={[
 					{

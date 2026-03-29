@@ -64,7 +64,7 @@ const Sidebar = ({ children }) => {
 			label: "Menu",
 		},
 		{
-			name: "All Menu Items",
+			name: "Menu Manager",
 			path: "/all-menu",
 			icon: UtensilsCrossed,
 		},

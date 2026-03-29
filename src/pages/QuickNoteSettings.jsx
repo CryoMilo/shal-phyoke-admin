@@ -1,62 +1,36 @@
-import React, { useState, useEffect, useMemo } from "react";
-import { supabase } from "../services/supabase";
+import React, { useState, useEffect } from "react";
 import { showToast } from "../utils/toastUtils";
-import { Plus, Trash2, Edit2, Settings2, X, ChevronDown } from "lucide-react";
+import { Plus, Trash2, Edit2, Settings2, X, AlertCircle } from "lucide-react";
 import { PageHeader } from "../components/common/PageHeader";
 import useQuickNoteStore from "../stores/quickNoteStore";
-import { ALL_CATEGORIES } from "../constants";
-
-const ROTATING_CATEGORIES = [
-	"Chicken",
-	"Pork",
-	"Beef",
-	"Vege",
-	"Salad",
-	"Seafood",
-	"Soup",
-	"Side",
-];
-const REGULAR_CATEGORIES = ["Rice", "Noodles", "Drink", "Extra"];
 
 const QuickNoteSettings = () => {
-	const { settings, loading, fetchAllSettings, refresh } = useQuickNoteStore();
-	const [activeTypeTab, setActiveTypeTab] = useState("taste_profile");
+	const { notes, loading, fetchAllNotes, addNote, updateNote, deleteNote } = useQuickNoteStore();
 	const [showModal, setShowModal] = useState(false);
 	const [editingNote, setEditingNote] = useState(null);
 
 	// Form state
 	const [label, setLabel] = useState("");
-	const [scope, setScope] = useState("all");
-	const [groupName, setGroupName] = useState("");
+	const [type, setType] = useState("radio"); // radio (taste profile) or multiple (frequent request)
 	const [options, setOptions] = useState(["No", "Low", "Med", "High"]);
 	const [isActive, setIsActive] = useState(true);
-	const [applicableCategories, setApplicableCategories] = useState([]);
-	const [showCategoryPicker, setShowCategoryPicker] = useState(false);
 	const [newOptionInput, setNewOptionInput] = useState("");
 
 	useEffect(() => {
-		fetchAllSettings();
-	}, [fetchAllSettings]);
+		fetchAllNotes();
+	}, [fetchAllNotes]);
 
 	useEffect(() => {
 		if (editingNote) {
 			setLabel(editingNote.label || "");
-			setScope(editingNote.scope || "all");
-			setGroupName(editingNote.group_name || "");
+			setType(editingNote.type || "radio");
 			setOptions(editingNote.options || ["No", "Low", "Med", "High"]);
 			setIsActive(editingNote.is_active ?? true);
-			setApplicableCategories(editingNote.applicable_categories || []);
-			setShowCategoryPicker(
-				(editingNote.applicable_categories || []).length > 0
-			);
 		} else {
 			setLabel("");
-			setScope("all");
-			setGroupName("");
+			setType("radio");
 			setOptions(["No", "Low", "Med", "High"]);
 			setIsActive(true);
-			setApplicableCategories([]);
-			setShowCategoryPicker(false);
 		}
 		setNewOptionInput("");
 	}, [editingNote, showModal]);
@@ -67,73 +41,30 @@ const QuickNoteSettings = () => {
 			showToast.error("Label is required");
 			return;
 		}
-		if (activeTypeTab === "taste_profile" && options.length < 2) {
-			showToast.error("At least 2 options are required for taste profiles");
-			return;
-		}
-
-		const finalApplicableCategories = showCategoryPicker ? applicableCategories : [];
-
+		
 		const payload = {
-			type: activeTypeTab,
 			label: label.trim(),
-			scope,
-			group_name:
-				activeTypeTab === "taste_profile" ? groupName.trim() || label.trim() : null,
-			options: activeTypeTab === "taste_profile" ? options : null,
-			applicable_categories: finalApplicableCategories,
+			type,
+			options,
 			is_active: isActive,
-			updated_at: new Date().toISOString(),
 		};
 
-		try {
-			if (editingNote) {
-				const { error } = await supabase
-					.from("quick_note_settings")
-					.update(payload)
-					.eq("id", editingNote.id);
-				if (error) throw error;
-				showToast.success("Updated successfully");
-			} else {
-				const { error } = await supabase
-					.from("quick_note_settings")
-					.insert([payload]);
-				if (error) throw error;
-				showToast.success("Created successfully");
-			}
+		let result;
+		if (editingNote) {
+			result = await updateNote(editingNote.id, payload);
+		} else {
+			result = await addNote(payload);
+		}
 
+		if (result.success) {
 			setShowModal(false);
 			setEditingNote(null);
-			fetchAllSettings();
-			refresh();
-		} catch (error) {
-			console.error("Error saving quick note setting:", error);
-			showToast.error(error.message);
 		}
 	};
 
 	const handleDelete = async (id) => {
-		if (!window.confirm("Are you sure you want to delete this setting?")) return;
-
-		try {
-			const { error } = await supabase
-				.from("quick_note_settings")
-				.delete()
-				.eq("id", id);
-			if (error) throw error;
-			showToast.success("Deleted successfully");
-			fetchAllSettings();
-			refresh();
-		} catch (error) {
-			console.error("Error deleting quick note setting:", error);
-			showToast.error(error.message);
-		}
-	};
-
-	const toggleCategory = (cat) => {
-		setApplicableCategories((prev) =>
-			prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
-		);
+		if (!window.confirm("Are you sure you want to delete this note from the library? This won't automatically remove it from menu items but it will stop appearing in the picker.")) return;
+		await deleteNote(id);
 	};
 
 	const addOption = () => {
@@ -148,38 +79,18 @@ const QuickNoteSettings = () => {
 	};
 
 	const removeOption = (opt) => {
-		if (options.length <= 2) return;
+		if (options.length <= 1) return;
 		setOptions(options.filter((o) => o !== opt));
-	};
-
-	const filteredSettings = settings.filter((s) => s.type === activeTypeTab);
-
-	const renderScopeBadge = (scope) => {
-		switch (scope) {
-			case "all":
-				return <span className="badge badge-ghost badge-sm">All Items</span>;
-			case "rotating":
-				return <span className="badge badge-secondary badge-sm">Rotating</span>;
-			case "regular":
-				return <span className="badge badge-primary badge-sm">Regular</span>;
-			case "combo":
-				return <span className="badge badge-accent badge-sm">Combos</span>;
-			default:
-				return null;
-		}
 	};
 
 	return (
 		<div className="container mx-auto pb-10">
 			<PageHeader
-				title="Quick Note Settings"
-				description="Taste profiles and frequent requests for the order modal"
+				title="Quick Note Library"
+				description="Manage templates for taste profiles and frequent requests. Assign these to specific menu items in the All Menu page."
 				buttons={[
 					{
-						label:
-							activeTypeTab === "taste_profile"
-								? "Add Taste Profile"
-								: "Add Frequent Request",
+						label: "Create New Template",
 						icon: Plus,
 						onClick: () => {
 							setEditingNote(null);
@@ -190,86 +101,65 @@ const QuickNoteSettings = () => {
 				]}
 			/>
 
-			{/* Tabs */}
-			<div className="tabs tabs-boxed w-fit mb-6 bg-base-200">
-				<button
-					className={`tab ${activeTypeTab === "taste_profile" ? "tab-active" : ""}`}
-					onClick={() => setActiveTypeTab("taste_profile")}>
-					Taste Profiles
-				</button>
-				<button
-					className={`tab ${activeTypeTab === "frequent_request" ? "tab-active" : ""}`}
-					onClick={() => setActiveTypeTab("frequent_request")}>
-					Frequent Requests
-				</button>
+			{/* Info Alert */}
+			<div className="alert alert-info mb-8 shadow-sm">
+				<AlertCircle className="w-5 h-5" />
+				<div className="text-sm">
+					<p className="font-bold">How it works:</p>
+					<p>Create note templates here (e.g., "Spice Level" or "No Veggies"). Then, go to <b>All Menu</b> and edit an item to choose which notes apply to it.</p>
+				</div>
 			</div>
 
 			{/* Settings Grid */}
 			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 				{loading ? (
 					<div className="col-span-full py-20 text-center">
-						<span className="loading loading-spinner loading-lg"></span>
+						<span className="loading loading-spinner loading-lg text-primary"></span>
 					</div>
-				) : filteredSettings.length > 0 ? (
-					filteredSettings.map((setting) => (
+				) : notes.length > 0 ? (
+					notes.map((note) => (
 						<div
-							key={setting.id}
-							className="card bg-base-100 border border-base-300 shadow-sm transition-all hover:shadow-md">
+							key={note.id}
+							className={`card bg-base-100 border ${note.is_active ? 'border-base-300' : 'border-error/20 bg-error/5'} shadow-sm transition-all hover:shadow-md`}>
 							<div className="card-body p-4">
 								<div className="flex justify-between items-start">
 									<div className="flex-1 min-w-0">
-										<h3 className="font-bold text-lg truncate" title={setting.label}>
-											{setting.label}
-										</h3>
-										{setting.type === "taste_profile" &&
-											setting.group_name &&
-											setting.group_name !== setting.label && (
-												<p className="text-xs text-gray-500 truncate">
-													Group: {setting.group_name}
-												</p>
+										<div className="flex items-center gap-2">
+											<h3 className="font-bold text-lg truncate" title={note.label}>
+												{note.label}
+											</h3>
+											{!note.is_active && (
+												<span className="badge badge-error badge-xs text-[8px] font-bold">INACTIVE</span>
 											)}
+										</div>
+										<p className="text-[10px] uppercase tracking-wider opacity-50 font-bold">
+											{note.type === 'radio' ? 'Single Choice (Radio)' : 'Multiple Selection'}
+										</p>
 									</div>
 									<div className="flex gap-1 ml-2">
 										<button
 											className="btn btn-ghost btn-xs btn-square"
 											onClick={() => {
-												setEditingNote(setting);
+												setEditingNote(note);
 												setShowModal(true);
 											}}>
 											<Edit2 className="w-3.5 h-3.5" />
 										</button>
 										<button
 											className="btn btn-ghost btn-xs btn-square text-error"
-											onClick={() => handleDelete(setting.id)}>
+											onClick={() => handleDelete(note.id)}>
 											<Trash2 className="w-3.5 h-3.5" />
 										</button>
 									</div>
 								</div>
 
-								<div className="mt-2 flex flex-wrap gap-1 items-center">
-									{renderScopeBadge(setting.scope)}
-									{setting.applicable_categories?.map((cat) => (
-										<span key={cat} className="badge badge-outline badge-xs">
-											{cat}
+								<div className="mt-3 flex gap-1 flex-wrap">
+									{note.options?.map((opt) => (
+										<span key={opt} className="badge badge-outline badge-sm text-[10px] bg-base-200/50">
+											{opt}
 										</span>
 									))}
 								</div>
-
-								{setting.type === "taste_profile" && setting.options && (
-									<div className="mt-3 flex gap-1 flex-wrap">
-										{setting.options.map((opt) => (
-											<span key={opt} className="badge badge-outline badge-sm text-[10px]">
-												{opt}
-											</span>
-										))}
-									</div>
-								)}
-
-								{!setting.is_active && (
-									<span className="text-[10px] text-error font-bold uppercase mt-2">
-										Disabled
-									</span>
-								)}
 							</div>
 						</div>
 					))
@@ -277,27 +167,10 @@ const QuickNoteSettings = () => {
 					<div className="col-span-full py-16 text-center bg-base-200 rounded-xl border-2 border-dashed border-base-300">
 						<Settings2 className="w-12 h-12 mx-auto opacity-20 mb-2" />
 						<p className="text-base-content/50">
-							No {activeTypeTab === "taste_profile" ? "taste profile" : "frequent request"}{" "}
-							settings yet
+							Your library is empty. Create your first note template!
 						</p>
 					</div>
 				)}
-			</div>
-
-			{/* Toppings Info Card */}
-			<div className="card bg-base-200 mt-6 border border-base-300">
-				<div className="card-body py-3 px-4 flex flex-row items-center gap-3">
-					<div className="bg-base-100 p-2 rounded-lg">
-						<Plus className="w-4 h-4 text-primary" />
-					</div>
-					<div>
-						<p className="text-sm font-bold">Toppings & Extras</p>
-						<p className="text-xs text-gray-500">
-							Managed per menu item. Go to All Menu → select any item → Edit → Extras /
-							Toppings tab.
-						</p>
-					</div>
-				</div>
 			</div>
 
 			{/* Modal */}
@@ -306,8 +179,7 @@ const QuickNoteSettings = () => {
 					<div className="modal-box max-w-md p-0 overflow-hidden">
 						<div className="p-6 pb-4 border-b border-base-200 flex justify-between items-center sticky top-0 bg-base-100 z-10">
 							<h3 className="font-bold text-xl">
-								{editingNote ? "Edit" : "Add"}{" "}
-								{activeTypeTab === "taste_profile" ? "Taste Profile" : "Frequent Request"}
+								{editingNote ? "Edit Template" : "New Template"}
 							</h3>
 							<button
 								className="btn btn-sm btn-circle btn-ghost"
@@ -323,172 +195,105 @@ const QuickNoteSettings = () => {
 							{/* Label */}
 							<div className="form-control">
 								<label className="label py-1">
-									<span className="label-text font-bold text-sm">Label *</span>
+									<span className="label-text font-bold text-sm">Note Label *</span>
 								</label>
 								<input
 									type="text"
 									className="input input-bordered w-full"
 									value={label}
 									onChange={(e) => setLabel(e.target.value)}
-									placeholder={
-										activeTypeTab === "taste_profile" ? "e.g. Spicy" : "e.g. No MSG"
-									}
+									placeholder="e.g. Spice Level, Sweetness, or No Veggies"
 									required
 								/>
+								<label className="label">
+									<span className="label-text-alt opacity-60 italic">This is the title shown during ordering.</span>
+								</label>
 							</div>
 
-							{/* Taste Profile Specific: Group Name */}
-							{activeTypeTab === "taste_profile" && (
-								<div className="form-control">
-									<label className="label py-1">
-										<span className="label-text font-bold text-sm">Group Name</span>
-									</label>
-									<input
-										type="text"
-										className="input input-bordered w-full"
-										value={groupName}
-										onChange={(e) => setGroupName(e.target.value)}
-										placeholder="e.g. Spicy, Sweet"
-									/>
-									<span className="text-[10px] text-gray-400 mt-1">
-										If empty, uses label as group name
-									</span>
-								</div>
-							)}
-
-							{/* Scope Selection */}
+							{/* Type Selection */}
 							<div className="form-control">
 								<label className="label py-1">
-									<span className="label-text font-bold text-sm">Applies To</span>
+									<span className="label-text font-bold text-sm">Selection Mode</span>
 								</label>
-								<div className="grid grid-cols-2 gap-2">
-									{[
-										{ id: "all", label: "All Items" },
-										{ id: "rotating", label: "Rotating Items" },
-										{ id: "regular", label: "Regular Items" },
-										{ id: "combo", label: "Combo Items" },
-									].map((s) => (
-										<button
-											key={s.id}
-											type="button"
-											className={`btn btn-sm ${
-												scope === s.id ? "btn-primary" : "btn-outline"
-											}`}
-											onClick={() => {
-												setScope(s.id);
-												setApplicableCategories([]);
-												setShowCategoryPicker(false);
-											}}>
-											{s.label}
-										</button>
-									))}
+								<div className="flex gap-2">
+									<button
+										type="button"
+										className={`btn btn-sm flex-1 ${type === 'radio' ? 'btn-primary' : 'btn-outline'}`}
+										onClick={() => setType('radio')}>
+										Single (Radio)
+									</button>
+									<button
+										type="button"
+										className={`btn btn-sm flex-1 ${type === 'multiple' ? 'btn-primary' : 'btn-outline'}`}
+										onClick={() => setType('multiple')}>
+										Multi-select
+									</button>
 								</div>
+								<label className="label">
+									<span className="label-text-alt opacity-60 italic">
+										{type === 'radio' ? "Customer picks one (e.g. Low/Med/High)" : "Customer picks multiple (e.g. No Onion, No Chili)"}
+									</span>
+								</label>
 							</div>
 
-							{/* Category Narrowing */}
-							{(scope === "rotating" || scope === "regular") && (
-								<div className="bg-base-200 p-4 rounded-xl space-y-3">
-									<div className="flex items-center justify-between">
-										<span className="text-sm font-semibold">
-											Narrow to specific categories
-										</span>
-										<input
-											type="checkbox"
-											className="toggle toggle-sm toggle-primary"
-											checked={showCategoryPicker}
-											onChange={(e) => {
-												setShowCategoryPicker(e.target.checked);
-												if (!e.target.checked) setApplicableCategories([]);
-											}}
-										/>
-									</div>
-
-									{showCategoryPicker && (
-										<div className="space-y-2 pt-2 border-t border-base-300">
-											<div className="grid grid-cols-2 gap-2">
-												{(scope === "rotating"
-													? ROTATING_CATEGORIES
-													: REGULAR_CATEGORIES
-												).map((cat) => (
-													<label
-														key={cat}
-														className="flex items-center gap-2 cursor-pointer hover:bg-base-300 p-1.5 rounded-lg transition-colors">
-														<input
-															type="checkbox"
-															className="checkbox checkbox-sm checkbox-primary"
-															checked={applicableCategories.includes(cat)}
-															onChange={() => toggleCategory(cat)}
-														/>
-														<span className="text-xs">{cat}</span>
-													</label>
-												))}
-											</div>
-											<p className="text-[10px] text-gray-400 italic">
-												Leave all unchecked to apply to all{" "}
-												{scope === "rotating" ? "Rotating" : "Regular"} items
-											</p>
+							{/* Options */}
+							<div className="form-control">
+								<label className="label py-1">
+									<span className="label-text font-bold text-sm">Options / Levels</span>
+								</label>
+								<div className="flex flex-wrap gap-1 mb-3">
+									{options.map((opt) => (
+										<div
+											key={opt}
+											className="badge badge-outline badge-lg py-4 gap-1 border-base-300 bg-base-100">
+											<span className="text-xs font-medium">{opt}</span>
+											{options.length > 1 && (
+												<button
+													type="button"
+													className="hover:text-error transition-colors"
+													onClick={() => removeOption(opt)}>
+													<X className="w-3 h-3" />
+												</button>
+											)}
 										</div>
-									)}
+									))}
 								</div>
-							)}
-
-							{/* Taste Profile Specific: Options */}
-							{activeTypeTab === "taste_profile" && (
-								<div className="form-control">
-									<label className="label py-1">
-										<span className="label-text font-bold text-sm">Levels</span>
-									</label>
-									<div className="flex flex-wrap gap-1 mb-3">
-										{options.map((opt) => (
-											<div
-												key={opt}
-												className="badge badge-outline badge-lg py-4 gap-1 border-base-300">
-												<span className="text-xs font-medium">{opt}</span>
-												{options.length > 2 && (
-													<button
-														type="button"
-														className="hover:text-error transition-colors"
-														onClick={() => removeOption(opt)}>
-														<X className="w-3 h-3" />
-													</button>
-												)}
-											</div>
-										))}
-									</div>
-									<div className="flex gap-2">
-										<input
-											type="text"
-											className="input input-bordered input-sm flex-1"
-											placeholder="Add level..."
-											value={newOptionInput}
-											onChange={(e) => setNewOptionInput(e.target.value)}
-											onKeyDown={(e) => {
-												if (e.key === "Enter") {
-													e.preventDefault();
-													addOption();
-												}
-											}}
-										/>
-										<button
-											type="button"
-											className="btn btn-sm btn-outline"
-											onClick={addOption}>
-											Add
-										</button>
-									</div>
+								<div className="flex gap-2">
+									<input
+										type="text"
+										className="input input-bordered input-sm flex-1"
+										placeholder="Add option..."
+										value={newOptionInput}
+										onChange={(e) => setNewOptionInput(e.target.value)}
+										onKeyDown={(e) => {
+											if (e.key === "Enter") {
+												e.preventDefault();
+												addOption();
+											}
+										}}
+									/>
+									<button
+										type="button"
+										className="btn btn-sm btn-outline"
+										onClick={addOption}>
+										Add
+									</button>
 								</div>
-							)}
+							</div>
 
 							{/* Active Toggle */}
 							<div className="form-control">
-								<label className="label cursor-pointer justify-start gap-3">
+								<label className="label cursor-pointer justify-start gap-3 bg-base-200/50 p-3 rounded-lg border border-base-200">
 									<input
 										type="checkbox"
 										className="checkbox checkbox-primary"
 										checked={isActive}
 										onChange={(e) => setIsActive(e.target.checked)}
 									/>
-									<span className="label-text font-bold">Active</span>
+									<div>
+										<span className="label-text font-bold block">Library Status</span>
+										<span className="text-[10px] opacity-60">Inactive notes are hidden from the item assignment picker.</span>
+									</div>
 								</label>
 							</div>
 						</form>
@@ -504,7 +309,7 @@ const QuickNoteSettings = () => {
 								Cancel
 							</button>
 							<button type="submit" className="btn btn-primary px-8" onClick={handleSave}>
-								Save Changes
+								{editingNote ? "Update Template" : "Save to Library"}
 							</button>
 						</div>
 					</div>

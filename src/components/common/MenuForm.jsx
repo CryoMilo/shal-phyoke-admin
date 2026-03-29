@@ -1,9 +1,10 @@
 import React, { useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { menuSchema } from "../../validations/menuSchema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ALL_CATEGORIES, CATEGORY_DISPLAY_NAMES } from "../../constants";
 import ImageUploadField from "./ImageUploadField";
+import useQuickNoteStore from "../../stores/quickNoteStore";
 
 const MenuForm = ({
 	editingMenu,
@@ -12,6 +13,8 @@ const MenuForm = ({
 	loading = false,
 	isRegularOnly = false,
 }) => {
+	const { activeNotes, fetchActiveNotes } = useQuickNoteStore();
+
 	const {
 		register,
 		handleSubmit,
@@ -27,6 +30,7 @@ const MenuForm = ({
 			? {
 					...editingMenu,
 					is_vegan: editingMenu?.is_vegan ?? false,
+					quick_note_ids: editingMenu?.quick_note_ids ?? [],
 					sensitive_ingredients: Array.isArray(
 						editingMenu.sensitive_ingredients
 					)
@@ -46,8 +50,13 @@ const MenuForm = ({
 					is_active: true,
 					is_regular: isRegularOnly ? true : false,
 					is_vegan: false,
+					quick_note_ids: [],
 			  },
 	});
+
+	useEffect(() => {
+		fetchActiveNotes();
+	}, [fetchActiveNotes]);
 
 	const watchIsRegular = watch("is_regular");
 
@@ -56,6 +65,7 @@ const MenuForm = ({
 			reset({
 				...editingMenu,
 				is_vegan: editingMenu?.is_vegan ?? false,
+				quick_note_ids: editingMenu?.quick_note_ids ?? [],
 				sensitive_ingredients: Array.isArray(editingMenu.sensitive_ingredients)
 					? editingMenu.sensitive_ingredients.join(", ")
 					: editingMenu.sensitive_ingredients || "",
@@ -74,6 +84,7 @@ const MenuForm = ({
 				is_active: true,
 				is_regular: isRegularOnly ? true : false,
 				is_vegan: false,
+				quick_note_ids: [],
 			});
 		}
 	}, [editingMenu, reset, isRegularOnly]);
@@ -283,6 +294,59 @@ const MenuForm = ({
 					className="input input-bordered w-full"
 					placeholder="Peanuts, Dairy, Gluten, Soy, Shellfish (comma separated)"
 					disabled={loading}
+				/>
+			</div>
+
+			{/* Quick Note Assignment */}
+			<div className="bg-base-200/30 p-4 rounded-xl border border-base-300">
+				<label className="label pt-0">
+					<span className="label-text font-bold text-sm">Quick Note Assignment</span>
+				</label>
+				<p className="text-[10px] text-gray-500 mb-3 -mt-1 italic">
+					Choose which note templates from the library should appear when ordering this item.
+				</p>
+				
+				<Controller
+					name="quick_note_ids"
+					control={control}
+					render={({ field }) => (
+						<div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+							{activeNotes.length > 0 ? (
+								activeNotes.map((note) => (
+									<label
+										key={note.id}
+										className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-colors hover:bg-base-200 ${
+											field.value?.includes(note.id)
+												? "border-primary bg-primary/5"
+												: "border-base-300 bg-base-100"
+										}`}
+									>
+										<input
+											type="checkbox"
+											className="checkbox checkbox-xs checkbox-primary"
+											checked={field.value?.includes(note.id)}
+											onChange={() => {
+												const newValue = field.value?.includes(note.id)
+													? field.value.filter((id) => id !== note.id)
+													: [...(field.value || []), note.id];
+												field.onChange(newValue);
+											}}
+										/>
+										<div className="flex flex-col min-w-0">
+											<span className="text-xs font-bold truncate">{note.label}</span>
+											<span className="text-[8px] opacity-60 truncate">
+												{note.type === 'radio' ? 'Single Choice' : 'Multi-select'}
+											</span>
+										</div>
+									</label>
+								))
+							) : (
+								<p className="col-span-full text-xs text-center opacity-50 py-4 italic">
+									No active note templates found in library.
+								</p>
+							)}
+						</div>
+					)}
 				/>
 			</div>
 
