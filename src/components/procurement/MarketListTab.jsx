@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { Maximize2, Minimize2, Plus, ShoppingBag } from "lucide-react";
 import useProcurementStore from "../../stores/procurementStore";
 import VendorAccordion from "./VendorAccordion";
-import AddCustomItemModal from "./AddCustomItemModa";
+import AddCustomItemModal from "./AddCustomItemModal";
 
 const MarketListTab = () => {
 	const [showAddModal, setShowAddModal] = useState(false);

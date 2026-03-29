@@ -481,45 +481,6 @@ const useMenuStore = create(
 				}
 			},
 
-			// For compatibility with existing code
-			getMenusByCategory: (category) => {
-				return get().getItemsByCategory(category);
-			},
-
-			fetchMenus: async () => {
-				return get().fetchAllMenuItems();
-			},
-
-			fetchMenusByCategory: async (category) => {
-				set({ loading: true });
-				try {
-					const { data, error } = await supabase
-						.from("menu_items")
-						.select("*")
-						.eq("category", category)
-						.order("name_burmese");
-
-					if (error) throw error;
-
-					// Update state with these items
-					const state = get();
-					const otherItems = state.allMenuItems.filter(
-						(item) => item.category !== category
-					);
-					set({
-						allMenuItems: [...otherItems, ...(data || [])],
-						loading: false,
-					});
-
-					return { data, error: null };
-				} catch (error) {
-					console.error(`Error fetching ${category} menus:`, error);
-					showToast.error(`Failed to load ${category} items`);
-					set({ loading: false });
-					return { data: null, error };
-				}
-			},
-
 			fetchMenuItemExtras: async (menuItemId) => {
 				set({ loadingExtras: true });
 				try {
