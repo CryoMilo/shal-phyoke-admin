@@ -1,5 +1,6 @@
 // components/OrderCard.jsx
 import { supabase } from "../../services/supabase";
+import PrintKitchenTicketButton from "./PrintKitchenTicketButton";
 
 const OrderCard = ({ order, onUpdate }) => {
 	const updateOrderStatus = async (newStatus) => {
@@ -17,15 +18,18 @@ const OrderCard = ({ order, onUpdate }) => {
 	};
 
 	return (
-		<div className="bg-base-100 border border-base-300 rounded-lg p-4">
+		<div className="bg-base-100 border border-base-300 rounded-lg p-4 shadow-sm">
 			<div className="flex justify-between items-start mb-2">
-				<div>
-					<h3 className="font-bold font-mono">
-						{order.order_type === "dine_in"
-							? `Table ${order.table_number}`
-							: order.order_number || `#${order.id.slice(0, 8)}`}
-					</h3>
-					<span className="badge badge-ghost badge-sm">
+				<div className="flex flex-col gap-1">
+					<div className="flex items-center gap-2">
+						<h3 className="font-bold font-mono">
+							{order.order_type === "dine_in"
+								? `Table ${order.table_number}`
+								: order.order_number || `#${order.id.slice(0, 8)}`}
+						</h3>
+						<PrintKitchenTicketButton order={order} size="xs" />
+					</div>
+					<span className="badge badge-ghost badge-sm w-fit">
 						{order.order_type === "dine_in"
 							? `Dine In${order.table_number ? ` T${order.table_number}` : ""}`
 							: order.order_type === "takeaway"

@@ -11,6 +11,7 @@ import {
 	Eye,
 	XCircle,
 } from "lucide-react";
+import PrintKitchenTicketButton from "./PrintKitchenTicketButton";
 import { showToast } from "../../utils/toastUtils";
 
 const OrderHistoryTab = () => {
@@ -208,8 +209,11 @@ const OrderHistoryTab = () => {
 									<div className="text-xs font-bold opacity-40 uppercase">
 										Order Number
 									</div>
-									<div className="font-mono font-bold text-lg">
-										#{selectedOrder.order_number}
+									<div className="flex items-center gap-3">
+										<div className="font-mono font-bold text-lg">
+											#{selectedOrder.order_number}
+										</div>
+										<PrintKitchenTicketButton order={selectedOrder} size="xs" />
 									</div>
 								</div>
 								<div className="text-right">
