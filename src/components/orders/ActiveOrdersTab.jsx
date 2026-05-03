@@ -9,6 +9,7 @@ import {
 	CreditCard,
 	Banknote,
 } from "lucide-react";
+import PrintKitchenTicketButton from "./PrintKitchenTicketButton";
 import { showToast } from "../../utils/toastUtils";
 import {
 	getBangkokISOString,
@@ -345,9 +346,12 @@ const TableBillsModal = ({ table, onClose, onUpdate }) => {
 							<div className="card-body p-4">
 								<div className="flex justify-between items-start">
 									<div>
-										<h4 className="font-bold text-sm font-mono">
-											#{order.order_number?.slice(-4) || order.id.slice(0, 4)}
-										</h4>
+										<div className="flex items-center gap-2">
+											<h4 className="font-bold text-sm font-mono">
+												#{order.order_number?.slice(-4) || order.id.slice(0, 4)}
+											</h4>
+											<PrintKitchenTicketButton order={order} size="xs" />
+										</div>
 										{order.customer_name && (
 											<p className="text-xs opacity-60 flex items-center gap-1">
 												<Users className="w-3 h-3" /> {order.customer_name}
