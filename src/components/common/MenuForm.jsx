@@ -115,9 +115,9 @@ const MenuForm = ({
 				<ImageUploadField
 					name="image_url"
 					control={control}
-					label="Menu Item Image"
 					bucket="menu_items"
-					placeholder="Upload a high-quality photo of the dish"
+					label="Menu Item Image"
+					placeholder="Optional: Upload a photo now or add it later"
 					required={false}
 				/>
 				{errors.image_url && (
@@ -300,12 +300,15 @@ const MenuForm = ({
 			{/* Quick Note Assignment */}
 			<div className="bg-base-200/30 p-4 rounded-xl border border-base-300">
 				<label className="label pt-0">
-					<span className="label-text font-bold text-sm">Quick Note Assignment</span>
+					<span className="label-text font-bold text-sm">
+						Quick Note Assignment
+					</span>
 				</label>
 				<p className="text-[10px] text-gray-500 mb-3 -mt-1 italic">
-					Choose which note templates from the library should appear when ordering this item.
+					Choose which note templates from the library should appear when
+					ordering this item.
 				</p>
-				
+
 				<Controller
 					name="quick_note_ids"
 					control={control}
@@ -319,8 +322,7 @@ const MenuForm = ({
 											field.value?.includes(note.id)
 												? "border-primary bg-primary/5"
 												: "border-base-300 bg-base-100"
-										}`}
-									>
+										}`}>
 										<input
 											type="checkbox"
 											className="checkbox checkbox-xs checkbox-primary"
@@ -333,9 +335,13 @@ const MenuForm = ({
 											}}
 										/>
 										<div className="flex flex-col min-w-0">
-											<span className="text-xs font-bold truncate">{note.label}</span>
+											<span className="text-xs font-bold truncate">
+												{note.label}
+											</span>
 											<span className="text-[8px] opacity-60 truncate">
-												{note.type === 'radio' ? 'Single Choice' : 'Multi-select'}
+												{note.type === "radio"
+													? "Single Choice"
+													: "Multi-select"}
 											</span>
 										</div>
 									</label>

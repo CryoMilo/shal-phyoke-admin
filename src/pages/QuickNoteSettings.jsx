@@ -61,7 +61,7 @@ const QuickNoteSettings = () => {
 			showToast.error("Label is required");
 			return;
 		}
-		
+
 		const payload = {
 			label: label.trim(),
 			type,
@@ -109,13 +109,13 @@ const QuickNoteSettings = () => {
 	};
 
 	return (
-		<div className="container mx-auto pb-10">
+		<div className="container mx-auto p-3 md:p-6">
 			<PageHeader
 				title="Quick Note Library"
 				description="Manage templates for taste profiles and frequent requests. Assign these to specific menu items in the All Menu page."
 				buttons={[
 					{
-						label: "Create New Template",
+						label: "Create",
 						icon: Plus,
 						onClick: () => {
 							setEditingNote(null);
@@ -125,15 +125,6 @@ const QuickNoteSettings = () => {
 					},
 				]}
 			/>
-
-			{/* Info Alert */}
-			<div className="alert alert-info mb-8 shadow-sm">
-				<AlertCircle className="w-5 h-5" />
-				<div className="text-sm">
-					<p className="font-bold">How it works:</p>
-					<p>Create note templates here (e.g., "Spice Level" or "No Veggies"). Then, go to <b>All Menu</b> and edit an item to choose which notes apply to it.</p>
-				</div>
-			</div>
 
 			{/* Settings Grid */}
 			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -145,20 +136,30 @@ const QuickNoteSettings = () => {
 					notes.map((note) => (
 						<div
 							key={note.id}
-							className={`card bg-base-100 border ${note.is_active ? 'border-base-300' : 'border-error/20 bg-error/5'} shadow-sm transition-all hover:shadow-md`}>
+							className={`card bg-base-100 border ${
+								note.is_active
+									? "border-base-300"
+									: "border-error/20 bg-error/5"
+							} shadow-sm transition-all hover:shadow-md`}>
 							<div className="card-body p-4">
 								<div className="flex justify-between items-start">
 									<div className="flex-1 min-w-0">
 										<div className="flex items-center gap-2">
-											<h3 className="font-bold text-lg truncate" title={note.label}>
+											<h3
+												className="font-bold text-lg truncate"
+												title={note.label}>
 												{note.label}
 											</h3>
 											{!note.is_active && (
-												<span className="badge badge-error badge-xs text-[8px] font-bold">INACTIVE</span>
+												<span className="badge badge-error badge-xs text-[8px] font-bold">
+													INACTIVE
+												</span>
 											)}
 										</div>
 										<p className="text-[10px] uppercase tracking-wider opacity-50 font-bold">
-											{note.type === 'radio' ? 'Single Choice (Radio)' : 'Multiple Selection'}
+											{note.type === "radio"
+												? "Single Choice (Radio)"
+												: "Multiple Selection"}
 										</p>
 									</div>
 									<div className="flex gap-1 ml-2">
@@ -188,7 +189,9 @@ const QuickNoteSettings = () => {
 
 								<div className="mt-3 flex gap-1 flex-wrap">
 									{note.options?.map((opt) => (
-										<span key={opt} className="badge badge-outline badge-sm text-[10px] bg-base-200/50">
+										<span
+											key={opt}
+											className="badge badge-outline badge-sm text-[10px] bg-base-200/50">
 											{opt}
 										</span>
 									))}
@@ -224,11 +227,15 @@ const QuickNoteSettings = () => {
 							</button>
 						</div>
 
-						<form onSubmit={handleSave} className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+						<form
+							onSubmit={handleSave}
+							className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
 							{/* Label */}
 							<div className="form-control">
 								<label className="label py-1">
-									<span className="label-text font-bold text-sm">Note Label *</span>
+									<span className="label-text font-bold text-sm">
+										Note Label *
+									</span>
 								</label>
 								<input
 									type="text"
@@ -239,32 +246,42 @@ const QuickNoteSettings = () => {
 									required
 								/>
 								<label className="label">
-									<span className="label-text-alt opacity-60 italic">This is the title shown during ordering.</span>
+									<span className="label-text-alt opacity-60 italic">
+										This is the title shown during ordering.
+									</span>
 								</label>
 							</div>
 
 							{/* Type Selection */}
 							<div className="form-control">
 								<label className="label py-1">
-									<span className="label-text font-bold text-sm">Selection Mode</span>
+									<span className="label-text font-bold text-sm">
+										Selection Mode
+									</span>
 								</label>
 								<div className="flex gap-2">
 									<button
 										type="button"
-										className={`btn btn-sm flex-1 ${type === 'radio' ? 'btn-primary' : 'btn-outline'}`}
-										onClick={() => setType('radio')}>
+										className={`btn btn-sm flex-1 ${
+											type === "radio" ? "btn-primary" : "btn-outline"
+										}`}
+										onClick={() => setType("radio")}>
 										Single (Radio)
 									</button>
 									<button
 										type="button"
-										className={`btn btn-sm flex-1 ${type === 'multiple' ? 'btn-primary' : 'btn-outline'}`}
-										onClick={() => setType('multiple')}>
+										className={`btn btn-sm flex-1 ${
+											type === "multiple" ? "btn-primary" : "btn-outline"
+										}`}
+										onClick={() => setType("multiple")}>
 										Multi-select
 									</button>
 								</div>
 								<label className="label">
 									<span className="label-text-alt opacity-60 italic">
-										{type === 'radio' ? "Customer picks one (e.g. Low/Med/High)" : "Customer picks multiple (e.g. No Onion, No Chili)"}
+										{type === "radio"
+											? "Customer picks one (e.g. Low/Med/High)"
+											: "Customer picks multiple (e.g. No Onion, No Chili)"}
 									</span>
 								</label>
 							</div>
@@ -272,7 +289,9 @@ const QuickNoteSettings = () => {
 							{/* Options */}
 							<div className="form-control">
 								<label className="label py-1">
-									<span className="label-text font-bold text-sm">Options / Levels</span>
+									<span className="label-text font-bold text-sm">
+										Options / Levels
+									</span>
 								</label>
 								<div className="flex flex-wrap gap-1 mb-3">
 									{options.map((opt) => (
@@ -324,8 +343,12 @@ const QuickNoteSettings = () => {
 										onChange={(e) => setIsActive(e.target.checked)}
 									/>
 									<div>
-										<span className="label-text font-bold block">Library Status</span>
-										<span className="text-[10px] opacity-60">Inactive notes are hidden from the item assignment picker.</span>
+										<span className="label-text font-bold block">
+											Library Status
+										</span>
+										<span className="text-[10px] opacity-60">
+											Inactive notes are hidden from the item assignment picker.
+										</span>
 									</div>
 								</label>
 							</div>
@@ -341,7 +364,10 @@ const QuickNoteSettings = () => {
 								}}>
 								Cancel
 							</button>
-							<button type="submit" className="btn btn-primary px-8" onClick={handleSave}>
+							<button
+								type="submit"
+								className="btn btn-primary px-8"
+								onClick={handleSave}>
 								{editingNote ? "Update Template" : "Save to Library"}
 							</button>
 						</div>

@@ -71,7 +71,7 @@ const MenuFormModal = ({
 
 					{/* Form Content */}
 					<div className="p-6 pt-4">
-						{activeTab === "basic" ? (
+						<div className={activeTab === "basic" ? "block" : "hidden"}>
 							<MenuForm
 								editingMenu={editingMenu}
 								onSubmit={handleSubmit}
@@ -79,7 +79,9 @@ const MenuFormModal = ({
 								loading={loading}
 								isRegularOnly={isRegularOnly}
 							/>
-						) : (
+						</div>
+						
+						<div className={activeTab === "extras" ? "block" : "hidden"}>
 							<div className="py-4">
 								{editingMenu ? (
 									<>
@@ -111,7 +113,7 @@ const MenuFormModal = ({
 									</div>
 								)}
 							</div>
-						)}
+						</div>
 					</div>
 				</div>
 			</div>

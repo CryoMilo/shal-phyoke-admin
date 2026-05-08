@@ -25,7 +25,7 @@ export const menuSchema = z.object({
 	]),
 	taste_profile: z.string().optional(),
 	description: z.string().optional(),
-	image_url: z.string().optional(),
+	image_url: z.string().nullable().optional().or(z.literal("")),
 	sensitive_ingredients: z.string().optional(),
 	is_active: z.boolean().default(true),
 	is_regular: z.boolean().default(false),
