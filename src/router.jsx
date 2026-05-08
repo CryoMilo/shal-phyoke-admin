@@ -20,6 +20,7 @@ import MonthlyOverheads from "./pages/MonthlyOverheads";
 import Procurement from "./pages/Procurement";
 import InventoryItems from "./pages/InventoryItems";
 import ComboManager from "./pages/ComboManager";
+import StaffAccessSettings from "./pages/StaffAccessSettings";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 const rootRoute = createRootRoute({
@@ -39,6 +40,16 @@ const dashboardRoute = createRoute({
 	component: () => (
 		<ProtectedRoute requiredRole="admin">
 			<Dashboard />
+		</ProtectedRoute>
+	),
+});
+
+const staffAccessSettingsRoute = createRoute({
+	path: "/staff-access-settings",
+	getParentRoute: () => rootRoute,
+	component: () => (
+		<ProtectedRoute requiredRole="admin">
+			<StaffAccessSettings />
 		</ProtectedRoute>
 	),
 });
@@ -185,6 +196,7 @@ const routeTree = rootRoute.addChildren([
 	dailyCashRoute,
 	dailyExpensesRoute,
 	monthlyOverheadsRoute,
+	staffAccessSettingsRoute,
 	procurementRoute,
 	inventoryItemsRoute,
 ]);

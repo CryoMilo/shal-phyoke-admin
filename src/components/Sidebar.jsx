@@ -1,7 +1,8 @@
 // src/components/Sidebar.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation, Outlet } from "@tanstack/react-router";
 import { useAuth } from "../contexts/AuthContext";
+import useStaffAccessStore from "../stores/staffAccessStore";
 import {
 	Home,
 	UtensilsCrossed,
@@ -18,28 +19,47 @@ import {
 	Layers2,
 	Settings2,
 	LogOut,
-	User,
+	ShieldCheck,
 } from "lucide-react";
 
 const Sidebar = ({ children }) => {
 	const location = useLocation();
 	const [isCollapsed, setIsCollapsed] = useState(false);
-	const { profile, signOut, isAdmin } = useAuth();
+	const { profile, signOut, isAdmin, isStaff } = useAuth();
+	const { permissions, fetchPermissions } = useStaffAccessStore();
+
+	useEffect(() => {
+		fetchPermissions();
+	}, [fetchPermissions]);
 
 	const isActiveRoute = (path) => location.pathname === path;
 	const toggleSidebar = () => setIsCollapsed(!isCollapsed);
 	const handleSignOut = async () => await signOut();
 
-	// Admin-only items
-	const adminMenuItems = [
+	const role = isAdmin ? "admin" : isStaff ? "staff" : null;
+	const allowedPaths = role ? permissions[role] || [] : [];
+
+	const filterItems = (items) => {
+		return items.filter(item => {
+			if (item.type === "divider") return true;
+			return allowedPaths.includes(item.path);
+		}).filter((item, index, self) => {
+			// Remove dividers if they are followed by another divider or are at the end
+			if (item.type === "divider") {
+				const nextItem = self[index + 1];
+				if (!nextItem || nextItem.type === "divider") return false;
+			}
+			return true;
+		});
+	};
+
+	// All possible menu items
+	const allMenuItems = [
 		{
 			name: "Dashboard",
 			path: "/dashboard",
 			icon: Home,
 		},
-	];
-
-	const baseMenuItems = [
 		{
 			type: "divider",
 			label: "Operations",
@@ -106,18 +126,11 @@ const Sidebar = ({ children }) => {
 			path: "/daily-expenses",
 			icon: TrendingDown,
 		},
-	];
-
-	// Admin-only finance items
-	const adminFinanceItems = [
 		{
 			name: "Monthly Overheads",
 			path: "/monthly-overheads",
 			icon: FileText,
 		},
-	];
-
-	const settingsMenuItems = [
 		{
 			type: "divider",
 			label: "Settings",
@@ -129,12 +142,22 @@ const Sidebar = ({ children }) => {
 		},
 	];
 
-	const menuStructure = [
-		...(isAdmin ? adminMenuItems : []),
-		...baseMenuItems,
-		...(isAdmin ? adminFinanceItems : []),
-		...settingsMenuItems,
-	];
+	// Filter based on permissions
+	const filteredMenu = filterItems(allMenuItems);
+
+	// Add Admin-only Settings at the bottom if not already filtered in
+	const finalMenu = [...filteredMenu];
+	if (isAdmin) {
+		// Ensure a divider exists before admin settings
+		if (finalMenu.length > 0 && finalMenu[finalMenu.length - 1].type !== "divider") {
+			finalMenu.push({ type: "divider", label: "Admin" });
+		}
+		finalMenu.push({
+			name: "Staff Access",
+			path: "/staff-access-settings",
+			icon: ShieldCheck,
+		});
+	}
 
 	return (
 		<div className="drawer lg:drawer-open">
@@ -223,7 +246,7 @@ const Sidebar = ({ children }) => {
 
 					{/* Navigation */}
 					<ul className="menu p-4 space-y-1">
-						{menuStructure.map((item, index) => {
+						{finalMenu.map((item, index) => {
 							if (item.type === "divider") {
 								if (isCollapsed) return null;
 								return (
