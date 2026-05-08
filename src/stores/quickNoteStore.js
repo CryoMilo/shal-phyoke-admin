@@ -82,7 +82,7 @@ const useQuickNoteStore = create((set, get) => ({
 				loading: false,
 			}));
 			
-			showToast.success("Quick Note added to library");
+			showToast.success(`Quick Note added: ${data.label}`);
 			return { success: true, data };
 		} catch (error) {
 			console.error("Error adding quick note:", error);
@@ -117,7 +117,7 @@ const useQuickNoteStore = create((set, get) => ({
 				loading: false,
 			}));
 
-			showToast.success("Quick Note updated");
+			showToast.success(`Quick Note updated: ${data.label}`);
 			return { success: true, data };
 		} catch (error) {
 			console.error("Error updating quick note:", error);
@@ -127,7 +127,50 @@ const useQuickNoteStore = create((set, get) => ({
 		}
 	},
 
+	duplicateNote: async (id) => {
+		set({ loading: true });
+		try {
+			const noteToDuplicate = get().notes.find((n) => n.id === id);
+			if (!noteToDuplicate) throw new Error("Note not found");
+
+			const { id: _, created_at: __, updated_at: ___, ...rest } = noteToDuplicate;
+			const payload = {
+				...rest,
+				label: `${rest.label} (Copy)`,
+				created_at: new Date().toISOString(),
+				updated_at: new Date().toISOString(),
+			};
+
+			const { data, error } = await supabase
+				.from("quick_notes")
+				.insert([payload])
+				.select()
+				.single();
+
+			if (error) throw error;
+
+			set((state) => ({
+				notes: [data, ...state.notes],
+				activeNotes: data.is_active
+					? [...state.activeNotes, data].sort((a, b) =>
+							a.label.localeCompare(b.label)
+					  )
+					: state.activeNotes,
+				loading: false,
+			}));
+
+			showToast.success(`Note duplicated: ${data.label}`);
+			return { success: true, data };
+		} catch (error) {
+			console.error("Error duplicating quick note:", error);
+			showToast.error("Failed to duplicate note");
+			set({ loading: false });
+			return { success: false, error };
+		}
+	},
+
 	deleteNote: async (id) => {
+		const noteToDelete = get().notes.find((n) => n.id === id);
 		set({ loading: true });
 		try {
 			const { error } = await supabase
@@ -143,7 +186,9 @@ const useQuickNoteStore = create((set, get) => ({
 				loading: false,
 			}));
 
-			showToast.success("Quick Note removed from library");
+			showToast.success(
+				`Quick Note "${noteToDelete?.label || "Note"}" removed from library`
+			);
 			return { success: true };
 		} catch (error) {
 			console.error("Error deleting quick note:", error);

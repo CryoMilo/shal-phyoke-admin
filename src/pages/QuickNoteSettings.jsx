@@ -1,13 +1,33 @@
 import React, { useState, useEffect } from "react";
 import { showToast } from "../utils/toastUtils";
-import { Plus, Trash2, Edit2, Settings2, X, AlertCircle } from "lucide-react";
+import {
+	Plus,
+	Trash2,
+	Edit2,
+	Settings2,
+	X,
+	AlertCircle,
+	Copy,
+} from "lucide-react";
 import { PageHeader } from "../components/common/PageHeader";
 import useQuickNoteStore from "../stores/quickNoteStore";
+import DeleteConfirmationModal from "../components/common/DeleteConfirmationModal";
 
 const QuickNoteSettings = () => {
-	const { notes, loading, fetchAllNotes, addNote, updateNote, deleteNote } = useQuickNoteStore();
+	const {
+		notes,
+		loading,
+		fetchAllNotes,
+		addNote,
+		updateNote,
+		deleteNote,
+		duplicateNote,
+	} = useQuickNoteStore();
 	const [showModal, setShowModal] = useState(false);
 	const [editingNote, setEditingNote] = useState(null);
+
+	// Delete confirmation state
+	const [deleteId, setDeleteId] = useState(null);
 
 	// Form state
 	const [label, setLabel] = useState("");
@@ -62,9 +82,14 @@ const QuickNoteSettings = () => {
 		}
 	};
 
-	const handleDelete = async (id) => {
-		if (!window.confirm("Are you sure you want to delete this note from the library? This won't automatically remove it from menu items but it will stop appearing in the picker.")) return;
-		await deleteNote(id);
+	const handleDuplicate = async (id) => {
+		await duplicateNote(id);
+	};
+
+	const handleDelete = async () => {
+		if (!deleteId) return;
+		await deleteNote(deleteId);
+		setDeleteId(null);
 	};
 
 	const addOption = () => {
@@ -138,7 +163,14 @@ const QuickNoteSettings = () => {
 									</div>
 									<div className="flex gap-1 ml-2">
 										<button
+											className="btn btn-ghost btn-xs btn-square text-primary"
+											title="Duplicate Template"
+											onClick={() => handleDuplicate(note.id)}>
+											<Copy className="w-3.5 h-3.5" />
+										</button>
+										<button
 											className="btn btn-ghost btn-xs btn-square"
+											title="Edit Template"
 											onClick={() => {
 												setEditingNote(note);
 												setShowModal(true);
@@ -147,7 +179,8 @@ const QuickNoteSettings = () => {
 										</button>
 										<button
 											className="btn btn-ghost btn-xs btn-square text-error"
-											onClick={() => handleDelete(note.id)}>
+											title="Delete Template"
+											onClick={() => setDeleteId(note.id)}>
 											<Trash2 className="w-3.5 h-3.5" />
 										</button>
 									</div>
@@ -321,6 +354,14 @@ const QuickNoteSettings = () => {
 						}}></div>
 				</div>
 			)}
+
+			<DeleteConfirmationModal
+				isOpen={!!deleteId}
+				onClose={() => setDeleteId(null)}
+				onConfirm={handleDelete}
+				title="Delete Template?"
+				message="Are you sure you want to delete this note from the library? This won't automatically remove it from menu items but it will stop appearing in the picker."
+			/>
 		</div>
 	);
 };
