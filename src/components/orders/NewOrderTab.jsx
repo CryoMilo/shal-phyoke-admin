@@ -51,7 +51,7 @@ const NewOrderTab = ({
 		getActiveRotatingCombos,
 	} = useMenuStore();
 
-	const [todaysSpecialItems, setTodaysSpecialItems] = useState([]);
+	const [todaysSpecialRaw, setTodaysSpecialRaw] = useState([]);
 	const [activeCategory, setActiveCategory] = useState("Today's Special");
 
 	// State for Item Note Modal
@@ -59,6 +59,17 @@ const NewOrderTab = ({
 	const [activeItemForNote, setActiveItemForNote] = useState(null);
 
 	const [activeRotatingCombo, setActiveRotatingCombo] = useState(null);
+
+	// Derived Today's Specials with extras from master list
+	const todaysSpecialItems = useMemo(() => {
+		return todaysSpecialRaw.map(item => {
+			const masterItem = allMenuItems.find(m => String(m.id) === String(item.id));
+			return {
+				...item,
+				available_extras: masterItem?.available_extras || []
+			};
+		});
+	}, [todaysSpecialRaw, allMenuItems]);
 
 	const fixedCombos = useMemo(() => getActiveFixedCombos(), [allMenuItems]);
 	const rotatingCombos = useMemo(
@@ -118,23 +129,19 @@ const NewOrderTab = ({
 			const specialItems = items
 				.map((item) => item.menu_items)
 				.filter(Boolean)
-				.filter(item => item.is_active)
-				.map(item => ({
-					...item,
-					available_extras: item.available_extras || [] // Ensure it exists for the modal
-				}));
-			setTodaysSpecialItems(specialItems);
+				.filter(item => item.is_active);
+			
+			setTodaysSpecialRaw(specialItems);
 		} catch (error) {
 			console.error("Error fetching today's special items:", error);
 		}
 	};
 
 	useEffect(() => {
-		if (allMenuItems.length === 0) {
-			fetchAllMenuItems();
-		}
+		// Always fetch to ensure we have the latest data and extras
+		fetchAllMenuItems();
 		fetchTodaysSpecialItems();
-	}, []);
+	}, [fetchAllMenuItems]);
 
 	// Dynamically get categories from the actual data
 	const categories = React.useMemo(() => {
@@ -191,9 +198,12 @@ const NewOrderTab = ({
 
 	// Item Note Modal Logic
 	const openNoteModal = (item) => {
-		// IMPORTANT: Using cart_id now for unique notes
+		// IMPORTANT: Match with master list to get full data including extras
+		const masterItem = allMenuItems.find(m => String(m.id) === String(item.id));
+		
 		setActiveItemForNote({
 			...item,
+			available_extras: masterItem?.available_extras || [],
 			is_regular: item.is_regular ?? false,
 			note: itemNotes[item.cart_id] || "",
 		});
