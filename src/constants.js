@@ -17,6 +17,7 @@ export const CATEGORY_DISPLAY_NAMES = {
 	Combo: "Combos 🍱",
 	Other: "Others",
 	Comfort: "Comfort Food 🍱",
+	Snack: "Snack 🥟",
 };
 
 export const ALL_CATEGORIES = [
@@ -35,6 +36,7 @@ export const ALL_CATEGORIES = [
 	"Combo",
 	"Other",
 	"Comfort",
+	"Snack",
 ];
 
 export const vendorColors = [
