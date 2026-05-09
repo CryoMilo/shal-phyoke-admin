@@ -11,6 +11,17 @@ const ItemNoteModal = ({ show, onClose, onSave, item }) => {
 	const [selectedToppings, setSelectedToppings] = useState([]);
 	const [tasteProfiles, setTasteProfiles] = useState({});
 
+	const isBurmese = (text) => /[\u1000-\u109F]/.test(text || "");
+
+	const formatTasteNote = (label, level) => {
+		if (!label || !level) return "";
+		// Burmese: Object (Label) + Modifier (Level) -> "ကြက်သွန်နီ မထည့်"
+		// English: Modifier (Level) + Object (Label) -> "No Onion"
+		return isBurmese(label) || isBurmese(level) 
+			? `${label} ${level}` 
+			: `${level} ${label}`;
+	};
+
 	useEffect(() => {
 		fetchActiveNotes();
 	}, [fetchActiveNotes]);
@@ -47,10 +58,9 @@ const ItemNoteModal = ({ show, onClose, onSave, item }) => {
 			const toppings = [];
 			const tastes = {};
 
-			// Initialize tastes from settings - default to Med if available, else first option
+			// Initialize tastes from settings - default to null
 			tasteCategories.forEach((cat) => {
-				const hasMed = cat.options?.includes("Med");
-				tastes[cat.id] = hasMed ? "Med" : (cat.options?.[0] || "");
+				tastes[cat.id] = null;
 			});
 
 			const custom = [];
@@ -63,7 +73,8 @@ const ItemNoteModal = ({ show, onClose, onSave, item }) => {
 				tasteCategories.forEach((cat) => {
 					const levels = cat.options || [];
 					levels.forEach((level) => {
-						if (part === `${level} ${cat.label}`) {
+						// Check both orders to be safe and handle legacy notes
+						if (part === `${level} ${cat.label}` || part === `${cat.label} ${level}`) {
 							tastes[cat.id] = level;
 							matchedTaste = true;
 						}
@@ -124,10 +135,7 @@ const ItemNoteModal = ({ show, onClose, onSave, item }) => {
 		setCustomNote("");
 		setIsTakeaway(false);
 		setTasteProfiles(
-			Object.fromEntries(tasteCategories.map((cat) => {
-				const hasMed = cat.options?.includes("Med");
-				return [cat.id, hasMed ? "Med" : (cat.options?.[0] || "")];
-			}))
+			Object.fromEntries(tasteCategories.map((cat) => [cat.id, null]))
 		);
 	};
 
@@ -139,10 +147,9 @@ const ItemNoteModal = ({ show, onClose, onSave, item }) => {
 
 		tasteCategories.forEach((cat) => {
 			const currentLevel = tasteProfiles[cat.id];
-			const hasMed = cat.options?.includes("Med");
-			// Only add if it's NOT the default (Med)
-			if (currentLevel && (!hasMed || currentLevel !== "Med")) {
-				combinedNotes.push(`${currentLevel} ${cat.label}`);
+			// Only add if it's explicitly selected (not null)
+			if (currentLevel) {
+				combinedNotes.push(formatTasteNote(cat.label, currentLevel));
 			}
 		});
 
@@ -172,11 +179,7 @@ const ItemNoteModal = ({ show, onClose, onSave, item }) => {
 		selectedCommonNotes.length > 0 ||
 		customNote.trim() !== "" ||
 		isTakeaway ||
-		Object.entries(tasteProfiles).some(([id, val]) => {
-			const cat = tasteCategories.find(c => c.id === id);
-			const hasMed = cat?.options?.includes("Med");
-			return hasMed ? val !== "Med" : val !== cat?.options?.[0];
-		});
+		Object.values(tasteProfiles).some((val) => val !== null);
 
 	if (!show) return null;
 
@@ -274,7 +277,7 @@ const ItemNoteModal = ({ show, onClose, onSave, item }) => {
 																onClick={() =>
 																	setTasteProfiles((prev) => ({
 																		...prev,
-																		[cat.id]: level,
+																		[cat.id]: prev[cat.id] === level ? null : level,
 																	}))
 																}
 																className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${
