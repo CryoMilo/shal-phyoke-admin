@@ -22,6 +22,7 @@ export const regularMenuSchema = z.object({
 		"Combo",
 		"Other",
 		"Comfort",
+		"Snack",
 	]),
 	taste_profile: z.string().optional(),
 	description: z.string().optional(),
