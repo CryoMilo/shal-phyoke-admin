@@ -13,6 +13,7 @@ const PrintKitchenTicketButton = ({ order, size = "sm" }) => {
 		const items = order.order_items.map((item) => ({
 			name: item.name_burmese,
 			qty: item.quantity,
+			price: item.price,
 			note: order.item_notes?.[item.cart_id] ?? null,
 		}));
 
@@ -26,6 +27,12 @@ const PrintKitchenTicketButton = ({ order, size = "sm" }) => {
 		const { error } = await supabase.from("print_jobs").insert({
 			order_no: order.order_number ?? order.id.slice(0, 8),
 			table_no: tableNo,
+			customer_name: order.customer_name,
+			delivery_address: order.delivery_address,
+			customer_phone: order.customer_phone,
+			payment_method: order.payment_method,
+			subtotal: order.subtotal,
+			total_amount: order.total_amount,
 			items,
 			note: order.notes ?? null,
 			status: "pending",
