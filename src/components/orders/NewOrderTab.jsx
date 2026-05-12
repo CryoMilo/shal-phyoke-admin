@@ -5,6 +5,7 @@ import { Split, Info } from "lucide-react";
 import ItemNoteModal from "./ItemNoteModal";
 import useMenuStore from "../../stores/menuStore";
 import RotatingComboPickerModal from "./RotatingComboPickerModal";
+import { useAuth } from "../../contexts/AuthContext";
 
 const getTodayWeekday = () => {
 	const d = new Date();
@@ -50,6 +51,7 @@ const NewOrderTab = ({
 		getActiveFixedCombos,
 		getActiveRotatingCombos,
 	} = useMenuStore();
+	const { isAdmin, isStaff } = useAuth();
 
 	const [todaysSpecialRaw, setTodaysSpecialRaw] = useState([]);
 	const [activeCategory, setActiveCategory] = useState("Today's Special");
@@ -62,11 +64,13 @@ const NewOrderTab = ({
 
 	// Derived Today's Specials with extras from master list
 	const todaysSpecialItems = useMemo(() => {
-		return todaysSpecialRaw.map(item => {
-			const masterItem = allMenuItems.find(m => String(m.id) === String(item.id));
+		return todaysSpecialRaw.map((item) => {
+			const masterItem = allMenuItems.find(
+				(m) => String(m.id) === String(item.id)
+			);
 			return {
 				...item,
-				available_extras: masterItem?.available_extras || []
+				available_extras: masterItem?.available_extras || [],
 			};
 		});
 	}, [todaysSpecialRaw, allMenuItems]);
@@ -129,8 +133,8 @@ const NewOrderTab = ({
 			const specialItems = items
 				.map((item) => item.menu_items)
 				.filter(Boolean)
-				.filter(item => item.is_active);
-			
+				.filter((item) => item.is_active);
+
 			setTodaysSpecialRaw(specialItems);
 		} catch (error) {
 			console.error("Error fetching today's special items:", error);
@@ -199,8 +203,10 @@ const NewOrderTab = ({
 	// Item Note Modal Logic
 	const openNoteModal = (item) => {
 		// IMPORTANT: Match with master list to get full data including extras
-		const masterItem = allMenuItems.find(m => String(m.id) === String(item.id));
-		
+		const masterItem = allMenuItems.find(
+			(m) => String(m.id) === String(item.id)
+		);
+
 		setActiveItemForNote({
 			...item,
 			available_extras: masterItem?.available_extras || [],
@@ -216,34 +222,43 @@ const NewOrderTab = ({
 		setActiveItemForNote(null);
 	};
 
+	const handleOrderTypeToggle = (type) => {
+		// If clicking the same type, it toggles off to dine_in
+		if (orderType === type) {
+			setOrderType("dine_in");
+		} else {
+			setOrderType(type);
+		}
+	};
+
+	const visibleOrderTypes = [];
+	if (isAdmin || isStaff) visibleOrderTypes.push("takeaway");
+	if (isAdmin) visibleOrderTypes.push("delivery");
+
 	return (
 		<div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
 			{/* Left: Menu Items */}
 			<div className="lg:col-span-3">
 				{/* Order Type Selection */}
-				<div className="bg-base-200 p-4 rounded-lg mb-4 md:flex justify-between">
-					<label className="label mb-1">
+				{/* <div className="bg-base-200 p-4 rounded-lg mb-4 md:flex justify-between items-center">
+					<label className="label mb-1 md:mb-0">
 						<span className="label-text text-accent font-semibold">
 							Order Type
 						</span>
 					</label>
 					<div className="flex gap-2">
-						{["dine_in", "takeaway", "delivery"].map((type) => (
+						{visibleOrderTypes.map((type) => (
 							<button
 								key={type}
 								className={`btn btn-sm ${
 									orderType === type ? "btn-primary" : "btn-outline"
 								}`}
-								onClick={() => setOrderType(type)}>
-								{type === "dine_in"
-									? "Dine In"
-									: type === "takeaway"
-									? "Takeaway"
-									: "Delivery"}
+								onClick={() => handleOrderTypeToggle(type)}>
+								{type === "takeaway" ? "Takeaway" : "Delivery"}
 							</button>
 						))}
 					</div>
-				</div>
+				</div> */}
 
 				{/* Customer Info for Delivery */}
 				{orderType === "delivery" && (
@@ -517,6 +532,25 @@ const NewOrderTab = ({
 									: method === "cash"
 									? "Cash"
 									: "QR"}
+							</button>
+						))}
+					</div>
+				</div>
+
+				{/* Secondary Order Type Selection */}
+				<div className="mt-4">
+					<label className="label py-1">
+						<span className="label-text font-semibold text-xs">Order Type</span>
+					</label>
+					<div className="flex gap-1">
+						{visibleOrderTypes.map((type) => (
+							<button
+								key={type}
+								className={`btn btn-sm flex-1 ${
+									orderType === type ? "btn-primary" : "btn-outline"
+								}`}
+								onClick={() => handleOrderTypeToggle(type)}>
+								{type === "takeaway" ? "Takeaway" : "Delivery"}
 							</button>
 						))}
 					</div>
