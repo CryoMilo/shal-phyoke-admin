@@ -6,6 +6,7 @@ import ItemNoteModal from "./ItemNoteModal";
 import useMenuStore from "../../stores/menuStore";
 import RotatingComboPickerModal from "./RotatingComboPickerModal";
 import { useAuth } from "../../contexts/AuthContext";
+import { playClickSound } from "../../utils/soundUtils";
 
 const getTodayWeekday = () => {
 	const d = new Date();
@@ -223,6 +224,7 @@ const NewOrderTab = ({
 	};
 
 	const handleOrderTypeToggle = (type) => {
+		playClickSound();
 		// If clicking the same type, it toggles off to dine_in
 		if (orderType === type) {
 			setOrderType("dine_in");
@@ -323,7 +325,10 @@ const NewOrderTab = ({
 							className={`btn btn-sm whitespace-nowrap ${
 								activeCategory === category ? "btn-primary" : "btn-outline"
 							}`}
-							onClick={() => setActiveCategory(category)}>
+							onClick={() => {
+								playClickSound();
+								setActiveCategory(category);
+							}}>
 							{category}
 						</button>
 					))}
@@ -341,6 +346,7 @@ const NewOrderTab = ({
 										: "border-base-300"
 								}`}
 								onClick={() => {
+									playClickSound();
 									if (item.isFixedCombo) {
 										addToCart(item, item.combo_note_summary || null, 0);
 										return;
@@ -421,7 +427,10 @@ const NewOrderTab = ({
 								<div className="flex items-center gap-1 bg-base-200 rounded-full px-1">
 									<button
 										className="btn btn-xs btn-circle btn-ghost"
-										onClick={() => updateQuantity(item.cart_id, -1)}>
+										onClick={() => {
+											playClickSound();
+											updateQuantity(item.cart_id, -1);
+										}}>
 										-
 									</button>
 									<span className="font-mono text-xs w-4 text-center">
@@ -429,7 +438,10 @@ const NewOrderTab = ({
 									</span>
 									<button
 										className="btn btn-xs btn-circle btn-ghost"
-										onClick={() => updateQuantity(item.cart_id, 1)}>
+										onClick={() => {
+											playClickSound();
+											updateQuantity(item.cart_id, 1);
+										}}>
 										+
 									</button>
 								</div>
@@ -442,7 +454,10 @@ const NewOrderTab = ({
 									<button
 										className="btn btn-sm text-accent hover:bg-primary hover:text-white border-none"
 										title="Split into separate lines"
-										onClick={() => splitItem(item.cart_id)}>
+										onClick={() => {
+											playClickSound();
+											splitItem(item.cart_id);
+										}}>
 										<Split className="w-3.5 h-3.5" />
 									</button>
 								)}
@@ -459,7 +474,10 @@ const NewOrderTab = ({
 												? "btn-accent btn-outline"
 												: "btn-ghost border-base-300"
 										}`}
-										onClick={() => openNoteModal(item)}>
+										onClick={() => {
+											playClickSound();
+											openNoteModal(item);
+										}}>
 										<span className="text-[10px]">
 											{itemNotes[item.cart_id] ? "Edit Note" : "+ Add Note"}
 										</span>
@@ -506,7 +524,10 @@ const NewOrderTab = ({
 					<div className="mt-3">
 						<button
 							className="btn btn-secondary btn-sm w-full text-white"
-							onClick={() => setShowTableModal(true)}>
+							onClick={() => {
+								playClickSound();
+								setShowTableModal(true);
+							}}>
 							{tableNumber ? `Table ${tableNumber}` : "Select Table"}
 						</button>
 					</div>
@@ -526,7 +547,10 @@ const NewOrderTab = ({
 								className={`btn btn-sm flex-1 ${
 									paymentMethod === method ? "btn-primary" : "btn-outline"
 								}`}
-								onClick={() => setPaymentMethod(method)}>
+								onClick={() => {
+									playClickSound();
+									setPaymentMethod(method);
+								}}>
 								{method === "unpaid"
 									? "Unpaid"
 									: method === "cash"
@@ -575,10 +599,18 @@ const NewOrderTab = ({
 					<button
 						className="btn btn-primary w-full"
 						disabled={cart.length === 0}
-						onClick={processOrder}>
+						onClick={() => {
+							playClickSound();
+							processOrder();
+						}}>
 						Process Order - ฿{totalAmount.toFixed(2)}
 					</button>
-					<button className="btn btn-outline btn-xs w-full" onClick={clearCart}>
+					<button
+						className="btn btn-outline btn-xs w-full"
+						onClick={() => {
+							playClickSound();
+							clearCart();
+						}}>
 						Clear Order
 					</button>
 				</div>
