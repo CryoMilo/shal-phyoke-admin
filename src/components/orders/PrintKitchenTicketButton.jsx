@@ -1,8 +1,8 @@
 // src/components/orders/PrintKitchenTicketButton.jsx
 import React, { useState } from "react";
 import { Printer } from "lucide-react";
-import { supabase } from "../../services/supabase";
 import { showToast } from "../../utils/toastUtils";
+import { sendToKitchenPrinter } from "../../services/printerService";
 
 const PrintKitchenTicketButton = ({ order, size = "sm" }) => {
 	const [status, setStatus] = useState("idle");
@@ -10,35 +10,9 @@ const PrintKitchenTicketButton = ({ order, size = "sm" }) => {
 	const handlePrint = async () => {
 		setStatus("sending");
 
-		const items = order.order_items.map((item) => ({
-			name: item.name_burmese,
-			qty: item.quantity,
-			price: item.price,
-			note: order.item_notes?.[item.cart_id] ?? null,
-		}));
+		const { success } = await sendToKitchenPrinter(order);
 
-		const tableNo =
-			order.order_type === "dine_in"
-				? `T-${order.table_number}`
-				: order.order_type === "takeaway"
-				? "Takeaway"
-				: "Delivery";
-
-		const { error } = await supabase.from("print_jobs").insert({
-			order_no: order.order_number ?? order.id.slice(0, 8),
-			table_no: tableNo,
-			customer_name: order.customer_name,
-			delivery_address: order.delivery_address,
-			customer_phone: order.customer_phone,
-			payment_method: order.payment_method,
-			subtotal: order.subtotal,
-			total_amount: order.total_amount,
-			items,
-			note: order.notes ?? null,
-			status: "pending",
-		});
-
-		if (error) {
+		if (!success) {
 			showToast.error("Failed to send to printer");
 			setStatus("error");
 		} else {

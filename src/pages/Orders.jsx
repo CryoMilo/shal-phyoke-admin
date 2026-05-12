@@ -8,6 +8,8 @@ import OrderHistoryTab from "../components/orders/OrderHistoryTab";
 import { showToast } from "../utils/toastUtils";
 import useQuickNoteStore from "../stores/quickNoteStore";
 import useOrderStore from "../stores/orderStore";
+import useStaffAccessStore from "../stores/staffAccessStore";
+import { sendToKitchenPrinter } from "../services/printerService";
 
 export const Orders = () => {
 	const fetchActiveNotes = useQuickNoteStore((state) => state.fetchActiveNotes);
@@ -38,10 +40,12 @@ export const Orders = () => {
 
 	const [activeTab, setActiveTab] = useState("new-order");
 	const [showTableModal, setShowTableModal] = useState(false);
+	const { autoPrintKitchenTicket, fetchPermissions } = useStaffAccessStore();
 
 	useEffect(() => {
 		fetchActiveNotes();
-	}, [fetchActiveNotes]);
+		fetchPermissions();
+	}, [fetchActiveNotes, fetchPermissions]);
 
 	const subtotal = getSubtotal();
 	const totalAmount = getTotalAmount();
@@ -90,9 +94,16 @@ export const Orders = () => {
 				item_extra_prices: itemExtraPrices,
 			};
 
-			const { error } = await supabase.from("orders").insert([orderData]);
+			const { data, error } = await supabase.from("orders").insert([orderData]).select().single();
 
 			if (error) throw error;
+
+			// Trigger auto-print if enabled
+			if (autoPrintKitchenTicket) {
+				sendToKitchenPrinter(data).catch(err => {
+					console.error("Auto-print failed:", err);
+				});
+			}
 
 			showToast.success("Order processed successfully!");
 			clearCart();
