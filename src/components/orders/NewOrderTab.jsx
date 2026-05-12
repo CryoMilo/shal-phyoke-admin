@@ -1,12 +1,11 @@
 // components/NewOrderTab.jsx
 import React, { useState, useEffect, useMemo } from "react";
 import { supabase } from "../../services/supabase";
-import { Split, Info } from "lucide-react";
+import { Split } from "lucide-react";
 import ItemNoteModal from "./ItemNoteModal";
 import useMenuStore from "../../stores/menuStore";
 import RotatingComboPickerModal from "./RotatingComboPickerModal";
 import { useAuth } from "../../contexts/AuthContext";
-import { playClickSound } from "../../utils/soundUtils";
 
 const getTodayWeekday = () => {
 	const d = new Date();
@@ -224,7 +223,6 @@ const NewOrderTab = ({
 	};
 
 	const handleOrderTypeToggle = (type) => {
-		playClickSound();
 		// If clicking the same type, it toggles off to dine_in
 		if (orderType === type) {
 			setOrderType("dine_in");
@@ -326,7 +324,6 @@ const NewOrderTab = ({
 								activeCategory === category ? "btn-primary" : "btn-outline"
 							}`}
 							onClick={() => {
-								playClickSound();
 								setActiveCategory(category);
 							}}>
 							{category}
@@ -346,7 +343,6 @@ const NewOrderTab = ({
 										: "border-base-300"
 								}`}
 								onClick={() => {
-									playClickSound();
 									if (item.isFixedCombo) {
 										addToCart(item, item.combo_note_summary || null, 0);
 										return;
@@ -428,7 +424,6 @@ const NewOrderTab = ({
 									<button
 										className="btn btn-xs btn-circle btn-ghost"
 										onClick={() => {
-											playClickSound();
 											updateQuantity(item.cart_id, -1);
 										}}>
 										-
@@ -439,7 +434,6 @@ const NewOrderTab = ({
 									<button
 										className="btn btn-xs btn-circle btn-ghost"
 										onClick={() => {
-											playClickSound();
 											updateQuantity(item.cart_id, 1);
 										}}>
 										+
@@ -455,7 +449,6 @@ const NewOrderTab = ({
 										className="btn btn-sm text-accent hover:bg-primary hover:text-white border-none"
 										title="Split into separate lines"
 										onClick={() => {
-											playClickSound();
 											splitItem(item.cart_id);
 										}}>
 										<Split className="w-3.5 h-3.5" />
@@ -475,7 +468,6 @@ const NewOrderTab = ({
 												: "btn-ghost border-base-300"
 										}`}
 										onClick={() => {
-											playClickSound();
 											openNoteModal(item);
 										}}>
 										<span className="text-[10px]">
@@ -525,7 +517,6 @@ const NewOrderTab = ({
 						<button
 							className="btn btn-secondary btn-sm w-full text-white"
 							onClick={() => {
-								playClickSound();
 								setShowTableModal(true);
 							}}>
 							{tableNumber ? `Table ${tableNumber}` : "Select Table"}
@@ -548,7 +539,6 @@ const NewOrderTab = ({
 									paymentMethod === method ? "btn-primary" : "btn-outline"
 								}`}
 								onClick={() => {
-									playClickSound();
 									setPaymentMethod(method);
 								}}>
 								{method === "unpaid"
@@ -600,7 +590,6 @@ const NewOrderTab = ({
 						className="btn btn-primary w-full"
 						disabled={cart.length === 0}
 						onClick={() => {
-							playClickSound();
 							processOrder();
 						}}>
 						Process Order - ฿{totalAmount.toFixed(2)}
@@ -608,7 +597,6 @@ const NewOrderTab = ({
 					<button
 						className="btn btn-outline btn-xs w-full"
 						onClick={() => {
-							playClickSound();
 							clearCart();
 						}}>
 						Clear Order
