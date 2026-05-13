@@ -54,6 +54,10 @@ const NewOrderTab = ({
 	} = useMenuStore();
 	const { isAdmin, isStaff } = useAuth();
 
+	useEffect(() => {
+		setOrderType("dine_in");
+	}, []);
+
 	const [todaysSpecialRaw, setTodaysSpecialRaw] = useState([]);
 	const [activeCategory, setActiveCategory] = useState("Today's Special");
 

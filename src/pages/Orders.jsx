@@ -67,16 +67,7 @@ export const Orders = () => {
 				order_items: cart.map((item) => {
 					// Strip UI-only flags and combo store data
 					// before persisting to the database
-					const {
-						isFixedCombo,
-						isRotatingCombo,
-						isComboTemplate,
-						combo_members,
-						combo_slots,
-						combo_note_summary,
-						available_extras,
-						...cleanItem
-					} = item;
+					const { ...cleanItem } = item;
 
 					return {
 						...cleanItem,
@@ -94,13 +85,17 @@ export const Orders = () => {
 				item_extra_prices: itemExtraPrices,
 			};
 
-			const { data, error } = await supabase.from("orders").insert([orderData]).select().single();
+			const { data, error } = await supabase
+				.from("orders")
+				.insert([orderData])
+				.select()
+				.single();
 
 			if (error) throw error;
 
 			// Trigger auto-print if enabled
 			if (autoPrintKitchenTicket) {
-				sendToKitchenPrinter(data).catch(err => {
+				sendToKitchenPrinter(data).catch((err) => {
 					console.error("Auto-print failed:", err);
 				});
 			}
