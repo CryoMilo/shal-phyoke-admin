@@ -6,6 +6,7 @@ import ItemNoteModal from "./ItemNoteModal";
 import useMenuStore from "../../stores/menuStore";
 import RotatingComboPickerModal from "./RotatingComboPickerModal";
 import { useAuth } from "../../contexts/AuthContext";
+import PaymentModal from "../common/PaymentModal";
 
 const getTodayWeekday = () => {
 	const d = new Date();
@@ -61,6 +62,10 @@ const NewOrderTab = ({
 	const [activeItemForNote, setActiveItemForNote] = useState(null);
 
 	const [activeRotatingCombo, setActiveRotatingCombo] = useState(null);
+
+	// Payment Confirmation Modal State
+	const [showPaymentModal, setShowPaymentModal] = useState(false);
+	const [pendingPaymentMethod, setPendingPaymentMethod] = useState(null);
 
 	// Derived Today's Specials with extras from master list
 	const todaysSpecialItems = useMemo(() => {
@@ -120,7 +125,8 @@ const NewOrderTab = ({
             price,
             category,
             image_url,
-            is_active
+            is_active,
+            quick_note_ids
           )
         `
 				)
@@ -222,6 +228,20 @@ const NewOrderTab = ({
 		setActiveItemForNote(null);
 	};
 
+	const handlePaymentConfirm = () => {
+		setPaymentMethod(pendingPaymentMethod);
+		setShowPaymentModal(false);
+	};
+
+	const handlePaymentMethodClick = (method) => {
+		if (method === "cash" || method === "qr") {
+			setPendingPaymentMethod(method);
+			setShowPaymentModal(true);
+		} else {
+			setPaymentMethod(method);
+		}
+	};
+
 	const handleOrderTypeToggle = (type) => {
 		// If clicking the same type, it toggles off to dine_in
 		if (orderType === type) {
@@ -240,7 +260,7 @@ const NewOrderTab = ({
 			{/* Left: Menu Items */}
 			<div className="lg:col-span-3">
 				{/* Order Type Selection */}
-				{/* <div className="bg-base-200 p-4 rounded-lg mb-4 md:flex justify-between items-center">
+				<div className="bg-base-200 p-4 rounded-lg mb-4 md:flex justify-between items-center">
 					<label className="label mb-1 md:mb-0">
 						<span className="label-text text-accent font-semibold">
 							Order Type
@@ -258,7 +278,7 @@ const NewOrderTab = ({
 							</button>
 						))}
 					</div>
-				</div> */}
+				</div>
 
 				{/* Customer Info for Delivery */}
 				{orderType === "delivery" && (
@@ -323,9 +343,7 @@ const NewOrderTab = ({
 							className={`btn btn-sm whitespace-nowrap ${
 								activeCategory === category ? "btn-primary" : "btn-outline"
 							}`}
-							onClick={() => {
-								setActiveCategory(category);
-							}}>
+							onClick={() => setActiveCategory(category)}>
 							{category}
 						</button>
 					))}
@@ -423,9 +441,7 @@ const NewOrderTab = ({
 								<div className="flex items-center gap-1 bg-base-200 rounded-full px-1">
 									<button
 										className="btn btn-xs btn-circle btn-ghost"
-										onClick={() => {
-											updateQuantity(item.cart_id, -1);
-										}}>
+										onClick={() => updateQuantity(item.cart_id, -1)}>
 										-
 									</button>
 									<span className="font-mono text-xs w-4 text-center">
@@ -433,9 +449,7 @@ const NewOrderTab = ({
 									</span>
 									<button
 										className="btn btn-xs btn-circle btn-ghost"
-										onClick={() => {
-											updateQuantity(item.cart_id, 1);
-										}}>
+										onClick={() => updateQuantity(item.cart_id, 1)}>
 										+
 									</button>
 								</div>
@@ -448,9 +462,7 @@ const NewOrderTab = ({
 									<button
 										className="btn btn-sm text-accent hover:bg-primary hover:text-white border-none"
 										title="Split into separate lines"
-										onClick={() => {
-											splitItem(item.cart_id);
-										}}>
+										onClick={() => splitItem(item.cart_id)}>
 										<Split className="w-3.5 h-3.5" />
 									</button>
 								)}
@@ -467,9 +479,7 @@ const NewOrderTab = ({
 												? "btn-accent btn-outline"
 												: "btn-ghost border-base-300"
 										}`}
-										onClick={() => {
-											openNoteModal(item);
-										}}>
+										onClick={() => openNoteModal(item)}>
 										<span className="text-[10px]">
 											{itemNotes[item.cart_id] ? "Edit Note" : "+ Add Note"}
 										</span>
@@ -516,9 +526,7 @@ const NewOrderTab = ({
 					<div className="mt-3">
 						<button
 							className="btn btn-secondary btn-sm w-full text-white"
-							onClick={() => {
-								setShowTableModal(true);
-							}}>
+							onClick={() => setShowTableModal(true)}>
 							{tableNumber ? `Table ${tableNumber}` : "Select Table"}
 						</button>
 					</div>
@@ -538,9 +546,7 @@ const NewOrderTab = ({
 								className={`btn btn-sm flex-1 ${
 									paymentMethod === method ? "btn-primary" : "btn-outline"
 								}`}
-								onClick={() => {
-									setPaymentMethod(method);
-								}}>
+								onClick={() => handlePaymentMethodClick(method)}>
 								{method === "unpaid"
 									? "Unpaid"
 									: method === "cash"
@@ -589,16 +595,10 @@ const NewOrderTab = ({
 					<button
 						className="btn btn-primary w-full"
 						disabled={cart.length === 0}
-						onClick={() => {
-							processOrder();
-						}}>
+						onClick={processOrder}>
 						Process Order - ฿{totalAmount.toFixed(2)}
 					</button>
-					<button
-						className="btn btn-outline btn-xs w-full"
-						onClick={() => {
-							clearCart();
-						}}>
+					<button className="btn btn-outline btn-xs w-full" onClick={clearCart}>
 						Clear Order
 					</button>
 				</div>
@@ -610,6 +610,15 @@ const NewOrderTab = ({
 				item={activeItemForNote}
 				onClose={() => setShowNoteModal(false)}
 				onSave={handleSaveNote}
+			/>
+
+			{/* Payment Confirmation Modal */}
+			<PaymentModal
+				isOpen={showPaymentModal}
+				onClose={() => setShowPaymentModal(false)}
+				onConfirm={handlePaymentConfirm}
+				amount={totalAmount}
+				paymentMethod={pendingPaymentMethod}
 			/>
 
 			{/* Rotating Combo Picker Modal */}

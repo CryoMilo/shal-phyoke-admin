@@ -15,6 +15,7 @@ import {
 	getBangkokISOString,
 	toBangkokDateString,
 } from "../../utils/dateUtils";
+import PaymentModal from "../common/PaymentModal";
 
 // Synchronous guard to prevent duplicate order completions across re-renders
 const inProgressOrders = new Set();
@@ -193,6 +194,10 @@ const TableBillsModal = ({ table, onClose, onUpdate }) => {
 	const [confirmAction, setConfirmAction] = useState(null);
 	const [processingOrders, setProcessingOrders] = useState(new Set());
 
+	// Payment Confirmation Modal State
+	const [showPaymentModal, setShowPaymentModal] = useState(false);
+	const [pendingPaymentData, setPendingPaymentData] = useState(null);
+
 	const handleCompleteOrder = async (orderId) => {
 		// Synchronous check using module-level Set (not affected by React render cycle)
 		if (inProgressOrders.has(orderId)) return;
@@ -282,6 +287,28 @@ const TableBillsModal = ({ table, onClose, onUpdate }) => {
 				return newSet;
 			});
 		}
+	};
+
+	const handlePaymentClick = (order, method) => {
+		setPendingPaymentData({
+			orderId: order.id,
+			amount: order.total_amount,
+			method: method,
+			updates: {
+				payment_status: "paid",
+				payment_method: method,
+			},
+		});
+		setShowPaymentModal(true);
+	};
+
+	const handlePaymentConfirm = async () => {
+		if (!pendingPaymentData) return;
+
+		const { orderId, updates } = pendingPaymentData;
+		setShowPaymentModal(false);
+		await handleAction(orderId, updates);
+		setPendingPaymentData(null);
 	};
 
 	const handleAction = async (orderId, updates) => {
@@ -414,20 +441,14 @@ const TableBillsModal = ({ table, onClose, onUpdate }) => {
 											<button
 												className="btn btn-sm btn-success gap-2"
 												onClick={() =>
-													handleAction(order.id, {
-														payment_status: "paid",
-														payment_method: "cash",
-													})
+													handlePaymentClick(order, "cash")
 												}>
 												<Banknote className="w-4 h-4" /> Cash
 											</button>
 											<button
 												className="btn btn-sm btn-info gap-2"
 												onClick={() =>
-													handleAction(order.id, {
-														payment_status: "paid",
-														payment_method: "qr",
-													})
+													handlePaymentClick(order, "qr")
 												}>
 												<CreditCard className="w-4 h-4" /> QR
 											</button>
@@ -493,6 +514,15 @@ const TableBillsModal = ({ table, onClose, onUpdate }) => {
 					</button>
 				</div>
 			</div>
+
+			<PaymentModal
+				isOpen={showPaymentModal}
+				onClose={() => setShowPaymentModal(false)}
+				onConfirm={handlePaymentConfirm}
+				amount={pendingPaymentData?.amount || 0}
+				paymentMethod={pendingPaymentData?.method}
+			/>
+
 			<div className="modal-backdrop bg-black/50" onClick={onClose}></div>
 		</div>
 	);
