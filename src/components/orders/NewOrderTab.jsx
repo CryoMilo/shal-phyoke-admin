@@ -45,6 +45,7 @@ const NewOrderTab = ({
 	splitItem,
 	clearCart,
 	processOrder,
+	isProcessing,
 }) => {
 	const {
 		allMenuItems,
@@ -598,11 +599,21 @@ const NewOrderTab = ({
 				<div className="mt-6 space-y-2">
 					<button
 						className="btn btn-primary w-full"
-						disabled={cart.length === 0}
+						disabled={cart.length === 0 || isProcessing}
 						onClick={processOrder}>
-						Process Order - ฿{totalAmount.toFixed(2)}
+						{isProcessing ? (
+							<>
+								<span className="loading loading-spinner loading-xs"></span>
+								Processing...
+							</>
+						) : (
+							`Process Order - ฿${totalAmount.toFixed(2)}`
+						)}
 					</button>
-					<button className="btn btn-outline btn-xs w-full" onClick={clearCart}>
+					<button
+						className="btn btn-outline btn-xs w-full"
+						onClick={clearCart}
+						disabled={isProcessing}>
 						Clear Order
 					</button>
 				</div>

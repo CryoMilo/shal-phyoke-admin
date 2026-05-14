@@ -7,7 +7,8 @@ const PaymentModal = ({
     onConfirm, 
     amount, 
     paymentMethod, 
-    title = "Confirm Payment" 
+    title = "Confirm Payment",
+    loading = false
 }) => {
     if (!isOpen) return null;
 
@@ -82,12 +83,18 @@ const PaymentModal = ({
                     <button 
                         className="btn btn-primary btn-lg rounded-2xl font-bold shadow-lg shadow-primary/20"
                         onClick={onConfirm}
+                        disabled={loading}
                     >
-                        Confirm Received ฿{Number(amount).toFixed(2)}
+                        {loading ? (
+                            <span className="loading loading-spinner loading-md"></span>
+                        ) : (
+                            `Confirm Received ฿${Number(amount).toFixed(2)}`
+                        )}
                     </button>
                     <button 
                         className="btn btn-ghost rounded-2xl"
                         onClick={onClose}
+                        disabled={loading}
                     >
                         Cancel
                     </button>

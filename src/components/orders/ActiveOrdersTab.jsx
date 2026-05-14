@@ -61,9 +61,7 @@ const ActiveOrdersTab = () => {
 		const groups = {};
 		activeOrders.forEach((order) => {
 			const key =
-				order.order_type === "dine_in"
-					? order.table_number || "Unknown"
-					: "Takeaway";
+				order.order_type === "dine_in" ? order.table_number || "?" : "Takeaway";
 			if (!groups[key]) {
 				groups[key] = {
 					id: key,
@@ -193,6 +191,7 @@ const ActiveOrdersTab = () => {
 const TableBillsModal = ({ table, onClose, onUpdate }) => {
 	const [confirmAction, setConfirmAction] = useState(null);
 	const [processingOrders, setProcessingOrders] = useState(new Set());
+	const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
 
 	// Payment Confirmation Modal State
 	const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -303,12 +302,19 @@ const TableBillsModal = ({ table, onClose, onUpdate }) => {
 	};
 
 	const handlePaymentConfirm = async () => {
-		if (!pendingPaymentData) return;
+		if (!pendingPaymentData || isPaymentProcessing) return;
 
-		const { orderId, updates } = pendingPaymentData;
-		setShowPaymentModal(false);
-		await handleAction(orderId, updates);
-		setPendingPaymentData(null);
+		setIsPaymentProcessing(true);
+		try {
+			const { orderId, updates } = pendingPaymentData;
+			await handleAction(orderId, updates);
+			setShowPaymentModal(false);
+			setPendingPaymentData(null);
+		} catch (error) {
+			console.error("Payment confirmation error:", error);
+		} finally {
+			setIsPaymentProcessing(false);
+		}
 	};
 
 	const handleAction = async (orderId, updates) => {
@@ -440,16 +446,12 @@ const TableBillsModal = ({ table, onClose, onUpdate }) => {
 										<>
 											<button
 												className="btn btn-sm btn-success gap-2"
-												onClick={() =>
-													handlePaymentClick(order, "cash")
-												}>
+												onClick={() => handlePaymentClick(order, "cash")}>
 												<Banknote className="w-4 h-4" /> Cash
 											</button>
 											<button
 												className="btn btn-sm btn-info gap-2"
-												onClick={() =>
-													handlePaymentClick(order, "qr")
-												}>
+												onClick={() => handlePaymentClick(order, "qr")}>
 												<CreditCard className="w-4 h-4" /> QR
 											</button>
 										</>
@@ -517,13 +519,16 @@ const TableBillsModal = ({ table, onClose, onUpdate }) => {
 
 			<PaymentModal
 				isOpen={showPaymentModal}
-				onClose={() => setShowPaymentModal(false)}
+				onClose={() => !isPaymentProcessing && setShowPaymentModal(false)}
 				onConfirm={handlePaymentConfirm}
 				amount={pendingPaymentData?.amount || 0}
 				paymentMethod={pendingPaymentData?.method}
+				loading={isPaymentProcessing}
 			/>
 
-			<div className="modal-backdrop bg-black/50" onClick={onClose}></div>
+			<div
+				className="modal-backdrop bg-black/50"
+				onClick={() => !isPaymentProcessing && onClose()}></div>
 		</div>
 	);
 };

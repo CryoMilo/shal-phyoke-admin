@@ -40,6 +40,7 @@ export const Orders = () => {
 
 	const [activeTab, setActiveTab] = useState("new-order");
 	const [showTableModal, setShowTableModal] = useState(false);
+	const [isProcessing, setIsProcessing] = useState(false);
 	const { autoPrintKitchenTicket, fetchPermissions } = useStaffAccessStore();
 
 	useEffect(() => {
@@ -51,8 +52,9 @@ export const Orders = () => {
 	const totalAmount = getTotalAmount();
 
 	const processOrder = async () => {
-		if (cart.length === 0) return;
+		if (cart.length === 0 || isProcessing) return;
 
+		setIsProcessing(true);
 		try {
 			const paymentStatus =
 				paymentMethod === "cash" || paymentMethod === "qr" ? "paid" : "unpaid";
@@ -106,6 +108,8 @@ export const Orders = () => {
 		} catch (error) {
 			console.error("Error processing order:", error);
 			showToast.error("Failed to process order: " + error.message);
+		} finally {
+			setIsProcessing(false);
 		}
 	};
 
@@ -162,6 +166,7 @@ export const Orders = () => {
 						splitItem={splitItem}
 						clearCart={clearCart}
 						processOrder={processOrder}
+						isProcessing={isProcessing}
 					/>
 				) : activeTab === "active-orders" ? (
 					<ActiveOrdersTab />
