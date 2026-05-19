@@ -60,12 +60,20 @@ const ActiveOrdersTab = () => {
 	const tableGroups = useMemo(() => {
 		const groups = {};
 		activeOrders.forEach((order) => {
-			const key =
-				order.order_type === "dine_in" ? order.table_number || "?" : "Takeaway";
+			let key;
+			if (order.order_type === "dine_in") {
+				key = order.table_number || "?";
+			} else if (order.order_type === "delivery") {
+				key = "Delivery";
+			} else {
+				key = "Takeaway";
+			}
+
 			if (!groups[key]) {
 				groups[key] = {
 					id: key,
 					isDineIn: order.order_type === "dine_in",
+					orderType: order.order_type,
 					orders: [],
 					total: 0,
 					unpaidCount: 0,
@@ -85,8 +93,10 @@ const ActiveOrdersTab = () => {
 			}
 		});
 		return Object.values(groups).sort((a, b) => {
-			if (a.id === "Takeaway") return 1;
-			if (b.id === "Takeaway") return -1;
+			const hubOrder = { Takeaway: 1, Delivery: 2 };
+			if (hubOrder[a.id] && hubOrder[b.id]) return hubOrder[a.id] - hubOrder[b.id];
+			if (hubOrder[a.id]) return 1;
+			if (hubOrder[b.id]) return -1;
 			return Number(a.id) - Number(b.id);
 		});
 	}, [activeOrders]);
@@ -128,9 +138,11 @@ const ActiveOrdersTab = () => {
 									${
 										group.isDineIn
 											? "bg-primary text-primary-content"
-											: "bg-secondary text-secondary-content"
+											: group.id === "Delivery"
+												? "bg-accent text-accent-content"
+												: "bg-secondary text-secondary-content"
 									}`}>
-									{group.isDineIn ? group.id : "TA"}
+									{group.isDineIn ? group.id : group.id === "Delivery" ? "DE" : "TA"}
 								</div>
 								<div className="text-right">
 									<div className="text-[10px] opacity-50 flex items-center justify-end gap-1 font-bold">
@@ -360,7 +372,11 @@ const TableBillsModal = ({ table, onClose, onUpdate }) => {
 				<div className="p-4 bg-base-100 border-b border-base-300 flex justify-between items-center">
 					<div className="flex items-center gap-3">
 						<div className="badge badge-primary badge-lg p-4 font-bold">
-							{table.isDineIn ? `Table ${table.id}` : "Takeaway Hub"}
+							{table.isDineIn
+								? `Table ${table.id}`
+								: table.id === "Delivery"
+									? "Delivery Hub"
+									: "Takeaway Hub"}
 						</div>
 						<div className="text-sm opacity-60 font-medium">
 							{table.orders.length} Bills • Total ฿{table.total.toFixed(2)}
