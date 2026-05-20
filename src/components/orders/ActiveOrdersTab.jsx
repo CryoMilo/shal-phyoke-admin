@@ -57,51 +57,47 @@ const ActiveOrdersTab = () => {
 		}
 	};
 
-	const tableGroups = useMemo(() => {
-		const groups = {};
+	const { tableGroups, singularOrders } = useMemo(() => {
+		const hubs = {};
+		const singulars = [];
+
 		activeOrders.forEach((order) => {
-			let key;
 			if (order.order_type === "dine_in") {
-				key = order.table_number || "?";
-			} else if (order.order_type === "delivery") {
-				key = "Delivery";
+				const key = order.table_number || "?";
+				if (!hubs[key]) {
+					hubs[key] = {
+						id: key,
+						isDineIn: true,
+						orders: [],
+						total: 0,
+						unpaidCount: 0,
+						oldestOrder: order.created_at,
+					};
+				}
+				hubs[key].orders.push(order);
+				hubs[key].total += Number(order.total_amount);
+				if (order.payment_status === "unpaid") hubs[key].unpaidCount++;
+				if (new Date(order.created_at) < new Date(hubs[key].oldestOrder)) {
+					hubs[key].oldestOrder = order.created_at;
+				}
 			} else {
-				key = "Takeaway";
-			}
-
-			if (!groups[key]) {
-				groups[key] = {
-					id: key,
-					isDineIn: order.order_type === "dine_in",
-					orderType: order.order_type,
-					orders: [],
-					total: 0,
-					unpaidCount: 0,
-					oldestOrder: null,
-				};
-			}
-			groups[key].orders.push(order);
-			groups[key].total += Number(order.total_amount);
-			if (order.payment_status === "unpaid") groups[key].unpaidCount++;
-
-			const orderTime = new Date(order.created_at);
-			if (
-				!groups[key].oldestOrder ||
-				orderTime < new Date(groups[key].oldestOrder)
-			) {
-				groups[key].oldestOrder = order.created_at;
+				// Takeaway and Delivery are singular
+				singulars.push(order);
 			}
 		});
-		return Object.values(groups).sort((a, b) => {
-			const hubOrder = { Takeaway: 1, Delivery: 2 };
-			if (hubOrder[a.id] && hubOrder[b.id]) return hubOrder[a.id] - hubOrder[b.id];
-			if (hubOrder[a.id]) return 1;
-			if (hubOrder[b.id]) return -1;
-			return Number(a.id) - Number(b.id);
-		});
+
+		const sortedHubs = Object.values(hubs).sort(
+			(a, b) => Number(a.id) - Number(b.id)
+		);
+		const sortedSingulars = singulars.sort(
+			(a, b) => new Date(a.created_at) - new Date(b.created_at)
+		);
+
+		return { tableGroups: sortedHubs, singularOrders: sortedSingulars };
 	}, [activeOrders]);
 
 	const currentTableData = useMemo(() => {
+		// This now only needs to handle Dine-in Hubs for the modal
 		return tableGroups.find((g) => g.id === selectedTableId);
 	}, [tableGroups, selectedTableId]);
 
@@ -111,91 +107,440 @@ const ActiveOrdersTab = () => {
 	};
 
 	return (
-		<div className="space-y-6">
-			<div className="flex justify-between items-center">
-				<h2 className="text-xl font-bold">Active Tables & Bills</h2>
-				<div className="flex gap-2">
-					<span className="badge badge-warning gap-1 p-3">
-						{activeOrders.filter((o) => o.payment_status === "unpaid").length}{" "}
-						Unpaid
-					</span>
-					<span className="badge badge-neutral gap-1 p-3">
-						{tableGroups.length} Active Hubs
-					</span>
+		<div className="space-y-8 pb-20">
+			{/* SECTION 1: SINGULAR ORDERS (Takeaway & Delivery) */}
+			<section>
+				<div className="flex justify-between items-center mb-4">
+					<div className="flex items-center gap-2">
+						<h2 className="text-xl font-black uppercase tracking-tight text-secondary">
+							Takeaway & Delivery
+						</h2>
+						<span className="badge badge-secondary badge-sm font-bold">
+							{singularOrders.length}
+						</span>
+					</div>
+				</div>
+
+				{singularOrders.length > 0 ? (
+					<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+						{singularOrders.map((order) => (
+							<div
+								key={order.id}
+								className={`card shadow-sm border-2 transition-all cursor-pointer hover:scale-[1.02] active:scale-95
+									${
+										order.payment_status === "unpaid"
+											? "border-warning/30 bg-warning/5"
+											: "border-secondary/20 bg-base-100"
+									}`}
+								onClick={() => {
+									// For singular orders, we can open a simplified "Direct Action" modal
+									// or just reuse the existing one by wrapping the order in a fake group
+									setSelectedTableId(`singular-${order.id}`);
+								}}>
+								<div className="card-body p-3 items-center text-center">
+									<div className="absolute top-2 right-2">
+										<div className="text-[10px] opacity-40 font-mono">
+											{getTimeElapsed(order.created_at)}
+										</div>
+									</div>
+
+									<div
+										className={`w-12 h-12 rounded-full flex items-center justify-center font-black text-xl mb-1
+										${
+											order.order_type === "delivery"
+												? "bg-accent text-accent-content"
+												: "bg-secondary text-secondary-content"
+										}`}>
+										{order.table_number ||
+											order.customer_name?.substring(0, 2).toUpperCase() ||
+											"?"}
+									</div>
+
+									<div className="text-xs font-bold truncate w-full px-1">
+										{order.order_type === "takeaway" && order.table_number ? `Table ${order.table_number}` : (order.customer_name || "Takeaway")}
+									</div>
+
+									<div className="flex gap-1 mt-1">
+										<span
+											className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold
+											${
+												order.payment_status === "paid"
+													? "bg-success/20 text-success"
+													: "bg-error/20 text-error"
+											}`}>
+											{order.payment_status === "paid" ? "PAID" : "UNPAID"}
+										</span>
+									</div>
+								</div>
+							</div>
+						))}
+					</div>
+				) : (
+					<div className="py-8 text-center bg-base-200/50 rounded-2xl border-2 border-dashed border-base-300">
+						<p className="text-sm opacity-40 font-medium">No active buzzers</p>
+					</div>
+				)}
+			</section>
+
+			<div className="divider opacity-50"></div>
+
+			{/* SECTION 2: DINE-IN HUBS */}
+			<section>
+				<div className="flex justify-between items-center mb-4">
+					<div className="flex items-center gap-2">
+						<h2 className="text-xl font-black uppercase tracking-tight text-primary">
+							Table Hubs
+						</h2>
+						<span className="badge badge-primary badge-sm font-bold">
+							{tableGroups.length}
+						</span>
+					</div>
+				</div>
+
+				<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+					{tableGroups.map((group) => (
+						<div
+							key={group.id}
+							className="card bg-base-100 border-2 border-primary/20 hover:border-primary transition-all cursor-pointer shadow-sm"
+							onClick={() => setSelectedTableId(group.id)}>
+							<div className="card-body p-3">
+								<div className="flex justify-between items-start">
+									<div className="w-10 h-10 rounded-lg bg-primary text-primary-content flex items-center justify-center font-black text-xl">
+										{group.id}
+									</div>
+									<div className="text-right">
+										<div className="text-[10px] opacity-40 font-mono">
+											{getTimeElapsed(group.oldestOrder)}
+										</div>
+										{group.unpaidCount > 0 && (
+											<div className="badge badge-error badge-xs font-bold animate-pulse text-[8px]">
+												UNPAID
+											</div>
+										)}
+									</div>
+								</div>
+
+								<div className="mt-2 flex justify-between items-end">
+									<div className="flex flex-col">
+										<span className="text-[10px] opacity-50 font-bold uppercase">
+											Bills
+										</span>
+										<span className="font-bold text-sm leading-none">
+											{group.orders.length}
+										</span>
+									</div>
+									<div className="text-right">
+										<span className="text-[10px] opacity-50 font-bold uppercase block">
+											Total
+										</span>
+										<span className="font-bold text-primary text-sm leading-none">
+											฿{group.total.toFixed(0)}
+										</span>
+									</div>
+								</div>
+							</div>
+						</div>
+					))}
+
+					{tableGroups.length === 0 && (
+						<div className="col-span-full py-8 text-center bg-base-200/50 rounded-2xl border-2 border-dashed border-base-300">
+							<p className="text-sm opacity-40 font-medium">No active tables</p>
+						</div>
+					)}
+				</div>
+			</section>
+
+			{/* MODAL HANDLING */}
+			{selectedTableId &&
+				(String(selectedTableId).startsWith("singular-") ? (
+					<SingularOrderModal
+						order={singularOrders.find(
+							(o) => o.id === String(selectedTableId).replace("singular-", "")
+						)}
+						onClose={() => setSelectedTableId(null)}
+						onUpdate={fetchActiveOrders}
+					/>
+				) : currentTableData ? (
+					<TableBillsModal
+						table={currentTableData}
+						onClose={() => setSelectedTableId(null)}
+						onUpdate={fetchActiveOrders}
+					/>
+				) : null)}
+		</div>
+	);
+};
+
+const SingularOrderModal = ({ order, onClose, onUpdate }) => {
+	const [isProcessing, setIsProcessing] = useState(false);
+	const [showPaymentModal, setShowPaymentModal] = useState(false);
+	const [pendingPaymentData, setPendingPaymentData] = useState(null);
+	const [confirmAction, setConfirmAction] = useState(null);
+
+	if (!order) return null;
+
+	const handleCompleteOrder = async () => {
+		if (inProgressOrders.has(order.id) || isProcessing) return;
+		inProgressOrders.add(order.id);
+		setIsProcessing(true);
+
+		try {
+			// Record to sales if not already recorded
+			const { data: existingSales } = await supabase
+				.from("monthly_sales")
+				.select("id")
+				.eq("order_id", order.id)
+				.limit(1);
+
+			if (!existingSales || existingSales.length === 0) {
+				const menuItemIds = order.order_items.map((item) => item.id);
+				const { data: menuItems } = await supabase
+					.from("menu_items")
+					.select("id, category")
+					.in("id", menuItemIds);
+
+				const categoryMap = {};
+				menuItems?.forEach((m) => (categoryMap[m.id] = m.category));
+
+				const bangkokDate = toBangkokDateString();
+				const bangkokISO = getBangkokISOString();
+
+				const salesRecords = order.order_items.map((item) => ({
+					sale_date: bangkokDate,
+					sale_timestamp: bangkokISO,
+					menu_item_id: item.id,
+					menu_item_name_burmese: item.name_burmese,
+					menu_item_category: categoryMap[item.id] || null,
+					menu_item_price: item.price,
+					quantity_sold: item.quantity,
+					total_revenue: (item.final_price || item.price) * item.quantity,
+					order_id: order.id,
+					order_number: order.order_number,
+					order_type: order.order_type,
+					payment_method: order.payment_method,
+					payment_status: order.payment_status,
+				}));
+
+				await supabase.from("monthly_sales").insert(salesRecords);
+			}
+
+			await supabase
+				.from("orders")
+				.update({ pos_order_status: "completed" })
+				.eq("id", order.id);
+
+			showToast.success("Order completed");
+			onUpdate();
+			onClose();
+		} catch (error) {
+			console.error("Error:", error);
+			showToast.error("Failed to complete order");
+		} finally {
+			inProgressOrders.delete(order.id);
+			setIsProcessing(false);
+		}
+	};
+
+	const handlePaymentClick = (method) => {
+		setPendingPaymentData({
+			orderId: order.id,
+			amount: order.total_amount,
+			method: method,
+			updates: { payment_status: "paid", payment_method: method },
+		});
+		setShowPaymentModal(true);
+	};
+
+	const handlePaymentConfirm = async () => {
+		if (!pendingPaymentData) return;
+		setIsProcessing(true);
+		try {
+			await supabase
+				.from("orders")
+				.update(pendingPaymentData.updates)
+				.eq("id", order.id);
+			showToast.success("Payment recorded");
+			onUpdate();
+			setShowPaymentModal(false);
+		} catch (error) {
+			console.error(error);
+		} finally {
+			setIsProcessing(false);
+		}
+	};
+
+	const handleCancelRefund = async (status) => {
+		try {
+			await supabase
+				.from("orders")
+				.update({ pos_order_status: status })
+				.eq("id", order.id);
+			showToast.success(`Order ${status}`);
+			onUpdate();
+			onClose();
+			// eslint-disable-next-line no-unused-vars
+		} catch (error) {
+			showToast.error("Update failed");
+		}
+	};
+
+	return (
+		<div className="modal modal-open">
+			<div className="modal-box max-w-lg p-0 overflow-hidden bg-base-100">
+				<div className="p-4 bg-base-200 border-b border-base-300 flex justify-between items-center">
+					<div className="flex items-center gap-3">
+						<div
+							className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-sm
+							${
+								order.order_type === "delivery"
+									? "bg-accent text-accent-content"
+									: "bg-secondary text-secondary-content"
+							}`}>
+							{order.table_number ||
+								order.customer_name?.substring(0, 2).toUpperCase() ||
+								"?"}
+						</div>
+						<h3 className="font-bold">
+							{order.order_type === "takeaway" && order.table_number ? `Table ${order.table_number}` : (order.customer_name || "Takeaway Order")}
+						</h3>
+					</div>
+					<button className="btn btn-sm btn-circle btn-ghost" onClick={onClose}>
+						✕
+					</button>
+				</div>
+
+				<div className="p-6 space-y-6">
+					<div className="flex justify-between items-start">
+						<div>
+							<div className="text-[10px] font-bold opacity-40 uppercase mb-1">
+								Order #
+							</div>
+							<div className="flex items-center gap-2">
+								<span className="font-mono font-bold text-lg">
+									{order.order_number?.slice(-4) || order.id.slice(0, 4)}
+								</span>
+								<PrintKitchenTicketButton order={order} size="xs" />
+							</div>
+						</div>
+						<div className="text-right">
+							<div className="text-[10px] font-bold opacity-40 uppercase mb-1">
+								Status
+							</div>
+							<span
+								className={`badge font-bold ${
+									order.payment_status === "paid"
+										? "badge-success"
+										: "badge-warning"
+								}`}>
+								{order.payment_status.toUpperCase()}
+							</span>
+						</div>
+					</div>
+
+					<div className="space-y-3">
+						<h4 className="text-[10px] font-bold opacity-40 uppercase">
+							Order Items
+						</h4>
+						{order.order_items.map((item, idx) => (
+							<div key={idx} className="flex flex-col gap-1">
+								<div className="flex justify-between text-sm">
+									<span className="font-medium">
+										{item.quantity}x {item.name_burmese}
+									</span>
+									<span className="font-mono">
+										฿{(item.final_price || item.price) * item.quantity}
+									</span>
+								</div>
+								{(item.note || order.item_notes?.[item.cart_id]) && (
+									<div className="ml-4 text-[10px] opacity-60 italic">
+										{item.note || order.item_notes?.[item.cart_id]}
+									</div>
+								)}
+							</div>
+						))}
+					</div>
+
+					<div className="divider my-0 opacity-50"></div>
+
+					<div className="space-y-2">
+						<div className="flex justify-between font-bold text-xl pt-2">
+							<span>Total Amount</span>
+							<span className="text-primary text-2xl">
+								฿{order.total_amount}
+							</span>
+						</div>
+					</div>
+
+					<div className="grid grid-cols-2 gap-3 mt-8">
+						{order.payment_status !== "paid" ? (
+							<>
+								<button
+									className="btn btn-success gap-2"
+									onClick={() => handlePaymentClick("cash")}>
+									<Banknote className="w-4 h-4" /> Cash
+								</button>
+								<button
+									className="btn btn-info gap-2"
+									onClick={() => handlePaymentClick("qr")}>
+									<CreditCard className="w-4 h-4" /> QR
+								</button>
+							</>
+						) : (
+							<button
+								className="btn btn-primary col-span-2 gap-2 h-16 text-lg"
+								onClick={handleCompleteOrder}
+								disabled={isProcessing}>
+								{isProcessing ? (
+									<span className="loading loading-spinner"></span>
+								) : (
+									<CheckCircle2 className="w-6 h-6" />
+								)}
+								Complete & Close
+							</button>
+						)}
+
+						<div className="col-span-2 flex justify-center mt-2">
+							{confirmAction ? (
+								<div className="flex gap-2 w-full">
+									<button
+										className="btn btn-sm btn-error flex-1"
+										onClick={() => handleCancelRefund(confirmAction)}>
+										Confirm{" "}
+										{confirmAction === "cancelled" ? "Cancel" : "Refund"}
+									</button>
+									<button
+										className="btn btn-sm btn-ghost flex-1"
+										onClick={() => setConfirmAction(null)}>
+										Back
+									</button>
+								</div>
+							) : (
+								<button
+									className="btn btn-xs btn-ghost text-error opacity-50"
+									onClick={() =>
+										setConfirmAction(
+											order.payment_status === "paid" ? "refunded" : "cancelled"
+										)
+									}>
+									{order.payment_status === "paid"
+										? "Refund Bill"
+										: "Cancel Bill"}
+								</button>
+							)}
+						</div>
+					</div>
 				</div>
 			</div>
 
-			<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-				{tableGroups.map((group) => (
-					<div
-						key={group.id}
-						className="card bg-base-100 border border-base-300 hover:border-primary transition-all cursor-pointer shadow-sm"
-						onClick={() => setSelectedTableId(group.id)}>
-						<div className="card-body p-4">
-							<div className="flex justify-between items-start">
-								<div
-									className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold text-lg 
-									${
-										group.isDineIn
-											? "bg-primary text-primary-content"
-											: group.id === "Delivery"
-												? "bg-accent text-accent-content"
-												: "bg-secondary text-secondary-content"
-									}`}>
-									{group.isDineIn ? group.id : group.id === "Delivery" ? "DE" : "TA"}
-								</div>
-								<div className="text-right">
-									<div className="text-[10px] opacity-50 flex items-center justify-end gap-1 font-bold">
-										<Clock className="w-3 h-3" />{" "}
-										{getTimeElapsed(group.oldestOrder)}
-									</div>
-									{group.unpaidCount > 0 && (
-										<span className="text-[10px] text-error font-bold uppercase">
-											Pending Pay
-										</span>
-									)}
-								</div>
-							</div>
-
-							<div className="mt-4 space-y-1">
-								<div className="flex justify-between text-sm">
-									<span className="opacity-60">Bills</span>
-									<span className="font-bold">{group.orders.length}</span>
-								</div>
-								<div className="flex justify-between text-sm">
-									<span className="opacity-60">Total</span>
-									<span className="font-bold text-primary">
-										฿{group.total.toFixed(2)}
-									</span>
-								</div>
-							</div>
-
-							<div className="card-actions justify-end mt-4">
-								<button className="btn btn-xs btn-ghost no-animation opacity-50">
-									View Details
-								</button>
-							</div>
-						</div>
-					</div>
-				))}
-
-				{tableGroups.length === 0 && (
-					<div className="col-span-full py-12 text-center rounded-xl">
-						<Receipt className="w-12 h-12 mx-auto opacity-20 mb-2" />
-						<p className="opacity-50 font-medium">
-							No active tables or takeaway orders
-						</p>
-					</div>
-				)}
-			</div>
-
-			{currentTableData && (
-				<TableBillsModal
-					table={currentTableData}
-					onClose={() => setSelectedTableId(null)}
-					onUpdate={fetchActiveOrders}
-				/>
-			)}
+			<PaymentModal
+				isOpen={showPaymentModal}
+				onClose={() => setShowPaymentModal(false)}
+				onConfirm={handlePaymentConfirm}
+				amount={order.total_amount}
+				paymentMethod={pendingPaymentData?.method}
+				loading={isProcessing}
+			/>
+			<div className="modal-backdrop bg-black/50" onClick={onClose}></div>
 		</div>
 	);
 };
@@ -375,8 +720,8 @@ const TableBillsModal = ({ table, onClose, onUpdate }) => {
 							{table.isDineIn
 								? `Table ${table.id}`
 								: table.id === "Delivery"
-									? "Delivery Hub"
-									: "Takeaway Hub"}
+								? "Delivery Hub"
+								: "Takeaway Hub"}
 						</div>
 						<div className="text-sm opacity-60 font-medium">
 							{table.orders.length} Bills • Total ฿{table.total.toFixed(2)}

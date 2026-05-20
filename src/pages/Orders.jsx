@@ -65,7 +65,7 @@ export const Orders = () => {
 				customer_phone: orderType === "delivery" ? customerInfo.phone : null,
 				delivery_address:
 					orderType === "delivery" ? customerInfo.address : null,
-				table_number: orderType === "dine_in" ? tableNumber : null,
+				table_number: (orderType === "dine_in" || orderType === "takeaway") ? tableNumber : null,
 				order_items: cart.map((item) => {
 					// Strip UI-only flags and combo store data
 					// before persisting to the database
@@ -150,6 +150,7 @@ export const Orders = () => {
 						customerInfo={customerInfo}
 						setCustomerInfo={setCustomerInfo}
 						tableNumber={tableNumber}
+						setTableNumber={setTableNumber}
 						setShowTableModal={setShowTableModal}
 						paymentMethod={paymentMethod}
 						setPaymentMethod={setPaymentMethod}

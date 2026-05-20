@@ -28,7 +28,7 @@ const NewOrderTab = ({
 	customerInfo,
 	setCustomerInfo,
 	tableNumber,
-	// setTableNumber,
+	setTableNumber,
 	setShowTableModal,
 	paymentMethod,
 	setPaymentMethod,
@@ -330,7 +330,7 @@ const NewOrderTab = ({
 					<div className="bg-base-200 p-4 rounded-lg mb-4">
 						<input
 							type="text"
-							placeholder="Customer Name"
+							placeholder="Customer Name (Optional)"
 							className="input input-bordered w-full"
 							value={customerInfo.name}
 							onChange={(e) =>
@@ -526,8 +526,8 @@ const NewOrderTab = ({
 					</div>
 				</div>
 
-				{/* Table Selection for Dine In */}
-				{orderType === "dine_in" && (
+				{/* Table Selection for Dine In & Takeaway */}
+				{(orderType === "dine_in" || orderType === "takeaway") && (
 					<div className="mt-3">
 						<button
 							className="btn btn-secondary btn-sm w-full text-white"
