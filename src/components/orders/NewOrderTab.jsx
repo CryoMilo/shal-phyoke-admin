@@ -28,7 +28,6 @@ const NewOrderTab = ({
 	customerInfo,
 	setCustomerInfo,
 	tableNumber,
-	setTableNumber,
 	deliveryFee,
 	setDeliveryFee,
 	setShowTableModal,
@@ -95,7 +94,7 @@ const NewOrderTab = ({
 
 	const menuItems = useMemo(
 		() =>
-			allMenuItems.filter((i) => i.is_regular && i.is_active && !i.is_combo),
+			allMenuItems.filter((i) => i.is_regular && !i.is_combo),
 		[allMenuItems]
 	);
 
@@ -145,8 +144,7 @@ const NewOrderTab = ({
 			// Flatten the data to get an array of menu_items
 			const specialItems = items
 				.map((item) => item.menu_items)
-				.filter(Boolean)
-				.filter((item) => item.is_active);
+				.filter(Boolean);
 
 			setTodaysSpecialRaw(specialItems);
 		} catch (error) {
@@ -363,12 +361,13 @@ const NewOrderTab = ({
 						filteredItems.map((item) => (
 							<div
 								key={item.id}
-								className={`bg-base-100 border rounded-lg p-3 cursor-pointer hover:shadow-md transition-shadow relative overflow-hidden ${
-									item.isRotatingCombo || item.isFixedCombo
-										? "border-primary/30 ring-1 ring-primary/10"
-										: "border-base-300"
+								className={`bg-base-100 border rounded-lg p-3 relative overflow-hidden transition-all ${
+									!item.is_active 
+										? "grayscale opacity-50 cursor-not-allowed border-base-300" 
+										: "cursor-pointer hover:shadow-md border-base-300 " + (item.isRotatingCombo || item.isFixedCombo ? "border-primary/30 ring-1 ring-primary/10" : "")
 								}`}
 								onClick={() => {
+									if (!item.is_active) return;
 									if (item.isFixedCombo) {
 										addToCart(item, item.combo_note_summary || null, 0);
 										return;
@@ -379,8 +378,15 @@ const NewOrderTab = ({
 									}
 									addToCart(item);
 								}}>
+								{!item.is_active && (
+									<div className="absolute inset-0 bg-base-200/20 z-10 flex items-center justify-center">
+										<span className="bg-error text-error-content text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-widest shadow-lg rotate-[-12deg]">
+											Out of Stock
+										</span>
+									</div>
+								)}
 								{(item.isRotatingCombo || item.isFixedCombo) && (
-									<div className="absolute top-0 right-0 bg-primary text-primary-content text-[8px] font-bold px-1.5 py-0.5 rounded-bl-lg uppercase tracking-tighter">
+									<div className="absolute top-0 right-0 bg-primary text-primary-content text-[8px] font-bold px-1.5 py-0.5 rounded-bl-lg uppercase tracking-tighter z-20">
 										Combo
 									</div>
 								)}

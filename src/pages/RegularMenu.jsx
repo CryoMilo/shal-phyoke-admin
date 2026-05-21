@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Plus } from "lucide-react";
+import { Plus, Box } from "lucide-react";
 import useMenuStore from "../stores/menuStore";
 import { PageHeader } from "../components/common/PageHeader";
 import RegularMenuCard from "../components/menu/RegularMenuCard";
@@ -27,6 +27,7 @@ const RegularMenuPage = () => {
 	const [formLoading, setFormLoading] = useState(false);
 	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 	const [deleteTargetId, setDeleteTargetId] = useState(null);
+	const [showOutOfStockModal, setShowOutOfStockModal] = useState(false);
 
 	useEffect(() => {
 		fetchRegularMenuItems();
@@ -34,6 +35,7 @@ const RegularMenuPage = () => {
 
 	// Get regular items only
 	const regularItems = allMenuItems.filter((item) => item.is_regular);
+	const outOfStockItems = regularItems.filter((item) => !item.is_active);
 
 	// Filter menus based on active category
 	const filteredMenus =
@@ -130,6 +132,14 @@ const RegularMenuPage = () => {
 				buttons={[
 					{
 						type: "button",
+						label: `Out of Stock (${outOfStockItems.length})`,
+						shortlabel: `OOS (${outOfStockItems.length})`,
+						icon: Box,
+						onClick: () => setShowOutOfStockModal(true),
+						variant: "secondary",
+					},
+					{
+						type: "button",
 						label: "Add Item",
 						shortlabel: "Add",
 						icon: Plus,
@@ -209,6 +219,70 @@ const RegularMenuPage = () => {
 				loading={formLoading}
 				isRegularOnly={true}
 			/>
+
+			{/* Out of Stock Items Modal */}
+			{showOutOfStockModal && (
+				<div className="modal modal-open">
+					<div className="modal-box max-w-2xl bg-base-100">
+						<div className="flex justify-between items-center mb-6">
+							<h3 className="font-bold text-xl flex items-center gap-2">
+								<Box className="w-6 h-6 text-error" />
+								Out of Stock Items
+							</h3>
+							<button 
+								className="btn btn-sm btn-circle btn-ghost"
+								onClick={() => setShowOutOfStockModal(false)}
+							>✕</button>
+						</div>
+
+						{outOfStockItems.length > 0 ? (
+							<div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
+								{outOfStockItems.map((item) => (
+									<div 
+										key={item.id} 
+										className="flex items-center justify-between p-3 bg-base-200 rounded-lg border border-base-300"
+									>
+										<div className="flex items-center gap-3">
+											{item.image_url && (
+												<img 
+													src={item.image_url} 
+													alt={item.name_burmese} 
+													className="w-12 h-12 rounded object-cover"
+												/>
+											)}
+											<div>
+												<div className="font-bold text-sm">{item.name_burmese}</div>
+												<div className="text-xs opacity-60">
+													{CATEGORY_DISPLAY_NAMES[item.category] || item.category}
+												</div>
+											</div>
+										</div>
+										<button 
+											className="btn btn-sm btn-success text-white"
+											onClick={() => handleToggleStatus(item.id)}
+										>
+											Set Available
+										</button>
+									</div>
+								))}
+							</div>
+						) : (
+							<div className="text-center py-12 opacity-50">
+								<Box className="w-16 h-16 mx-auto mb-4 opacity-20" />
+								<p>No items are currently out of stock</p>
+							</div>
+						)}
+
+						<div className="modal-action">
+							<button 
+								className="btn btn-ghost"
+								onClick={() => setShowOutOfStockModal(false)}
+							>Close</button>
+						</div>
+					</div>
+					<div className="modal-backdrop bg-black/50" onClick={() => setShowOutOfStockModal(false)}></div>
+				</div>
+			)}
 
 			<DeleteConfirmationModal
 				isOpen={showDeleteConfirm}

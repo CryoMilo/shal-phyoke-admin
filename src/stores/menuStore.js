@@ -133,8 +133,7 @@ const useMenuStore = create(
 				return get().allMenuItems.filter(
 					(item) =>
 						item.is_combo === true &&
-						item.combo_type === "fixed" &&
-						item.is_active === true
+						item.combo_type === "fixed"
 				);
 			},
 
@@ -142,15 +141,14 @@ const useMenuStore = create(
 				return get().allMenuItems.filter(
 					(item) =>
 						item.is_combo === true &&
-						item.combo_type === "rotating" &&
-						item.is_active === true
+						item.combo_type === "rotating"
 				);
 			},
 
 			getItemsByCategory: (category) => {
 				const state = get();
 				return state.allMenuItems.filter(
-					(item) => item.category === category && item.is_active
+					(item) => item.category === category
 				);
 			},
 
@@ -158,7 +156,7 @@ const useMenuStore = create(
 				const state = get();
 				return state.allMenuItems.filter(
 					(item) =>
-						item.is_regular && item.category === category && item.is_active
+						item.is_regular && item.category === category
 				);
 			},
 
@@ -166,7 +164,7 @@ const useMenuStore = create(
 				const state = get();
 				return state.allMenuItems.filter(
 					(item) =>
-						!item.is_regular && item.category === category && item.is_active
+						!item.is_regular && item.category === category
 				);
 			},
 

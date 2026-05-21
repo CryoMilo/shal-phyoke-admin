@@ -1,13 +1,7 @@
 import React from "react";
-import { Edit, Trash2, Eye } from "lucide-react";
+import { Edit, Trash2 } from "lucide-react";
 
-const RegularMenuCard = ({
-	menu,
-	onEdit,
-	onDelete,
-	onViewDetails,
-	onToggleStatus,
-}) => {
+const RegularMenuCard = ({ menu, onEdit, onDelete, onToggleStatus }) => {
 	const getCategoryBadgeColor = (category) => {
 		switch (category) {
 			case "Regular":
@@ -39,8 +33,13 @@ const RegularMenuCard = ({
 						className="w-full h-full object-cover"
 						onError={(e) => {
 							e.target.style.display = "none";
-							e.target.parentElement.classList.add("flex", "items-center", "justify-center");
-							e.target.parentElement.innerHTML = '<span class="text-gray-400 text-sm">No Image</span>';
+							e.target.parentElement.classList.add(
+								"flex",
+								"items-center",
+								"justify-center"
+							);
+							e.target.parentElement.innerHTML =
+								'<span class="text-gray-400 text-sm">No Image</span>';
 						}}
 					/>
 				) : (
@@ -87,9 +86,7 @@ const RegularMenuCard = ({
 
 				{/* Taste Profile */}
 				{menu.taste_profile && (
-					<p className="text-xs text-gray-500 mt-1">
-						{menu.taste_profile}
-					</p>
+					<p className="text-xs text-gray-500 mt-1">{menu.taste_profile}</p>
 				)}
 
 				{/* Actions */}
@@ -100,23 +97,20 @@ const RegularMenuCard = ({
 							menu.is_active ? "btn-warning" : "btn-success"
 						}`}
 						onClick={handleToggleStatus}
-						title={menu.is_active ? "Mark as Out of Stock" : "Mark as Available"}>
+						title={
+							menu.is_active ? "Mark as Out of Stock" : "Mark as Available"
+						}>
 						{menu.is_active ? "Out of Stock" : "Mark Available"}
 					</button>
 
 					{/* Action Buttons */}
-					<div className="flex gap-1">
+					<div className="flex gap-2">
 						<button
-							className="btn btn-sm btn-ghost btn-square"
-							onClick={() => onViewDetails(menu)}
-							title="View Details">
-							<Eye className="w-4 h-4" />
-						</button>
-						<button
-							className="btn btn-sm btn-ghost btn-square"
+							className="btn btn-sm"
 							onClick={() => onEdit(menu)}
 							title="Edit">
-							<Edit className="w-4 h-4" />
+							<Edit className="w-5 h-5 mr-1" />
+							Edit
 						</button>
 						<button
 							className="btn btn-sm btn-ghost btn-square text-red-600"
