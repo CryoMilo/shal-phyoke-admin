@@ -259,8 +259,9 @@ const NewOrderTab = ({
 	};
 
 	const visibleOrderTypes = [];
-	if (isAdmin || isStaff) visibleOrderTypes.push("takeaway");
-	if (isAdmin) visibleOrderTypes.push("delivery");
+	if (isAdmin || isStaff) {
+		visibleOrderTypes.push("takeaway", "delivery");
+	}
 
 	return (
 		<div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
