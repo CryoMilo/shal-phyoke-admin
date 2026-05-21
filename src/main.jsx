@@ -4,6 +4,7 @@ import { RouterProvider } from "@tanstack/react-router";
 import { router } from "./router";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ToastContainer } from "./components/common/ToastContainer";
+import DeliveryNotificationListener from "./components/common/DeliveryNotificationListener";
 import "./index.css";
 
 // Standalone Detection
@@ -37,6 +38,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
 		<AuthProvider>
 			<RouterProvider router={router} />
 			<ToastContainer />
+			<DeliveryNotificationListener />
 		</AuthProvider>
 	</React.StrictMode>
 );

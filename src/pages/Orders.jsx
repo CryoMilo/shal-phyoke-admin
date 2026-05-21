@@ -10,6 +10,8 @@ import useQuickNoteStore from "../stores/quickNoteStore";
 import useOrderStore from "../stores/orderStore";
 import useStaffAccessStore from "../stores/staffAccessStore";
 import { sendToKitchenPrinter } from "../services/printerService";
+import { playDeliveryNotificationSound } from "../utils/soundUtils";
+import { markOrderAsPlayed } from "../components/common/DeliveryNotificationListener";
 
 export const Orders = () => {
 	const fetchActiveNotes = useQuickNoteStore((state) => state.fetchActiveNotes);
@@ -97,6 +99,12 @@ export const Orders = () => {
 				.single();
 
 			if (error) throw error;
+
+			// Play sound for delivery orders
+			if (orderType === "delivery") {
+				playDeliveryNotificationSound();
+				markOrderAsPlayed(data.id);
+			}
 
 			// Trigger auto-print if enabled
 			if (autoPrintKitchenTicket) {
