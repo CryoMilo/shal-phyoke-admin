@@ -78,17 +78,6 @@ const RegularMenuCard = ({ menu, onEdit, onDelete, onToggleStatus }) => {
 				{/* Price */}
 				<div className="text-xl font-bold text-primary mt-2">฿{menu.price}</div>
 
-				{menu.is_vegan && (
-					<span className="badge badge-success badge-sm gap-1 mt-1">
-						🌱 Vegan
-					</span>
-				)}
-
-				{/* Taste Profile */}
-				{menu.taste_profile && (
-					<p className="text-xs text-gray-500 mt-1">{menu.taste_profile}</p>
-				)}
-
 				{/* Actions */}
 				<div className="card-actions justify-between items-center mt-4">
 					{/* Toggle Status Button */}
