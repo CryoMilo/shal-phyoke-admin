@@ -17,6 +17,8 @@ export const sendToKitchenPrinter = async (order) => {
 		const tableNo =
 			order.order_type === "dine_in"
 				? `T-${order.table_number}`
+				: order.order_type === "takeaway" && order.table_number
+				? `TA-T${order.table_number}`
 				: order.order_type === "takeaway"
 				? "Takeaway"
 				: "Delivery";
@@ -29,6 +31,8 @@ export const sendToKitchenPrinter = async (order) => {
 			customer_phone: order.customer_phone,
 			payment_method: order.payment_method,
 			subtotal: order.subtotal,
+			discount_amount: order.discount_amount || 0,
+			delivery_fee: order.delivery_fee || 0,
 			total_amount: order.total_amount,
 			items,
 			note: order.notes ?? null,

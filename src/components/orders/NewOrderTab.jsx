@@ -29,6 +29,8 @@ const NewOrderTab = ({
 	setCustomerInfo,
 	tableNumber,
 	setTableNumber,
+	deliveryFee,
+	setDeliveryFee,
 	setShowTableModal,
 	paymentMethod,
 	setPaymentMethod,
@@ -512,14 +514,37 @@ const NewOrderTab = ({
 							<input
 								type="number"
 								className="input input-bordered input-xs w-20"
-								value={discountAmount}
-								onChange={(e) => setDiscountAmount(Number(e.target.value))}
+								value={discountAmount === 0 ? "" : discountAmount}
+								placeholder="0"
+								onChange={(e) => {
+									const val = e.target.value;
+									setDiscountAmount(val === "" ? 0 : Number(val));
+								}}
 								min="0"
 								max={subtotal}
 							/>
 							<span>฿</span>
 						</div>
 					</div>
+					{orderType === "delivery" && (
+						<div className="flex justify-between text-sm text-accent">
+							<span className="font-bold">Delivery Fee:</span>
+							<div className="flex items-center gap-2">
+								<input
+									type="number"
+									className="input input-bordered input-accent input-xs w-20 font-bold"
+									value={deliveryFee === 0 ? "" : deliveryFee}
+									placeholder="0"
+									onChange={(e) => {
+										const val = e.target.value;
+										setDeliveryFee(val === "" ? 0 : Number(val));
+									}}
+									min="0"
+								/>
+								<span>฿</span>
+							</div>
+						</div>
+					)}
 					<div className="flex justify-between font-bold text-lg border-t border-base-300 pt-2">
 						<span>Total:</span>
 						<span>฿{totalAmount.toFixed(2)}</span>

@@ -281,6 +281,14 @@ const OrderHistoryTab = () => {
 										-฿{selectedOrder.discount_amount}
 									</span>
 								</div>
+								{selectedOrder.delivery_fee > 0 && (
+									<div className="flex justify-between text-sm">
+										<span className="opacity-60">Delivery Fee</span>
+										<span className="font-mono text-sm text-accent">
+											+฿{selectedOrder.delivery_fee}
+										</span>
+									</div>
+								)}
 								<div className="flex justify-between font-bold text-lg pt-2">
 									<span>Total</span>
 									<span className="text-primary">

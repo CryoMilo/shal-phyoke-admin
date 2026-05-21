@@ -8,6 +8,7 @@ const useOrderStore = create(
 			orderType: "dine_in",
 			customerInfo: { name: "", phone: "", address: "" },
 			tableNumber: null,
+			deliveryFee: 0,
 			paymentMethod: "unpaid",
 			discountAmount: 0,
 			notes: "",
@@ -15,12 +16,13 @@ const useOrderStore = create(
 			itemExtraPrices: {}, // { cartId: extraPrice }
 
 			// Setters
-			setOrderType: (type) => set({ orderType: type }),
+			setOrderType: (type) => set({ orderType: type, deliveryFee: 0 }),
 			setCustomerInfo: (info) =>
 				set((state) => ({
 					customerInfo: typeof info === "function" ? info(state.customerInfo) : info,
 				})),
 			setTableNumber: (num) => set({ tableNumber: num }),
+			setDeliveryFee: (amount) => set({ deliveryFee: amount }),
 			setPaymentMethod: (method) => set({ paymentMethod: method }),
 			setDiscountAmount: (amount) => set({ discountAmount: amount }),
 			setNotes: (notes) => set({ notes }),
@@ -124,6 +126,7 @@ const useOrderStore = create(
 					cart: [],
 					customerInfo: { name: "", phone: "", address: "" },
 					tableNumber: null,
+					deliveryFee: 0,
 					discountAmount: 0,
 					notes: "",
 					itemNotes: {},
@@ -142,8 +145,9 @@ const useOrderStore = create(
 			},
 			
 			getTotalAmount: () => {
+				const { deliveryFee, discountAmount } = get();
 				const subtotal = get().getSubtotal();
-				return Math.max(0, subtotal - get().discountAmount);
+				return Math.max(0, subtotal + (deliveryFee || 0) - (discountAmount || 0));
 			}
 		}),
 		{

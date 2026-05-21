@@ -319,6 +319,7 @@ const SingularOrderModal = ({ order, onClose, onUpdate }) => {
 					order_type: order.order_type,
 					payment_method: order.payment_method,
 					payment_status: order.payment_status,
+					delivery_fee: order.delivery_fee || 0,
 				}));
 
 				await supabase.from("monthly_sales").insert(salesRecords);
@@ -463,11 +464,25 @@ const SingularOrderModal = ({ order, onClose, onUpdate }) => {
 					<div className="divider my-0 opacity-50"></div>
 
 					<div className="space-y-2">
-						<div className="flex justify-between font-bold text-xl pt-2">
+						<div className="flex justify-between text-sm">
+							<span className="opacity-60">Subtotal</span>
+							<span className="font-mono text-sm">฿{order.subtotal}</span>
+						</div>
+						{order.discount_amount > 0 && (
+							<div className="flex justify-between text-sm">
+								<span className="opacity-60">Discount</span>
+								<span className="font-mono text-sm text-error">-฿{order.discount_amount}</span>
+							</div>
+						)}
+						{order.delivery_fee > 0 && (
+							<div className="flex justify-between text-sm">
+								<span className="opacity-60 font-bold text-accent">Delivery Fee</span>
+								<span className="font-mono text-sm text-accent">+฿{order.delivery_fee}</span>
+							</div>
+						)}
+						<div className="flex justify-between font-bold text-xl pt-2 border-t border-base-200">
 							<span>Total Amount</span>
-							<span className="text-primary text-2xl">
-								฿{order.total_amount}
-							</span>
+							<span className="text-primary text-2xl">฿{order.total_amount}</span>
 						</div>
 					</div>
 
@@ -611,6 +626,7 @@ const TableBillsModal = ({ table, onClose, onUpdate }) => {
 					order_type: order.order_type,
 					payment_method: order.payment_method,
 					payment_status: order.payment_status,
+					delivery_fee: order.delivery_fee || 0,
 				}));
 
 				const { error: salesError } = await supabase

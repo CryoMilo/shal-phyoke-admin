@@ -18,6 +18,7 @@ export const Orders = () => {
 		orderType,
 		customerInfo,
 		tableNumber,
+		deliveryFee,
 		paymentMethod,
 		discountAmount,
 		notes,
@@ -26,6 +27,7 @@ export const Orders = () => {
 		setOrderType,
 		setCustomerInfo,
 		setTableNumber,
+		setDeliveryFee,
 		setPaymentMethod,
 		setDiscountAmount,
 		setNotes,
@@ -65,6 +67,7 @@ export const Orders = () => {
 				customer_phone: orderType === "delivery" ? customerInfo.phone : null,
 				delivery_address:
 					orderType === "delivery" ? customerInfo.address : null,
+				delivery_fee: orderType === "delivery" ? deliveryFee : 0,
 				table_number: (orderType === "dine_in" || orderType === "takeaway") ? tableNumber : null,
 				order_items: cart.map((item) => {
 					// Strip UI-only flags and combo store data
@@ -151,6 +154,8 @@ export const Orders = () => {
 						setCustomerInfo={setCustomerInfo}
 						tableNumber={tableNumber}
 						setTableNumber={setTableNumber}
+						deliveryFee={deliveryFee}
+						setDeliveryFee={setDeliveryFee}
 						setShowTableModal={setShowTableModal}
 						paymentMethod={paymentMethod}
 						setPaymentMethod={setPaymentMethod}
