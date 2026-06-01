@@ -137,14 +137,6 @@ const useMenuStore = create(
 				);
 			},
 
-			getActiveRotatingCombos: () => {
-				return get().allMenuItems.filter(
-					(item) =>
-						item.is_combo === true &&
-						item.combo_type === "rotating"
-				);
-			},
-
 			getItemsByCategory: (category) => {
 				const state = get();
 				return state.allMenuItems.filter(

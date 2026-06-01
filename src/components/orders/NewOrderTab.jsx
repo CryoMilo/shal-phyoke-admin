@@ -4,7 +4,6 @@ import { supabase } from "../../services/supabase";
 import { Split } from "lucide-react";
 import ItemNoteModal from "./ItemNoteModal";
 import useMenuStore from "../../stores/menuStore";
-import RotatingComboPickerModal from "./RotatingComboPickerModal";
 import { useAuth } from "../../contexts/AuthContext";
 import PaymentModal from "../common/PaymentModal";
 
@@ -52,7 +51,6 @@ const NewOrderTab = ({
 		allMenuItems,
 		fetchAllMenuItems,
 		getActiveFixedCombos,
-		getActiveRotatingCombos,
 	} = useMenuStore();
 	const { isAdmin, isStaff } = useAuth();
 
@@ -66,8 +64,6 @@ const NewOrderTab = ({
 	// State for Item Note Modal
 	const [showNoteModal, setShowNoteModal] = useState(false);
 	const [activeItemForNote, setActiveItemForNote] = useState(null);
-
-	const [activeRotatingCombo, setActiveRotatingCombo] = useState(null);
 
 	// Payment Confirmation Modal State
 	const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -86,11 +82,7 @@ const NewOrderTab = ({
 		});
 	}, [todaysSpecialRaw, allMenuItems]);
 
-	const fixedCombos = useMemo(() => getActiveFixedCombos(), [allMenuItems]);
-	const rotatingCombos = useMemo(
-		() => getActiveRotatingCombos(),
-		[allMenuItems]
-	);
+	const combos = useMemo(() => getActiveFixedCombos(), [allMenuItems]);
 
 	const menuItems = useMemo(
 		() =>
@@ -166,9 +158,7 @@ const NewOrderTab = ({
 
 		const allCategories = [];
 
-		const hasAnyCombos = fixedCombos.length > 0 || rotatingCombos.length > 0;
-
-		if (hasAnyCombos) {
+		if (combos.length > 0) {
 			allCategories.push("Combos");
 		}
 
@@ -177,20 +167,14 @@ const NewOrderTab = ({
 		}
 
 		return [...allCategories, ...regularCategories];
-	}, [menuItems, todaysSpecialItems, fixedCombos, rotatingCombos]);
+	}, [menuItems, todaysSpecialItems, combos]);
 
 	const filteredItems = React.useMemo(() => {
 		if (activeCategory === "Combos") {
-			return [
-				...fixedCombos.map((c) => ({
-					...c,
-					isFixedCombo: true,
-				})),
-				...rotatingCombos.map((t) => ({
-					...t,
-					isRotatingCombo: true,
-				})),
-			];
+			return combos.map((c) => ({
+				...c,
+				isCombo: true,
+			}));
 		}
 		if (activeCategory === "Today's Special") {
 			return todaysSpecialItems;
@@ -200,8 +184,7 @@ const NewOrderTab = ({
 		menuItems,
 		todaysSpecialItems,
 		activeCategory,
-		fixedCombos,
-		rotatingCombos,
+		combos,
 	]);
 
 	// Set default category to the first available one
@@ -364,16 +347,12 @@ const NewOrderTab = ({
 								className={`bg-base-100 border rounded-lg p-3 relative overflow-hidden transition-all ${
 									!item.is_active 
 										? "grayscale opacity-50 cursor-not-allowed border-base-300" 
-										: "cursor-pointer hover:shadow-md border-base-300 " + (item.isRotatingCombo || item.isFixedCombo ? "border-primary/30 ring-1 ring-primary/10" : "")
+										: "cursor-pointer hover:shadow-md border-base-300 " + (item.isCombo ? "border-primary/30 ring-1 ring-primary/10" : "")
 								}`}
 								onClick={() => {
 									if (!item.is_active) return;
-									if (item.isFixedCombo) {
+									if (item.isCombo) {
 										addToCart(item, item.combo_note_summary || null, 0);
-										return;
-									}
-									if (item.isRotatingCombo) {
-										setActiveRotatingCombo(item);
 										return;
 									}
 									addToCart(item);
@@ -385,7 +364,7 @@ const NewOrderTab = ({
 										</span>
 									</div>
 								)}
-								{(item.isRotatingCombo || item.isFixedCombo) && (
+								{item.isCombo && (
 									<div className="absolute top-0 right-0 bg-primary text-primary-content text-[8px] font-bold px-1.5 py-0.5 rounded-bl-lg uppercase tracking-tighter z-20">
 										Combo
 									</div>
@@ -407,14 +386,9 @@ const NewOrderTab = ({
 								)}
 								<div className="mt-1 flex flex-col">
 									<p className="text-primary font-bold">฿{item.price}</p>
-									{item.isFixedCombo && (
+									{item.isCombo && (
 										<span className="badge badge-primary badge-xs mt-1">
-											Fixed Set
-										</span>
-									)}
-									{item.isRotatingCombo && (
-										<span className="badge badge-secondary badge-xs mt-1">
-											Daily Set
+											Combo Set
 										</span>
 									)}
 								</div>
@@ -438,7 +412,7 @@ const NewOrderTab = ({
 						<div
 							key={item.cart_id}
 							className={`bg-base-100 p-2 rounded-lg border shadow-sm ${
-								item.isRotatingCombo || item.isFixedCombo
+								item.isCombo
 									? "border-primary/20 bg-primary/5"
 									: "border-base-300"
 							}`}>
@@ -667,19 +641,6 @@ const NewOrderTab = ({
 				amount={totalAmount}
 				paymentMethod={pendingPaymentMethod}
 			/>
-
-			{/* Rotating Combo Picker Modal */}
-			{activeRotatingCombo && (
-				<RotatingComboPickerModal
-					combo={activeRotatingCombo}
-					todayItems={todaysSpecialItems}
-					onConfirm={(cartItem, noteString) => {
-						addToCart(cartItem, noteString || null, 0);
-						setActiveRotatingCombo(null);
-					}}
-					onClose={() => setActiveRotatingCombo(null)}
-				/>
-			)}
 		</div>
 	);
 };
