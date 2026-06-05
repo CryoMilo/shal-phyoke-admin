@@ -1,6 +1,7 @@
 // src/pages/ComboManager.jsx
 import React, { useState, useEffect, useMemo } from "react";
 import useMenuStore from "../stores/menuStore";
+import useQuickNoteStore from "../stores/quickNoteStore";
 import { PageHeader } from "../components/common/PageHeader";
 import {
 	Plus,
@@ -181,6 +182,7 @@ const ComboManager = () => {
 };
 
 const FixedComboModal = ({ editingItem, regularMenuItems, onClose, onSave }) => {
+	const { activeNotes, fetchActiveNotes } = useQuickNoteStore();
 	const [nameBurmese, setNameBurmese] = useState(
 		editingItem?.name_burmese || ""
 	);
@@ -190,8 +192,15 @@ const FixedComboModal = ({ editingItem, regularMenuItems, onClose, onSave }) => 
 	const [price, setPrice] = useState(editingItem?.price || "");
 	const [isActive, setIsActive] = useState(editingItem?.is_active ?? true);
 	const [members, setMembers] = useState(editingItem?.combo_members || []);
+	const [quickNoteIds, setQuickNoteIds] = useState(
+		editingItem?.quick_note_ids || []
+	);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [saving, setSaving] = useState(false);
+
+	useEffect(() => {
+		fetchActiveNotes();
+	}, [fetchActiveNotes]);
 
 	const filteredRegularItems = useMemo(() => {
 		return regularMenuItems.filter(
@@ -236,6 +245,7 @@ const FixedComboModal = ({ editingItem, regularMenuItems, onClose, onSave }) => 
 			combo_members: members,
 			combo_slots: null,
 			combo_note_summary: note_summary,
+			quick_note_ids: quickNoteIds,
 			description: "",
 			image_url: "",
 			sensitive_ingredients: [],
@@ -312,6 +322,54 @@ const FixedComboModal = ({ editingItem, regularMenuItems, onClose, onSave }) => 
 								/>
 								<span className="label-text font-medium">Active</span>
 							</label>
+						</div>
+					</div>
+
+					{/* Quick Note Assignment */}
+					<div className="border-t border-base-300 pt-4">
+						<label className="label pt-0">
+							<span className="label-text font-bold text-sm">
+								Quick Note Assignment
+							</span>
+						</label>
+						<div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-2">
+							{activeNotes.length > 0 ? (
+								activeNotes.map((note) => (
+									<label
+										key={note.id}
+										className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-colors hover:bg-base-200 ${
+											quickNoteIds.includes(note.id)
+												? "border-primary bg-primary/5"
+												: "border-base-300 bg-base-100"
+										}`}>
+										<input
+											type="checkbox"
+											className="checkbox checkbox-xs checkbox-primary"
+											checked={quickNoteIds.includes(note.id)}
+											onChange={() => {
+												const newValue = quickNoteIds.includes(note.id)
+													? quickNoteIds.filter((id) => id !== note.id)
+													: [...quickNoteIds, note.id];
+												setQuickNoteIds(newValue);
+											}}
+										/>
+										<div className="flex flex-col min-w-0">
+											<span className="text-xs font-bold truncate">
+												{note.label}
+											</span>
+											<span className="text-[8px] opacity-60 truncate">
+												{note.type === "radio"
+													? "Single Choice"
+													: "Multi-select"}
+											</span>
+										</div>
+									</label>
+								))
+							) : (
+								<p className="col-span-full text-xs text-center opacity-50 py-4 italic">
+									No active note templates found.
+								</p>
+							)}
 						</div>
 					</div>
 

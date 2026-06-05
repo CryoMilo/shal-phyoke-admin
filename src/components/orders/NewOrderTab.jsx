@@ -204,6 +204,7 @@ const NewOrderTab = ({
 		setActiveItemForNote({
 			...item,
 			available_extras: masterItem?.available_extras || [],
+			quick_note_ids: masterItem?.quick_note_ids || [],
 			is_regular: item.is_regular ?? false,
 			note: itemNotes[item.cart_id] || "",
 		});
