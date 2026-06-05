@@ -1,11 +1,12 @@
 // components/NewOrderTab.jsx
 import React, { useState, useEffect, useMemo } from "react";
 import { supabase } from "../../services/supabase";
-import { Split } from "lucide-react";
+import { Split, Copy, Check } from "lucide-react";
 import ItemNoteModal from "./ItemNoteModal";
 import useMenuStore from "../../stores/menuStore";
 import { useAuth } from "../../contexts/AuthContext";
 import PaymentModal from "../common/PaymentModal";
+import { showToast } from "../../utils/toastUtils";
 
 const getTodayWeekday = () => {
 	const d = new Date();
@@ -68,6 +69,7 @@ const NewOrderTab = ({
 	// Payment Confirmation Modal State
 	const [showPaymentModal, setShowPaymentModal] = useState(false);
 	const [pendingPaymentMethod, setPendingPaymentMethod] = useState(null);
+	const [isCopied, setIsCopied] = useState(false);
 
 	// Derived Today's Specials with extras from master list
 	const todaysSpecialItems = useMemo(() => {
@@ -229,6 +231,48 @@ const NewOrderTab = ({
 		} else {
 			setPaymentMethod(method);
 		}
+	};
+
+	const handleCopyOrder = () => {
+		if (cart.length === 0) return;
+
+		let text = `📦 *ORDER DETAILS*\n`;
+		text += `--------------------------\n`;
+		
+		if (customerInfo.name) text += `👤 *Customer:* ${customerInfo.name}\n`;
+		if (customerInfo.phone) text += `📞 *Phone:* ${customerInfo.phone}\n`;
+		if (customerInfo.address) text += `📍 *Address:* ${customerInfo.address}\n`;
+		
+		text += `🍴 *Type:* ${orderType.toUpperCase()}\n`;
+		if (tableNumber) text += `🪑 *Table:* ${tableNumber}\n`;
+		text += `--------------------------\n\n`;
+
+		cart.forEach((item, index) => {
+			text += `${index + 1}. *${item.name_burmese}*\n`;
+			if (item.name_english) text += `   (${item.name_english})\n`;
+			
+			const note = itemNotes[item.cart_id];
+			if (note) text += `   📝 _Note: ${note}_\n`;
+			
+			text += `   ${item.quantity} x ฿${item.price} = *฿${item.quantity * item.price}*\n\n`;
+		});
+
+		text += `--------------------------\n`;
+		text += `Subtotal: ฿${subtotal.toFixed(2)}\n`;
+		if (discountAmount > 0) text += `Discount: -฿${discountAmount.toFixed(2)}\n`;
+		if (orderType === "delivery" && deliveryFee > 0) text += `Delivery Fee: +฿${deliveryFee.toFixed(2)}\n`;
+		text += `--------------------------\n`;
+		text += `💰 *TOTAL: ฿${totalAmount.toFixed(2)}*\n`;
+		
+		if (notes) {
+			text += `\n📝 *General Notes:* ${notes}\n`;
+		}
+
+		navigator.clipboard.writeText(text).then(() => {
+			setIsCopied(true);
+			showToast.success("Order copied to clipboard!");
+			setTimeout(() => setIsCopied(false), 2000);
+		});
 	};
 
 	const handleOrderTypeToggle = (type) => {
@@ -405,7 +449,27 @@ const NewOrderTab = ({
 
 			{/* Right: Order Summary */}
 			<div className="rounded-lg h-fit col-span-2 sticky top-4 bg-base-200 p-4">
-				<h2 className="text-lg font-bold mb-4">Current Order</h2>
+				<div className="flex justify-between items-center mb-4">
+					<h2 className="text-lg font-bold">Current Order</h2>
+					<button 
+						className={`btn btn-sm btn-ghost gap-2 ${isCopied ? 'text-success' : 'opacity-60 hover:opacity-100'}`}
+						onClick={handleCopyOrder}
+						disabled={cart.length === 0}
+						title="Copy order details"
+					>
+						{isCopied ? (
+							<>
+								<Check className="w-4 h-4" />
+								<span className="text-xs font-bold">Copied</span>
+							</>
+						) : (
+							<>
+								<Copy className="w-4 h-4" />
+								<span className="text-xs font-bold">Copy</span>
+							</>
+						)}
+					</button>
+				</div>
 
 				{/* Cart Items */}
 				<div className="space-y-2 mb-4 max-h-[50vh] overflow-y-auto">
