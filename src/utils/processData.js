@@ -21,8 +21,14 @@ const calculateDailyOverheadCost = (monthlyOverheads, selectedDate) => {
 };
 
 const processSalesData = (orders, aggregatedSales, dateStr) => {
+	// totalIncome should be (total_amount - delivery_fee) for each order
 	const totalIncome = orders.reduce(
-		(sum, o) => sum + getSafeNumber(o.total_amount),
+		(sum, o) =>
+			sum + (getSafeNumber(o.total_amount) - getSafeNumber(o.delivery_fee)),
+		0
+	);
+	const totalDeliveryFees = orders.reduce(
+		(sum, o) => sum + getSafeNumber(o.delivery_fee),
 		0
 	);
 	const totalOrders = orders.length;
@@ -33,7 +39,11 @@ const processSalesData = (orders, aggregatedSales, dateStr) => {
 
 	const cashSales = orders
 		.filter((o) => o.payment_method?.toLowerCase() === "cash")
-		.reduce((sum, o) => sum + getSafeNumber(o.total_amount), 0);
+		.reduce(
+			(sum, o) =>
+				sum + (getSafeNumber(o.total_amount) - getSafeNumber(o.delivery_fee)),
+			0
+		);
 
 	const qrSales = totalIncome - cashSales;
 	const avgOrderValue = totalOrders > 0 ? totalIncome / totalOrders : 0;
@@ -100,6 +110,7 @@ const processSalesData = (orders, aggregatedSales, dateStr) => {
 
 	return {
 		totalIncome,
+		totalDeliveryFees,
 		cashSales,
 		qrSales,
 		totalOrders,
@@ -251,6 +262,7 @@ export const processDashboardData = (
 		// Sales Data
 		dailySales: salesData.topSellingItems,
 		totalIncome: salesData.totalIncome,
+		totalDeliveryFees: salesData.totalDeliveryFees,
 		cashSales: salesData.cashSales,
 		qrSales: salesData.qrSales,
 		totalOrders: salesData.totalOrders,

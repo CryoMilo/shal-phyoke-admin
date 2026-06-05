@@ -88,7 +88,7 @@ export const Dashboard = () => {
 			// 1. Fetch orders using exact UTC window
 			const { data: orders, error: ordersError } = await supabase
 				.from("orders")
-				.select("id, created_at, total_amount, payment_method, order_items")
+				.select("id, created_at, total_amount, delivery_fee, payment_method, order_items")
 				.eq("pos_order_status", "completed")
 				.eq("payment_status", "paid")
 				.gte("created_at", start)

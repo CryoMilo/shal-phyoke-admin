@@ -1,14 +1,7 @@
 // components/ActiveOrdersTab.jsx
 import React, { useState, useEffect, useMemo } from "react";
 import { supabase } from "../../services/supabase";
-import {
-	Users,
-	Clock,
-	Receipt,
-	CheckCircle2,
-	CreditCard,
-	Banknote,
-} from "lucide-react";
+import { Users, CheckCircle2, CreditCard, Banknote } from "lucide-react";
 import PrintKitchenTicketButton from "./PrintKitchenTicketButton";
 import { showToast } from "../../utils/toastUtils";
 import {
@@ -75,7 +68,8 @@ const ActiveOrdersTab = () => {
 					};
 				}
 				hubs[key].orders.push(order);
-				hubs[key].total += Number(order.total_amount);
+				// Hub total should exclude delivery fees for business accounting consistency
+				hubs[key].total += (Number(order.total_amount) - Number(order.delivery_fee || 0));
 				if (order.payment_status === "unpaid") hubs[key].unpaidCount++;
 				if (new Date(order.created_at) < new Date(hubs[key].oldestOrder)) {
 					hubs[key].oldestOrder = order.created_at;
@@ -157,7 +151,9 @@ const ActiveOrdersTab = () => {
 									</div>
 
 									<div className="text-xs font-bold truncate w-full px-1">
-										{order.order_type === "takeaway" && order.table_number ? `Table ${order.table_number}` : (order.customer_name || "Takeaway")}
+										{order.order_type === "takeaway" && order.table_number
+											? `Table ${order.table_number}`
+											: order.customer_name || "Takeaway"}
 									</div>
 
 									<div className="flex gap-1 mt-1">
@@ -402,7 +398,9 @@ const SingularOrderModal = ({ order, onClose, onUpdate }) => {
 								"?"}
 						</div>
 						<h3 className="font-bold">
-							{order.order_type === "takeaway" && order.table_number ? `Table ${order.table_number}` : (order.customer_name || "Takeaway Order")}
+							{order.order_type === "takeaway" && order.table_number
+								? `Table ${order.table_number}`
+								: order.customer_name || "Takeaway Order"}
 						</h3>
 					</div>
 					<button className="btn btn-sm btn-circle btn-ghost" onClick={onClose}>
@@ -471,18 +469,26 @@ const SingularOrderModal = ({ order, onClose, onUpdate }) => {
 						{order.discount_amount > 0 && (
 							<div className="flex justify-between text-sm">
 								<span className="opacity-60">Discount</span>
-								<span className="font-mono text-sm text-error">-฿{order.discount_amount}</span>
+								<span className="font-mono text-sm text-error">
+									-฿{order.discount_amount}
+								</span>
 							</div>
 						)}
 						{order.delivery_fee > 0 && (
 							<div className="flex justify-between text-sm">
-								<span className="opacity-60 font-bold text-accent">Delivery Fee</span>
-								<span className="font-mono text-sm text-accent">+฿{order.delivery_fee}</span>
+								<span className="opacity-60 font-bold text-accent">
+									Delivery Fee
+								</span>
+								<span className="font-mono text-sm text-accent">
+									+฿{order.delivery_fee}
+								</span>
 							</div>
 						)}
 						<div className="flex justify-between font-bold text-xl pt-2 border-t border-base-200">
 							<span>Total Amount</span>
-							<span className="text-primary text-2xl">฿{order.total_amount}</span>
+							<span className="text-primary text-2xl">
+								฿{order.total_amount}
+							</span>
 						</div>
 					</div>
 

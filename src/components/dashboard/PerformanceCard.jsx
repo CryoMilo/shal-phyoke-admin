@@ -54,6 +54,10 @@ export const PerformanceCard = ({ salesData }) => {
 									฿{salesData.qrSales.toFixed(2)}
 								</span>
 							</div>
+							<div className="flex justify-between text-accent font-medium">
+								<span>Delivery Fees</span>
+								<span>฿{salesData.totalDeliveryFees.toFixed(2)}</span>
+							</div>
 							<div className="flex justify-between border-t pt-2">
 								<span className="font-medium">Total</span>
 								<span className="font-bold">
