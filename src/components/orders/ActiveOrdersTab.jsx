@@ -1,7 +1,14 @@
 // components/ActiveOrdersTab.jsx
 import React, { useState, useEffect, useMemo } from "react";
 import { supabase } from "../../services/supabase";
-import { Users, CheckCircle2, CreditCard, Banknote } from "lucide-react";
+import {
+	Users,
+	CheckCircle2,
+	CreditCard,
+	Banknote,
+	Phone,
+	MapPin,
+} from "lucide-react";
 import PrintKitchenTicketButton from "./PrintKitchenTicketButton";
 import { showToast } from "../../utils/toastUtils";
 import {
@@ -69,7 +76,8 @@ const ActiveOrdersTab = () => {
 				}
 				hubs[key].orders.push(order);
 				// Hub total should exclude delivery fees for business accounting consistency
-				hubs[key].total += (Number(order.total_amount) - Number(order.delivery_fee || 0));
+				hubs[key].total +=
+					Number(order.total_amount) - Number(order.delivery_fee || 0);
 				if (order.payment_status === "unpaid") hubs[key].unpaidCount++;
 				if (new Date(order.created_at) < new Date(hubs[key].oldestOrder)) {
 					hubs[key].oldestOrder = order.created_at;
@@ -151,10 +159,21 @@ const ActiveOrdersTab = () => {
 									</div>
 
 									<div className="text-xs font-bold truncate w-full px-1">
-										{order.order_type === "takeaway" && order.table_number
-											? `Table ${order.table_number}`
-											: order.customer_name || "Takeaway"}
+										{order.customer_name ||
+											(order.order_type === "takeaway" && order.table_number
+												? `Table ${order.table_number}`
+												: order.order_type.toUpperCase())}
 									</div>
+
+									{order.order_type === "delivery" && (
+										<div className="flex flex-col items-center mt-1 w-full px-1 overflow-hidden">
+											{order.delivery_address && (
+												<div className="text-[10px] opacity-60 truncate w-full">
+													{order.delivery_address}
+												</div>
+											)}
+										</div>
+									)}
 
 									<div className="flex gap-1 mt-1">
 										<span
@@ -398,9 +417,13 @@ const SingularOrderModal = ({ order, onClose, onUpdate }) => {
 								"?"}
 						</div>
 						<h3 className="font-bold">
-							{order.order_type === "takeaway" && order.table_number
-								? `Table ${order.table_number}`
-								: order.customer_name || "Takeaway Order"}
+							{order.customer_name ||
+								(order.order_type === "takeaway" && order.table_number
+									? `Table ${order.table_number}`
+									: `${
+											order.order_type.charAt(0).toUpperCase() +
+											order.order_type.slice(1)
+									  } Order`)}
 						</h3>
 					</div>
 					<button className="btn btn-sm btn-circle btn-ghost" onClick={onClose}>
@@ -435,6 +458,34 @@ const SingularOrderModal = ({ order, onClose, onUpdate }) => {
 							</span>
 						</div>
 					</div>
+
+					{/* Customer Details Section */}
+					{(order.customer_phone || order.delivery_address) && (
+						<div className="bg-base-200/50 p-4 rounded-xl space-y-3">
+							<div className="grid grid-cols-2 gap-2">
+								{order.customer_phone && (
+									<div>
+										<div className="text-[10px] opacity-40 mb-0.5 flex items-center gap-1">
+											<Phone className="w-2.5 h-2.5" /> Phone
+										</div>
+										<div className="text-sm font-bold font-mono">
+											{order.customer_phone}
+										</div>
+									</div>
+								)}
+								{order.delivery_address && (
+									<div className="col-span-2 border-base-300/50">
+										<div className="text-[10px] opacity-40 mb-0.5 flex items-center gap-1">
+											<MapPin className="w-2.5 h-2.5" /> Delivery Address
+										</div>
+										<div className="text-sm font-medium leading-relaxed">
+											{order.delivery_address}
+										</div>
+									</div>
+								)}
+							</div>
+						</div>
+					)}
 
 					<div className="space-y-3">
 						<h4 className="text-[10px] font-bold opacity-40 uppercase">

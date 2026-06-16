@@ -3,13 +3,14 @@ import React, { useState, useEffect, useMemo } from "react";
 import { supabase } from "../../services/supabase";
 import {
 	Search,
-	Receipt,
 	User,
 	Clock,
 	CheckCircle2,
-	MoreVertical,
 	Eye,
 	XCircle,
+	Phone,
+	MapPin,
+	Users,
 } from "lucide-react";
 import PrintKitchenTicketButton from "./PrintKitchenTicketButton";
 import { showToast } from "../../utils/toastUtils";
@@ -240,7 +241,34 @@ const OrderHistoryTab = () => {
 								</div>
 							</div>
 
-							<div className="divider my-0"></div>
+							{/* Customer Details Section */}
+							{(selectedOrder.customer_phone ||
+								selectedOrder.delivery_address) && (
+								<div className="bg-base-200/50 p-4 rounded-xl space-y-3">
+									<div className="grid grid-cols-2 gap-1">
+										{selectedOrder.customer_phone && (
+											<div>
+												<div className="text-[10px] opacity-40 mb-0.5 flex items-center gap-1">
+													<Phone className="w-2.5 h-2.5" /> Phone
+												</div>
+												<div className="text-sm font-bold font-mono">
+													{selectedOrder.customer_phone}
+												</div>
+											</div>
+										)}
+										{selectedOrder.delivery_address && (
+											<div className="col-span-2 border-base-300/50">
+												<div className="text-[10px] opacity-40 mb-0.5 flex items-center gap-1">
+													<MapPin className="w-2.5 h-2.5" /> Delivery Address
+												</div>
+												<div className="text-sm font-medium leading-relaxed">
+													{selectedOrder.delivery_address}
+												</div>
+											</div>
+										)}
+									</div>
+								</div>
+							)}
 
 							<div className="space-y-3">
 								<h4 className="text-xs font-bold opacity-40 uppercase">

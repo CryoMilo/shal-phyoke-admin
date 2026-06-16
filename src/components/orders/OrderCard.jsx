@@ -1,13 +1,14 @@
 // components/OrderCard.jsx
 import { supabase } from "../../services/supabase";
 import PrintKitchenTicketButton from "./PrintKitchenTicketButton";
+import { MapPin } from "lucide-react";
 
 const OrderCard = ({ order, onUpdate }) => {
 	const updateOrderStatus = async (newStatus) => {
 		try {
 			const { error } = await supabase
 				.from("orders")
-				.update({ pos_order_status: newStatus }) // ✅ Fixed: changed from order_status to pos_order_status
+				.update({ pos_order_status: newStatus })
 				.eq("id", order.id);
 
 			if (error) throw error;
@@ -39,18 +40,28 @@ const OrderCard = ({ order, onUpdate }) => {
 				</div>
 				<span
 					className={`badge ${
-						order.pos_order_status === "ready" // ✅ Fixed
+						order.pos_order_status === "ready"
 							? "badge-success"
-							: order.pos_order_status === "preparing" // ✅ Fixed
+							: order.pos_order_status === "preparing"
 							? "badge-warning"
 							: "badge-secondary"
 					}`}>
-					{order.pos_order_status} {/* ✅ Fixed */}
+					{order.pos_order_status}
 				</span>
 			</div>
 
 			{order.customer_name && (
-				<p className="text-sm mb-2">{order.customer_name}</p>
+				<p className="text-sm font-bold mb-1">{order.customer_name}</p>
+			)}
+			{order.order_type === "delivery" && (
+				<div className="text-[11px] space-y-1 mb-3 bg-base-200/50 p-2 rounded">
+					{order.delivery_address && (
+						<div className="flex items-start gap-2">
+							<MapPin className="w-3 h-3 opacity-50 mt-0.5" />
+							<span>{order.delivery_address}</span>
+						</div>
+					)}
+				</div>
 			)}
 
 			<div className="text-xs space-y-1 mb-3">
@@ -70,21 +81,21 @@ const OrderCard = ({ order, onUpdate }) => {
 			<div className="flex justify-between items-center border-t pt-2">
 				<span className="font-bold">฿{order.total_amount}</span>
 				<div className="flex gap-1">
-					{order.pos_order_status === "pending" && ( // ✅ Fixed
+					{order.pos_order_status === "pending" && (
 						<button
 							className="btn btn-xs btn-primary"
 							onClick={() => updateOrderStatus("preparing")}>
 							Start
 						</button>
 					)}
-					{order.pos_order_status === "preparing" && ( // ✅ Fixed
+					{order.pos_order_status === "preparing" && (
 						<button
 							className="btn btn-xs btn-success"
 							onClick={() => updateOrderStatus("ready")}>
 							Ready
 						</button>
 					)}
-					{order.pos_order_status === "ready" && ( // ✅ Fixed
+					{order.pos_order_status === "ready" && (
 						<button
 							className="btn btn-xs btn-secondary"
 							onClick={() => updateOrderStatus("completed")}>
