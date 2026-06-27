@@ -14,7 +14,12 @@ import {
 } from "lucide-react";
 import PrintKitchenTicketButton from "./PrintKitchenTicketButton";
 import { showToast } from "../../utils/toastUtils";
-import { getBangkokDayRange, formatDisplayDate } from "../../utils/dateUtils";
+import {
+	getBangkokDayRange,
+	formatDisplayDate,
+	toBangkokDateString,
+} from "../../utils/dateUtils";
+import BangkokDatePicker from "../common/BangkokDatePicker";
 
 const STATUS_FILTERS = [
 	{ id: "all", label: "All" },
@@ -29,6 +34,10 @@ const OrderHistoryTab = () => {
 	const [searchTerm, setSearchTerm] = useState("");
 	const [statusFilter, setStatusFilter] = useState("all");
 	const [selectedOrder, setSelectedOrder] = useState(null);
+	const [selectedDate, setSelectedDate] = useState(new Date());
+
+	const isTodaySelected =
+		toBangkokDateString(selectedDate) === toBangkokDateString(new Date());
 
 	useEffect(() => {
 		fetchHistory();
@@ -43,11 +52,13 @@ const OrderHistoryTab = () => {
 		return () => {
 			supabase.removeChannel(channel);
 		};
-	}, []);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [selectedDate]);
 
 	const fetchHistory = async () => {
 		try {
-			const { start, end } = getBangkokDayRange();
+			setLoading(true);
+			const { start, end } = getBangkokDayRange(selectedDate);
 
 			const { data, error } = await supabase
 				.from("orders")
@@ -86,16 +97,29 @@ const OrderHistoryTab = () => {
 			<div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
 				<div>
 					<h2 className="text-xl font-bold">Order History</h2>
-					<p className="text-sm opacity-60">{formatDisplayDate(new Date())}</p>
+					<div className="flex items-center gap-2">
+						<p className="text-sm opacity-60">
+							{formatDisplayDate(selectedDate)}
+						</p>
+						{!isTodaySelected && (
+							<span className="badge badge-xs badge-warning">Past</span>
+						)}
+					</div>
 				</div>
-				<div className="relative w-full md:w-72">
-					<Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 opacity-50" />
-					<input
-						type="text"
-						placeholder="Search order, name, table..."
-						className="input input-bordered input-sm w-full pl-10"
-						value={searchTerm}
-						onChange={(e) => setSearchTerm(e.target.value)}
+				<div className="flex flex-col gap-2 w-full md:w-72">
+					<div className="relative">
+						<Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 opacity-50" />
+						<input
+							type="text"
+							placeholder="Search order, name, table..."
+							className="input input-bordered input-sm w-full pl-10"
+							value={searchTerm}
+							onChange={(e) => setSearchTerm(e.target.value)}
+						/>
+					</div>
+					<BangkokDatePicker
+						value={selectedDate}
+						onChange={setSelectedDate}
 					/>
 				</div>
 			</div>
