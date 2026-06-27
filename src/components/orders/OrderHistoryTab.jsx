@@ -14,11 +14,20 @@ import {
 } from "lucide-react";
 import PrintKitchenTicketButton from "./PrintKitchenTicketButton";
 import { showToast } from "../../utils/toastUtils";
+import { getBangkokDayRange, formatDisplayDate } from "../../utils/dateUtils";
+
+const STATUS_FILTERS = [
+	{ id: "all", label: "All" },
+	{ id: "completed", label: "Completed" },
+	{ id: "cancelled", label: "Cancelled" },
+	{ id: "refunded", label: "Refunded" },
+];
 
 const OrderHistoryTab = () => {
 	const [orders, setOrders] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [searchTerm, setSearchTerm] = useState("");
+	const [statusFilter, setStatusFilter] = useState("all");
 	const [selectedOrder, setSelectedOrder] = useState(null);
 
 	useEffect(() => {
@@ -38,12 +47,15 @@ const OrderHistoryTab = () => {
 
 	const fetchHistory = async () => {
 		try {
+			const { start, end } = getBangkokDayRange();
+
 			const { data, error } = await supabase
 				.from("orders")
 				.select("*")
 				.in("pos_order_status", ["completed", "cancelled", "refunded"])
-				.order("created_at", { ascending: false })
-				.limit(100);
+				.gte("created_at", start)
+				.lte("created_at", end)
+				.order("created_at", { ascending: false });
 
 			if (error) throw error;
 			setOrders(data || []);
@@ -56,19 +68,26 @@ const OrderHistoryTab = () => {
 	};
 
 	const filteredOrders = useMemo(() => {
-		return orders.filter(
-			(o) =>
+		return orders.filter((o) => {
+			const matchesStatus =
+				statusFilter === "all" || o.pos_order_status === statusFilter;
+			const matchesSearch =
 				o.order_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
 				o.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-				o.table_number?.toString().includes(searchTerm)
-		);
-	}, [orders, searchTerm]);
+				o.table_number?.toString().includes(searchTerm);
+
+			return matchesStatus && matchesSearch;
+		});
+	}, [orders, searchTerm, statusFilter]);
 
 	return (
 		<div className="space-y-4">
 			{/* Header & Search */}
 			<div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-				<h2 className="text-xl font-bold">Order History</h2>
+				<div>
+					<h2 className="text-xl font-bold">Order History</h2>
+					<p className="text-sm opacity-60">{formatDisplayDate(new Date())}</p>
+				</div>
 				<div className="relative w-full md:w-72">
 					<Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 opacity-50" />
 					<input
@@ -79,6 +98,20 @@ const OrderHistoryTab = () => {
 						onChange={(e) => setSearchTerm(e.target.value)}
 					/>
 				</div>
+			</div>
+
+			{/* Status Filters */}
+			<div className="tabs tabs-boxed bg-base-200 p-1 w-fit rounded-lg">
+				{STATUS_FILTERS.map(({ id, label }) => (
+					<button
+						key={id}
+						className={`tab tab-sm ${
+							statusFilter === id ? "tab-active font-bold" : ""
+						}`}
+						onClick={() => setStatusFilter(id)}>
+						{label}
+					</button>
+				))}
 			</div>
 
 			{/* Table Card */}

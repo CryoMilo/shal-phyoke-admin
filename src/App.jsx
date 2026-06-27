@@ -16,20 +16,13 @@ function App() {
 		);
 	}
 
-	// If it's the login page, just render the outlet (the Login component)
 	if (isLoginPage) {
 		return <Outlet />;
 	}
 
-	// For all other pages, if no user, the ProtectedRoute will handle redirect.
-	// Here we just provide the layout (Sidebar + Content)
 	return (
 		<div className="min-h-screen bg-base-100">
-			{user ? (
-				<Sidebar />
-			) : (
-				<Outlet />
-			)}
+			{user ? <Sidebar /> : <Outlet />}
 		</div>
 	);
 }
