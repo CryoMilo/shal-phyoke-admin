@@ -1,8 +1,9 @@
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Wallet, Users, TrendingUp, CalendarDays } from "lucide-react";
 import { PageHeader } from "../../components/common/PageHeader";
 import { Loading } from "../../components/common/Loading";
 import useBonusStore from "../../stores/bonusStore";
+import ShalPhyokeDatePicker from "../common/ShalPhyokeDatePicker";
 
 const formatCurrency = (amount) =>
 	new Intl.NumberFormat("en-US", {
@@ -11,19 +12,20 @@ const formatCurrency = (amount) =>
 	}).format(amount || 0);
 
 const BonusTracker = () => {
+	const [selectedMonth, setSelectedMonth] = useState(new Date());
 	const {
 		loading,
 		totalPool,
 		poolPercentage,
+		allowedAbsences,
 		monthLabel,
-		// monthToDateProfit,
 		employeeBonuses,
 		fetchBonusTracker,
 	} = useBonusStore();
 
 	useEffect(() => {
-		fetchBonusTracker();
-	}, [fetchBonusTracker]);
+		fetchBonusTracker(selectedMonth);
+	}, [selectedMonth, fetchBonusTracker]);
 
 	if (loading && employeeBonuses.length === 0) {
 		return <Loading message="Calculating bonus pool..." />;
@@ -36,10 +38,26 @@ const BonusTracker = () => {
 				description={
 					<div className="flex items-center gap-2">
 						<CalendarDays className="w-4 h-4 text-base-content/50" />
-						<span>{monthLabel} • Updated in real-time from daily sales</span>
+						<span>Estimated bonuses for the selected month</span>
 					</div>
 				}
 			/>
+
+			{/* Date/Month Navigation */}
+			<div className="mb-6 flex flex-wrap items-center justify-between bg-base-200/60 rounded-xl p-3 gap-3 border border-base-200">
+				<div className="flex items-center gap-2">
+					<span className="text-xs font-bold text-base-content/60 uppercase tracking-wider">Select Month:</span>
+					<ShalPhyokeDatePicker
+						mode="month"
+						value={selectedMonth}
+						onChange={(date) => setSelectedMonth(date)}
+						className="w-48 shadow-sm"
+					/>
+				</div>
+				<div className="text-xs text-base-content/50 font-medium">
+					Active Configuration: <span className="font-bold text-primary">{poolPercentage}% Pool Share</span> · Allowed absences: <span className="font-bold text-base-content">{allowedAbsences} pts</span>
+				</div>
+			</div>
 
 			{/* Pool Summary */}
 			<div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">

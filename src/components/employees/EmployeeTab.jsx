@@ -4,6 +4,7 @@ import { format } from "date-fns";
 import useEmployeeStore from "../../stores/employeeStore";
 import DeleteConfirmationModal from "../common/DeleteConfirmationModal";
 import { showToast } from "../../utils/toastUtils";
+import ShalPhyokeDatePicker from "../common/ShalPhyokeDatePicker";
 
 const EmployeeTab = () => {
 	const { employees, loading, fetchEmployees, addEmployee, updateEmployee, deleteEmployee } =
@@ -185,130 +186,168 @@ const EmployeeTab = () => {
 
 			{showModal && (
 				<div className="modal modal-open">
-					<div className="modal-box max-w-lg p-0 overflow-hidden">
-						<div className="p-6 pb-4 border-b border-base-200 flex justify-between items-center">
-							<h3 className="font-bold text-xl">
-								{editingEmployee ? "Edit Employee" : "New Employee"}
-							</h3>
+					<div className="modal-box max-w-lg p-0 overflow-hidden bg-base-100 shadow-2xl rounded-2xl border border-base-200">
+						{/* Header */}
+						<div className="p-6 pb-4 border-b border-base-200 flex justify-between items-center bg-gradient-to-r from-primary/5 to-secondary/5">
+							<div>
+								<h3 className="font-bold text-xl text-base-content">
+									{editingEmployee ? "Edit Employee" : "New Employee"}
+								</h3>
+								<p className="text-xs text-base-content/50 mt-0.5">Manage staff personal details & compensation</p>
+							</div>
 							<button className="btn btn-sm btn-circle btn-ghost" onClick={resetModal}>
 								<X className="w-5 h-5" />
 							</button>
 						</div>
 
-						<form onSubmit={handleSave} className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
-							<div className="form-control">
-								<label className="label py-1">
-									<span className="label-text font-bold text-sm">Name *</span>
-								</label>
-								<input
-									type="text"
-									className="input input-bordered"
-									value={name}
-									onChange={(e) => setName(e.target.value)}
-									required
-								/>
-							</div>
+						{/* Form */}
+						<form onSubmit={handleSave} className="p-6 space-y-5 max-h-[70vh] overflow-y-auto">
+							
+							{/* Section: Personal Info */}
+							<div className="space-y-4">
+								<h4 className="text-xs font-bold text-primary tracking-wider uppercase border-b border-base-200 pb-1">Personal & Position</h4>
+								
+								<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+									<div className="form-control">
+										<label className="label py-1">
+											<span className="label-text font-bold text-sm text-base-content/80">Name *</span>
+										</label>
+										<input
+											type="text"
+											className="input input-bordered w-full focus:input-primary transition-all font-medium"
+											value={name}
+											onChange={(e) => setName(e.target.value)}
+											placeholder="Full Name"
+											required
+										/>
+									</div>
 
-							<div className="form-control">
-								<label className="label py-1">
-									<span className="label-text font-bold text-sm">Phone *</span>
-								</label>
-								<input
-									type="text"
-									className="input input-bordered"
-									value={phone}
-									onChange={(e) => setPhone(e.target.value)}
-									required
-								/>
-							</div>
-
-							<div className="form-control">
-								<label className="label py-1">
-									<span className="label-text font-bold text-sm">Position</span>
-								</label>
-								<input
-									type="text"
-									className="input input-bordered"
-									value={position}
-									onChange={(e) => setPosition(e.target.value)}
-									placeholder="e.g. Chef, Waiter"
-								/>
-							</div>
-
-							<div className="form-control">
-								<label className="label py-1">
-									<span className="label-text font-bold text-sm">Address</span>
-								</label>
-								<textarea
-									className="textarea textarea-bordered"
-									value={address}
-									onChange={(e) => setAddress(e.target.value)}
-									rows={2}
-								/>
-							</div>
-
-							<div className="grid grid-cols-2 gap-3">
-								<div className="form-control">
-									<label className="label py-1">
-										<span className="label-text font-bold text-sm">Daily Rate</span>
-									</label>
-									<input
-										type="number"
-										min="0"
-										step="0.01"
-										className="input input-bordered"
-										value={dailyRate}
-										onChange={(e) => setDailyRate(e.target.value)}
-									/>
+									<div className="form-control">
+										<label className="label py-1">
+											<span className="label-text font-bold text-sm text-base-content/80">Phone *</span>
+										</label>
+										<input
+											type="text"
+											className="input input-bordered w-full focus:input-primary transition-all font-medium"
+											value={phone}
+											onChange={(e) => setPhone(e.target.value)}
+											placeholder="Phone Number"
+											required
+										/>
+									</div>
 								</div>
+
+								<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+									<div className="form-control">
+										<label className="label py-1">
+											<span className="label-text font-bold text-sm text-base-content/80">Position</span>
+										</label>
+										<input
+											type="text"
+											className="input input-bordered w-full focus:input-primary transition-all"
+											value={position}
+											onChange={(e) => setPosition(e.target.value)}
+											placeholder="e.g. Chef, Waiter, Manager"
+										/>
+									</div>
+
+									<div className="form-control">
+										<label className="label py-1">
+											<span className="label-text font-bold text-sm text-base-content/80">Hire Date</span>
+										</label>
+										<ShalPhyokeDatePicker
+											mode="date"
+											value={new Date(hireDate + "T12:00:00")}
+											onChange={(date) => setHireDate(format(date, "yyyy-MM-dd"))}
+											className="w-full"
+										/>
+									</div>
+								</div>
+
 								<div className="form-control">
 									<label className="label py-1">
-										<span className="label-text font-bold text-sm">Salary</span>
+										<span className="label-text font-bold text-sm text-base-content/80">Address</span>
 									</label>
-									<input
-										type="number"
-										min="0"
-										step="0.01"
-										className="input input-bordered"
-										value={salary}
-										onChange={(e) => setSalary(e.target.value)}
+									<textarea
+										className="textarea textarea-bordered w-full focus:textarea-primary transition-all"
+										value={address}
+										onChange={(e) => setAddress(e.target.value)}
+										rows={2}
+										placeholder="Residential Address"
 									/>
 								</div>
 							</div>
 
-							<div className="form-control">
-								<label className="label py-1">
-									<span className="label-text font-bold text-sm">Hire Date</span>
-								</label>
-								<input
-									type="date"
-									className="input input-bordered"
-									value={hireDate}
-									onChange={(e) => setHireDate(e.target.value)}
-								/>
+							{/* Section: Compensation */}
+							<div className="space-y-4 pt-2">
+								<h4 className="text-xs font-bold text-primary tracking-wider uppercase border-b border-base-200 pb-1">Compensation Details</h4>
+								<p className="text-[11px] text-base-content/50 mt-1">Specify at least one: Daily Rate or Salary. (All amounts in THB)</p>
+
+								<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+									<div className="form-control">
+										<label className="label py-1">
+											<span className="label-text font-bold text-sm text-base-content/80">Daily Rate</span>
+										</label>
+										<div className="relative">
+											<input
+												type="number"
+												min="0"
+												step="0.01"
+												className="input input-bordered w-full pr-12 focus:input-primary transition-all font-semibold text-success"
+												value={dailyRate}
+												onChange={(e) => setDailyRate(e.target.value)}
+												placeholder="0.00"
+											/>
+											<span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-base-content/40">THB</span>
+										</div>
+									</div>
+
+									<div className="form-control">
+										<label className="label py-1">
+											<span className="label-text font-bold text-sm text-base-content/80">Monthly Salary</span>
+										</label>
+										<div className="relative">
+											<input
+												type="number"
+												min="0"
+												step="0.01"
+												className="input input-bordered w-full pr-12 focus:input-primary transition-all font-semibold text-success"
+												value={salary}
+												onChange={(e) => setSalary(e.target.value)}
+												placeholder="0.00"
+											/>
+											<span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-base-content/40">THB</span>
+										</div>
+									</div>
+								</div>
 							</div>
 
-							<label className="label cursor-pointer justify-start gap-3 bg-base-200/50 p-3 rounded-lg">
+							{/* Active Status */}
+							<label className="label cursor-pointer justify-start gap-3 bg-base-200/50 p-4 rounded-xl border border-base-200 mt-2">
 								<input
 									type="checkbox"
 									className="checkbox checkbox-primary"
 									checked={isActive}
 									onChange={(e) => setIsActive(e.target.checked)}
 								/>
-								<span className="label-text font-bold">Active Employee</span>
+								<div>
+									<span className="label-text font-bold text-base-content">Active Status</span>
+									<p className="text-[10px] text-base-content/50 mt-0.5">Inactive employees are excluded from current month bonus distributions</p>
+								</div>
 							</label>
 						</form>
 
-						<div className="p-6 border-t border-base-200 flex justify-end gap-2">
-							<button className="btn btn-ghost" onClick={resetModal}>
+						{/* Footer */}
+						<div className="p-6 border-t border-base-200 flex justify-end gap-2 bg-base-50/50">
+							<button type="button" className="btn btn-ghost" onClick={resetModal}>
 								Cancel
 							</button>
-							<button className="btn btn-primary" onClick={handleSave}>
-								{editingEmployee ? "Update" : "Save"}
+							<button type="submit" className="btn btn-primary px-6" onClick={handleSave}>
+								{editingEmployee ? "Update Employee" : "Save Employee"}
 							</button>
 						</div>
 					</div>
-					<div className="modal-backdrop bg-black/50" onClick={resetModal} />
+					<div className="modal-backdrop bg-black/60 backdrop-blur-xs" onClick={resetModal} />
 				</div>
 			)}
 

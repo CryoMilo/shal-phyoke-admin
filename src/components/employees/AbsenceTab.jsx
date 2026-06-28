@@ -6,6 +6,7 @@ import useEmployeeAbsenceStore from "../../stores/employeeAbsenceStore";
 import DeleteConfirmationModal from "../common/DeleteConfirmationModal";
 import { showToast } from "../../utils/toastUtils";
 import { sumAbsencePoints } from "../../utils/bonusUtils";
+import ShalPhyokeDatePicker from "../common/ShalPhyokeDatePicker";
 
 const AbsenceTab = () => {
 	const { employees, fetchEmployees } = useEmployeeStore();
@@ -81,11 +82,11 @@ const AbsenceTab = () => {
 	return (
 		<>
 			<div className="flex flex-wrap justify-between items-center gap-3 mb-4">
-				<input
-					type="month"
-					className="input input-bordered input-sm"
-					value={selectedMonth}
-					onChange={(e) => setSelectedMonth(e.target.value)}
+				<ShalPhyokeDatePicker
+					mode="month"
+					value={new Date(selectedMonth + "-02")}
+					onChange={(date) => setSelectedMonth(format(date, "yyyy-MM"))}
+					className="w-48"
 				/>
 				<button
 					className="btn btn-primary btn-sm"
@@ -158,83 +159,90 @@ const AbsenceTab = () => {
 
 			{showModal && (
 				<div className="modal modal-open">
-					<div className="modal-box max-w-md p-0 overflow-hidden">
-						<div className="p-6 pb-4 border-b border-base-200 flex justify-between items-center">
-							<h3 className="font-bold text-xl">Record Absence</h3>
+					<div className="modal-box max-w-md p-0 overflow-hidden bg-base-100 shadow-2xl rounded-2xl border border-base-200">
+						{/* Header */}
+						<div className="p-6 pb-4 border-b border-base-200 flex justify-between items-center bg-gradient-to-r from-primary/5 to-secondary/5">
+							<div>
+								<h3 className="font-bold text-xl text-base-content">Record Absence</h3>
+								<p className="text-xs text-base-content/50 mt-0.5">Track employee absences and points deductibles</p>
+							</div>
 							<button className="btn btn-sm btn-circle btn-ghost" onClick={resetModal}>
 								<X className="w-5 h-5" />
 							</button>
 						</div>
 
+						{/* Form */}
 						<form onSubmit={handleSave} className="p-6 space-y-4">
 							<div className="form-control">
 								<label className="label py-1">
-									<span className="label-text font-bold text-sm">Employee *</span>
+									<span className="label-text font-bold text-sm text-base-content/80">Employee *</span>
 								</label>
 								<select
-									className="select select-bordered"
+									className="select select-bordered w-full focus:select-primary transition-all font-medium text-base-content"
 									value={employeeId}
 									onChange={(e) => setEmployeeId(e.target.value)}
 									required>
 									<option value="">Select employee</option>
 									{activeEmployees.map((e) => (
 										<option key={e.id} value={e.id}>
-											{e.name}
+											{e.name} ({e.position || "Staff"})
 										</option>
 									))}
 								</select>
 							</div>
 
-							<div className="form-control">
-								<label className="label py-1">
-									<span className="label-text font-bold text-sm">Date *</span>
-								</label>
-								<input
-									type="date"
-									className="input input-bordered"
-									value={absenceDate}
-									onChange={(e) => setAbsenceDate(e.target.value)}
-									required
-								/>
+							<div className="grid grid-cols-2 gap-4">
+								<div className="form-control">
+									<label className="label py-1">
+										<span className="label-text font-bold text-sm text-base-content/80">Date *</span>
+									</label>
+									<ShalPhyokeDatePicker
+										mode="date"
+										value={new Date(absenceDate + "T12:00:00")}
+										onChange={(date) => setAbsenceDate(format(date, "yyyy-MM-dd"))}
+										className="w-full"
+									/>
+								</div>
+
+								<div className="form-control">
+									<label className="label py-1">
+										<span className="label-text font-bold text-sm text-base-content/80">Absence Type *</span>
+									</label>
+									<select
+										className="select select-bordered w-full focus:select-primary transition-all font-medium text-base-content"
+										value={points}
+										onChange={(e) => setPoints(e.target.value)}>
+										<option value="1.0">Full Day (1.0 pt)</option>
+										<option value="0.5">Half Day (0.5 pt)</option>
+									</select>
+								</div>
 							</div>
 
 							<div className="form-control">
 								<label className="label py-1">
-									<span className="label-text font-bold text-sm">Absence Type *</span>
-								</label>
-								<select
-									className="select select-bordered"
-									value={points}
-									onChange={(e) => setPoints(e.target.value)}>
-									<option value="1.0">Full Day (1.0 pt)</option>
-									<option value="0.5">Half Day (0.5 pt)</option>
-								</select>
-							</div>
-
-							<div className="form-control">
-								<label className="label py-1">
-									<span className="label-text font-bold text-sm">Reason</span>
+									<span className="label-text font-bold text-sm text-base-content/80">Reason</span>
 								</label>
 								<input
 									type="text"
-									className="input input-bordered"
+									className="input input-bordered w-full focus:input-primary transition-all"
 									value={reason}
 									onChange={(e) => setReason(e.target.value)}
-									placeholder="Optional"
+									placeholder="e.g. Sick leave, Personal emergency"
 								/>
 							</div>
 						</form>
 
-						<div className="p-6 border-t border-base-200 flex justify-end gap-2">
-							<button className="btn btn-ghost" onClick={resetModal}>
+						{/* Footer */}
+						<div className="p-6 border-t border-base-200 flex justify-end gap-2 bg-base-50/50">
+							<button type="button" className="btn btn-ghost" onClick={resetModal}>
 								Cancel
 							</button>
-							<button className="btn btn-primary" onClick={handleSave}>
-								Save
+							<button type="submit" className="btn btn-primary px-6" onClick={handleSave}>
+								Save Record
 							</button>
 						</div>
 					</div>
-					<div className="modal-backdrop bg-black/50" onClick={resetModal} />
+					<div className="modal-backdrop bg-black/60 backdrop-blur-xs" onClick={resetModal} />
 				</div>
 			)}
 

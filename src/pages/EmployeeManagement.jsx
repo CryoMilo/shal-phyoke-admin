@@ -1,9 +1,10 @@
 import { useEffect } from "react";
-import { Users, CalendarOff } from "lucide-react";
+import { Users, CalendarOff, Coins } from "lucide-react";
 import { PageHeader } from "../components/common/PageHeader";
 import useEmployeeStore from "../stores/employeeStore";
 import EmployeeTab from "../components/employees/EmployeeTab";
 import AbsenceTab from "../components/employees/AbsenceTab";
+import BonusConfigTab from "../components/employees/BonusConfigTab";
 
 const EmployeeManagement = () => {
 	const { activeTab, setActiveTab, fetchEmployees } = useEmployeeStore();
@@ -15,6 +16,7 @@ const EmployeeManagement = () => {
 	const tabs = [
 		{ id: "employees", label: "Employees", icon: Users },
 		{ id: "absences", label: "Absence Records", icon: CalendarOff },
+		{ id: "bonus_config", label: "Bonus Config", icon: Coins },
 	];
 
 	return (
@@ -40,6 +42,7 @@ const EmployeeManagement = () => {
 
 			{activeTab === "employees" && <EmployeeTab />}
 			{activeTab === "absences" && <AbsenceTab />}
+			{activeTab === "bonus_config" && <BonusConfigTab />}
 		</div>
 	);
 };

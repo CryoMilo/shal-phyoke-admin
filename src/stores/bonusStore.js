@@ -15,6 +15,7 @@ const useBonusStore = create((set, get) => ({
 	// Live tracker results
 	totalPool: 0,
 	poolPercentage: 10,
+	allowedAbsences: 4,
 	monthLabel: "",
 	monthToDateProfit: 0,
 	employeeBonuses: [], // [{ employeeId, name, position, absencePoints, penaltyPercentage, estimatedBonus, ... }]
@@ -97,18 +98,19 @@ const useBonusStore = create((set, get) => ({
 	},
 
 	/**
-	 * Fetch the active bonus_config row covering "now" (effective_from <= today
-	 * and effective_to is null or >= today). Falls back to sane defaults if
+	/**
+	 * Fetch the active bonus_config row covering "referenceDate" (effective_from <= referenceDate
+	 * and effective_to is null or >= referenceDate). Falls back to sane defaults if
 	 * none has been configured yet.
 	 */
-	_fetchActiveBonusConfig: async () => {
-		const todayStr = toBangkokDateString(new Date());
+	_fetchActiveBonusConfig: async (referenceDate = new Date()) => {
+		const targetDateStr = toBangkokDateString(referenceDate);
 		try {
 			const { data, error } = await supabase
 				.from("bonus_config")
 				.select("*")
-				.lte("effective_from", todayStr)
-				.or(`effective_to.is.null,effective_to.gte.${todayStr}`)
+				.lte("effective_from", targetDateStr)
+				.or(`effective_to.is.null,effective_to.gte.${targetDateStr}`)
 				.order("effective_from", { ascending: false })
 				.limit(1)
 				.maybeSingle();
@@ -183,7 +185,7 @@ const useBonusStore = create((set, get) => ({
 			);
 
 			// 3. Bonus configuration (pool %, absence allowance, penalty tiers)
-			const config = await _fetchActiveBonusConfig();
+			const config = await _fetchActiveBonusConfig(referenceDate);
 
 			// 4. This month's absences per employee
 			const absencesByEmployee = await _fetchCurrentMonthAbsencesByEmployee(
@@ -202,6 +204,7 @@ const useBonusStore = create((set, get) => ({
 			set({
 				totalPool,
 				poolPercentage,
+				allowedAbsences: config?.allowed_absences ?? 4,
 				monthLabel: monthToDate.monthLabel,
 				monthToDateProfit: monthToDate.netProfit,
 				employeeBonuses,
@@ -212,6 +215,96 @@ const useBonusStore = create((set, get) => ({
 			console.error("Error computing bonus tracker:", error);
 			showToast.error("Failed to load bonus tracker");
 			set({ loading: false, error: error.message });
+		}
+	},
+
+	bonusConfigs: [],
+	fetchBonusConfigs: async () => {
+		set({ loading: true });
+		try {
+			const { data, error } = await supabase
+				.from("bonus_config")
+				.select("*")
+				.order("effective_from", { ascending: false });
+
+			if (error) throw error;
+			set({ bonusConfigs: data || [], loading: false });
+		} catch (error) {
+			console.error("Error fetching bonus configs:", error);
+			showToast.error("Failed to load bonus configurations");
+			set({ loading: false });
+		}
+	},
+	addBonusConfig: async (configData) => {
+		set({ loading: true });
+		try {
+			const { data, error } = await supabase
+				.from("bonus_config")
+				.insert([configData])
+				.select()
+				.single();
+
+			if (error) throw error;
+
+			set((state) => ({
+				bonusConfigs: [data, ...state.bonusConfigs],
+				loading: false,
+			}));
+			showToast.success("Bonus configuration added");
+			return { success: true, data };
+		} catch (error) {
+			console.error("Error adding bonus config:", error);
+			showToast.error(error.message || "Failed to add bonus configuration");
+			set({ loading: false });
+			return { success: false, error };
+		}
+	},
+	updateBonusConfig: async (id, updates) => {
+		set({ loading: true });
+		try {
+			const { data, error } = await supabase
+				.from("bonus_config")
+				.update(updates)
+				.eq("id", id)
+				.select()
+				.single();
+
+			if (error) throw error;
+
+			set((state) => ({
+				bonusConfigs: state.bonusConfigs.map((c) => (c.id === id ? data : c)),
+				loading: false,
+			}));
+			showToast.success("Bonus configuration updated");
+			return { success: true, data };
+		} catch (error) {
+			console.error("Error updating bonus config:", error);
+			showToast.error(error.message || "Failed to update bonus configuration");
+			set({ loading: false });
+			return { success: false, error };
+		}
+	},
+	deleteBonusConfig: async (id) => {
+		set({ loading: true });
+		try {
+			const { error } = await supabase
+				.from("bonus_config")
+				.delete()
+				.eq("id", id);
+
+			if (error) throw error;
+
+			set((state) => ({
+				bonusConfigs: state.bonusConfigs.filter((c) => c.id !== id),
+				loading: false,
+			}));
+			showToast.success("Bonus configuration removed");
+			return { success: true };
+		} catch (error) {
+			console.error("Error deleting bonus config:", error);
+			showToast.error("Failed to delete bonus configuration");
+			set({ loading: false });
+			return { success: false, error };
 		}
 	},
 }));
