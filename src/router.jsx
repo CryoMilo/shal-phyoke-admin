@@ -21,6 +21,7 @@ import Procurement from "./pages/Procurement";
 import InventoryItems from "./pages/InventoryItems";
 import ComboManager from "./pages/ComboManager";
 import StaffAccessSettings from "./pages/StaffAccessSettings";
+import EmployeeManagement from "./pages/EmployeeManagement";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 const rootRoute = createRootRoute({
@@ -67,6 +68,16 @@ const monthlyOverheadsRoute = createRoute({
 	component: () => (
 		<ProtectedRoute requiredRole="admin">
 			<MonthlyOverheads />
+		</ProtectedRoute>
+	),
+});
+
+const employeeManagementRoute = createRoute({
+	path: "/employee-management",
+	getParentRoute: () => rootRoute,
+	component: () => (
+		<ProtectedRoute requiredRole="admin">
+			<EmployeeManagement />
 		</ProtectedRoute>
 	),
 });
@@ -196,6 +207,7 @@ const routeTree = rootRoute.addChildren([
 	dailyCashRoute,
 	dailyExpensesRoute,
 	monthlyOverheadsRoute,
+	employeeManagementRoute,
 	staffAccessSettingsRoute,
 	procurementRoute,
 	inventoryItemsRoute,

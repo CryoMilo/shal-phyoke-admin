@@ -20,6 +20,7 @@ import {
 	Settings2,
 	LogOut,
 	ShieldCheck,
+	Users,
 } from "lucide-react";
 
 const Sidebar = ({ children }) => {
@@ -130,6 +131,15 @@ const Sidebar = ({ children }) => {
 			name: "Monthly Overheads",
 			path: "/monthly-overheads",
 			icon: FileText,
+		},
+		{
+			type: "divider",
+			label: "Employees",
+		},
+		{
+			name: "Employee Management",
+			path: "/employee-management",
+			icon: Users,
 		},
 		{
 			type: "divider",

@@ -17,6 +17,7 @@ import {
 	DollarSign,
 	TrendingDown,
 	FileText,
+	Gift,
 	CheckCircle2,
 	XCircle,
 	Printer
@@ -36,6 +37,7 @@ const ALL_TABS = [
 	{ name: "Daily Cash", path: "/daily-cash", icon: DollarSign, category: "Finance" },
 	{ name: "Daily Expenses", path: "/daily-expenses", icon: TrendingDown, category: "Finance" },
 	{ name: "Monthly Overheads", path: "/monthly-overheads", icon: FileText, category: "Finance" },
+	{ name: "Employee Management", path: "/employee-management", icon: Users, category: "Employees" },
 	{ name: "Quick Note Settings", path: "/quick-note-settings", icon: Settings2, category: "Settings" },
 ];
 

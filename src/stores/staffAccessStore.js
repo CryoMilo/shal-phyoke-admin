@@ -17,6 +17,7 @@ export const DEFAULT_PERMISSIONS = {
 		"/daily-cash",
 		"/daily-expenses",
 		"/monthly-overheads",
+		"/employee-management",
 		"/quick-note-settings",
 	],
 	staff: [
