@@ -23,6 +23,7 @@ import ComboManager from "./pages/ComboManager";
 import StaffAccessSettings from "./pages/StaffAccessSettings";
 import EmployeeManagement from "./pages/EmployeeManagement";
 import ProtectedRoute from "./components/ProtectedRoute";
+import BonusTracker from "./components/employees/BonusTracker";
 
 const rootRoute = createRootRoute({
 	component: () => <App />,
@@ -78,6 +79,16 @@ const employeeManagementRoute = createRoute({
 	component: () => (
 		<ProtectedRoute requiredRole="admin">
 			<EmployeeManagement />
+		</ProtectedRoute>
+	),
+});
+
+const bonusTrackerRoute = createRoute({
+	path: "/bonus-tracker",
+	getParentRoute: () => rootRoute,
+	component: () => (
+		<ProtectedRoute>
+			<BonusTracker />
 		</ProtectedRoute>
 	),
 });
@@ -209,6 +220,7 @@ const routeTree = rootRoute.addChildren([
 	monthlyOverheadsRoute,
 	employeeManagementRoute,
 	staffAccessSettingsRoute,
+	bonusTrackerRoute,
 	procurementRoute,
 	inventoryItemsRoute,
 ]);

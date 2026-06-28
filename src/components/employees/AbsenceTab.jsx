@@ -5,7 +5,7 @@ import useEmployeeStore from "../../stores/employeeStore";
 import useEmployeeAbsenceStore from "../../stores/employeeAbsenceStore";
 import DeleteConfirmationModal from "../common/DeleteConfirmationModal";
 import { showToast } from "../../utils/toastUtils";
-// import { sumAbsencePoints } from "../../utils/bonusUtils";
+import { sumAbsencePoints } from "../../utils/bonusUtils";
 
 const AbsenceTab = () => {
 	const { employees, fetchEmployees } = useEmployeeStore();

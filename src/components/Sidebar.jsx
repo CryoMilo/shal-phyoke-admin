@@ -21,6 +21,7 @@ import {
 	LogOut,
 	ShieldCheck,
 	Users,
+	Wallet,
 } from "lucide-react";
 
 const Sidebar = ({ children }) => {
@@ -140,6 +141,11 @@ const Sidebar = ({ children }) => {
 			name: "Employee Management",
 			path: "/employee-management",
 			icon: Users,
+		},
+		{
+			name: "Bonus Tracker",
+			path: "/bonus-tracker",
+			icon: Wallet,
 		},
 		{
 			type: "divider",
