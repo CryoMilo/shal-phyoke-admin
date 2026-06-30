@@ -6,18 +6,8 @@ import { supabase } from "../services/supabase";
 import { PageHeader } from "../components/common/PageHeader";
 import { showToast } from "../utils/toastUtils";
 import DeleteConfirmationModal from "../components/common/DeleteConfirmationModal";
-
-// Expense Categories - matching your enum
-const expenseCategories = [
-	{ value: "ingredients", label: "Ingredients", color: "bg-green-500" },
-	{ value: "utilities", label: "Utilities", color: "bg-blue-500" },
-	{ value: "equipment", label: "Equipment", color: "bg-yellow-500" },
-	{ value: "packaging", label: "Packaging", color: "bg-pink-500" },
-	{ value: "delivery", label: "Delivery", color: "bg-indigo-500" },
-	{ value: "marketing", label: "Marketing", color: "bg-teal-500" },
-	{ value: "maintenance", label: "Maintenance", color: "bg-orange-500" },
-	{ value: "other", label: "Other", color: "bg-gray-500" },
-];
+import BangkokDatePicker from "../components/common/BangkokDatePicker";
+import { toBangkokDateString } from "../utils/dateUtils";
 
 // Paid By options
 const paidByOptions = [
@@ -33,15 +23,14 @@ const DailyExpenses = () => {
 	const [loading, setLoading] = useState(true);
 	const [showForm, setShowForm] = useState(false);
 	const [editingId, setEditingId] = useState(null);
-	const [selectedDate, setSelectedDate] = useState(
-		format(new Date(), "yyyy-MM-dd")
-	);
+	const [selectedDate, setSelectedDate] = useState(new Date());
 	const [selectedCategory, setSelectedCategory] = useState("all");
 	const [total, setTotal] = useState(0);
 	// eslint-disable-next-line no-unused-vars
 	const [otherCategoryInput, setOtherCategoryInput] = useState("");
 	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 	const [deleteTargetId, setDeleteTargetId] = useState(null);
+	const [mostUsedCategories, setMostUsedCategories] = useState([]);
 
 	const {
 		register,
@@ -52,8 +41,7 @@ const DailyExpenses = () => {
 		formState: { errors },
 	} = useForm({
 		defaultValues: {
-			date: format(new Date(), "yyyy-MM-dd"),
-			category: "ingredients",
+			category: "",
 			description: "",
 			amount: "",
 			paid_by: "cash_drawer",
@@ -63,6 +51,34 @@ const DailyExpenses = () => {
 	});
 
 	const selectedCategoryWatch = watch("category");
+	const amountWatch = watch("amount") || "";
+
+	const fetchMostUsedCategories = async () => {
+		try {
+			const { data, error } = await supabase
+				.from("daily_expenses")
+				.select("category");
+			if (error) throw error;
+
+			const counts = {};
+			data?.forEach((item) => {
+				if (item.category) {
+					const cat = item.category.trim();
+					counts[cat] = (counts[cat] || 0) + 1;
+				}
+			});
+
+			// Sort by frequency and get top 10
+			const sorted = Object.entries(counts)
+				.sort((a, b) => b[1] - a[1])
+				.map(([category]) => category)
+				.slice(0, 10);
+
+			setMostUsedCategories(sorted);
+		} catch (error) {
+			console.error("Error fetching most used categories:", error);
+		}
+	};
 
 	const fetchExpenses = async () => {
 		setLoading(true);
@@ -73,7 +89,7 @@ const DailyExpenses = () => {
 				.order("created_at", { ascending: false });
 
 			if (selectedDate) {
-				query = query.eq("date", selectedDate);
+				query = query.eq("date", toBangkokDateString(selectedDate));
 			}
 
 			if (selectedCategory !== "all") {
@@ -102,10 +118,14 @@ const DailyExpenses = () => {
 		fetchExpenses();
 	}, [selectedDate, selectedCategory]);
 
+	useEffect(() => {
+		fetchMostUsedCategories();
+	}, []);
+
 	const onSubmit = async (data) => {
 		try {
 			const expenseData = {
-				date: data.date,
+				date: toBangkokDateString(selectedDate),
 				category:
 					data.category === "other" && data.other_category
 						? data.other_category
@@ -125,26 +145,29 @@ const DailyExpenses = () => {
 
 				if (error) throw error;
 				setEditingId(null);
+				showToast.success("Expense updated successfully");
 			} else {
 				const { error } = await supabase
 					.from("daily_expenses")
 					.insert([expenseData]);
 
 				if (error) throw error;
+				showToast.success("Expense added successfully");
 			}
 
 			resetForm();
 			setShowForm(false);
 			fetchExpenses();
+			fetchMostUsedCategories();
 		} catch (error) {
 			console.error("Error saving expense:", error);
+			showToast.error("Failed to save expense");
 		}
 	};
 
 	const resetForm = () => {
 		reset({
-			date: format(new Date(), "yyyy-MM-dd"),
-			category: "ingredients",
+			category: mostUsedCategories[0] || "other",
 			description: "",
 			amount: "",
 			paid_by: "cash_drawer",
@@ -155,20 +178,14 @@ const DailyExpenses = () => {
 	};
 
 	const handleEdit = (expense) => {
-		const category = expenseCategories.find((c) => c.value === expense.category)
-			? expense.category
-			: "other";
-		const otherCategory = expenseCategories.find(
-			(c) => c.value === expense.category
-		)
-			? ""
-			: expense.category;
+		const isMostUsed = mostUsedCategories.includes(expense.category);
+		const category = isMostUsed ? expense.category : "other";
+		const otherCategory = isMostUsed ? "" : expense.category;
 
 		reset({
-			date: expense.date,
 			category: category,
 			description: expense.description,
-			amount: expense.amount,
+			amount: expense.amount.toString(),
 			paid_by: expense.paid_by || "cash_drawer",
 			notes: expense.notes || "",
 			other_category: otherCategory,
@@ -197,6 +214,7 @@ const DailyExpenses = () => {
 			if (error) throw error;
 			showToast.success("Expense deleted successfully");
 			fetchExpenses();
+			fetchMostUsedCategories();
 		} catch (error) {
 			console.error("Error deleting expense:", error);
 			showToast.error("Failed to delete expense");
@@ -207,13 +225,34 @@ const DailyExpenses = () => {
 	};
 
 	const getCategoryLabel = (categoryValue) => {
-		const category = expenseCategories.find((c) => c.value === categoryValue);
-		return category ? category.label : categoryValue;
+		if (!categoryValue) return "";
+		return categoryValue.charAt(0).toUpperCase() + categoryValue.slice(1);
 	};
 
 	const getCategoryColor = (categoryValue) => {
-		const category = expenseCategories.find((c) => c.value === categoryValue);
-		return category ? category.color : "bg-gray-500";
+		const colors = [
+			"bg-green-500",
+			"bg-blue-500",
+			"bg-yellow-500",
+			"bg-pink-500",
+			"bg-indigo-500",
+			"bg-teal-500",
+			"bg-orange-500",
+			"bg-purple-500",
+			"bg-cyan-500",
+			"bg-rose-500"
+		];
+		const index = mostUsedCategories.indexOf(categoryValue);
+		if (index !== -1 && index < colors.length) {
+			return colors[index];
+		}
+		// Fallback hash color
+		let hash = 0;
+		for (let i = 0; i < categoryValue.length; i++) {
+			hash = categoryValue.charCodeAt(i) + ((hash << 5) - hash);
+		}
+		const fallbackIndex = Math.abs(hash) % colors.length;
+		return colors[fallbackIndex];
 	};
 
 	const getPaidByLabel = (paidByValue) => {
@@ -224,6 +263,30 @@ const DailyExpenses = () => {
 	const getPaidByColor = (paidByValue) => {
 		const paidBy = paidByOptions.find((p) => p.value === paidByValue);
 		return paidBy ? paidBy.color : "badge-neutral";
+	};
+
+	const handleNumpadPress = (val) => {
+		let current = amountWatch.toString();
+		if (val === "C") {
+			setValue("amount", "");
+		} else if (val === "⌫") {
+			setValue("amount", current.slice(0, -1));
+		} else if (val === ".") {
+			if (!current.includes(".")) {
+				setValue("amount", current + ".");
+			}
+		} else {
+			if (current.includes(".")) {
+				const parts = current.split(".");
+				if (parts[1].length >= 2) return;
+			}
+			if (current === "0" && val === "0") return;
+			if (current === "0" && val !== ".") {
+				setValue("amount", val);
+			} else {
+				setValue("amount", current + val);
+			}
+		}
 	};
 
 	return (
@@ -248,34 +311,33 @@ const DailyExpenses = () => {
 			{/* Filters */}
 			<div className="card bg-base-100 shadow mb-6">
 				<div className="card-body">
-					<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+					<div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
 						<div className="form-control">
-							<input
-								type="date"
+							<BangkokDatePicker
 								value={selectedDate}
-								onChange={(e) => setSelectedDate(e.target.value)}
-								className="input input-bordered"
+								onChange={setSelectedDate}
+								className="w-full"
 							/>
 						</div>
 						<div className="form-control">
 							<select
 								value={selectedCategory}
 								onChange={(e) => setSelectedCategory(e.target.value)}
-								className="select select-bordered">
+								className="select select-bordered w-full">
 								<option value="all">All Categories</option>
-								{expenseCategories.map((category) => (
-									<option key={category.value} value={category.value}>
-										{category.label}
+								{mostUsedCategories.map((cat) => (
+									<option key={cat} value={cat}>
+										{cat.charAt(0).toUpperCase() + cat.slice(1)}
 									</option>
 								))}
 							</select>
 						</div>
 						<div className="form-control">
-							<label className="label">
-								<span className="label-text">Total</span>
-							</label>
-							<div className="text-2xl font-bold text-error">
-								${total.toFixed(2)}
+							<div className="flex items-center gap-2">
+								<span className="text-sm font-semibold text-gray-500">Total:</span>
+								<span className="text-2xl font-bold text-error">
+									${total.toFixed(2)}
+								</span>
 							</div>
 						</div>
 					</div>
@@ -285,7 +347,7 @@ const DailyExpenses = () => {
 			{/* Expense Form Modal */}
 			{showForm && (
 				<div className="modal modal-open">
-					<div className="modal-box max-w-2xl">
+					<div className="modal-box max-w-4xl w-11/12">
 						<div className="flex justify-between items-center mb-4">
 							<h3 className="font-bold text-lg">
 								{editingId ? "Edit Expense" : "Add New Expense"}
@@ -302,164 +364,206 @@ const DailyExpenses = () => {
 						</div>
 
 						<form onSubmit={handleSubmit(onSubmit)}>
-							<div className="space-y-4">
-								{/* Date and Amount */}
-								<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+							<div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+								{/* Left Column - Details */}
+								<div className="lg:col-span-7 space-y-4">
+									{/* Category Selection */}
 									<div className="form-control">
 										<label className="label">
-											<span className="label-text">Date *</span>
+											<span className="label-text font-semibold">Category *</span>
+										</label>
+										<div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+											{mostUsedCategories.map((cat) => (
+												<button
+													key={cat}
+													type="button"
+													onClick={() => {
+														setValue("category", cat);
+														setValue("other_category", "");
+													}}
+													className={`btn btn-outline btn-sm ${
+														selectedCategoryWatch === cat
+															? "btn-active"
+															: ""
+													}`}>
+													{cat.charAt(0).toUpperCase() + cat.slice(1)}
+												</button>
+											))}
+											<button
+												type="button"
+												onClick={() => {
+													setValue("category", "other");
+												}}
+												className={`btn btn-outline btn-sm ${
+													selectedCategoryWatch === "other"
+														? "btn-active"
+														: ""
+												}`}>
+												Other
+											</button>
+										</div>
+										<input
+											type="hidden"
+											{...register("category", {
+												required: "Category is required",
+											})}
+										/>
+										{errors.category && (
+											<span className="label-text-alt text-error block mt-1">
+												{errors.category.message}
+											</span>
+										)}
+
+										{/* Other Category Input */}
+										{selectedCategoryWatch === "other" && (
+											<div className="mt-2 animate-in fade-in slide-in-from-top-1 duration-150">
+												<label className="label">
+													<span className="label-text">Specify Category *</span>
+												</label>
+												<input
+													type="text"
+													{...register("other_category", {
+														required: "Please specify the category",
+													})}
+													className="input input-bordered w-full"
+													placeholder="Enter custom category..."
+												/>
+												{errors.other_category && (
+													<span className="label-text-alt text-error block mt-1">
+														{errors.other_category.message}
+													</span>
+												)}
+											</div>
+										)}
+									</div>
+
+									{/* Description (Optional) */}
+									<div className="form-control">
+										<label className="label">
+											<span className="label-text font-semibold">Description (Optional)</span>
 										</label>
 										<input
-											type="date"
-											{...register("date", { required: "Date is required" })}
+											type="text"
+											{...register("description")}
 											className="input input-bordered"
+											placeholder="What was this expense for?"
 										/>
-										{errors.date && (
-											<span className="label-text-alt text-error">
-												{errors.date.message}
+									</div>
+
+									{/* Paid By Selection */}
+									<div className="form-control">
+										<label className="label">
+											<span className="label-text font-semibold">Paid By</span>
+										</label>
+										<div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+											{paidByOptions.map((option) => (
+												<button
+													key={option.value}
+													type="button"
+													onClick={() => setValue("paid_by", option.value)}
+													className={`btn btn-outline btn-sm ${
+														watch("paid_by") === option.value ? "btn-active" : ""
+													}`}>
+													{option.label}
+												</button>
+											))}
+										</div>
+										<input
+											type="hidden"
+											{...register("paid_by", {
+												required: "Paid by is required",
+											})}
+										/>
+										{errors.paid_by && (
+											<span className="label-text-alt text-error block mt-1">
+												{errors.paid_by.message}
 											</span>
 										)}
 									</div>
 
+									{/* Notes (Optional) */}
 									<div className="form-control">
 										<label className="label">
-											<span className="label-text">Amount ($) *</span>
+											<span className="label-text font-semibold">Notes (Optional)</span>
+										</label>
+										<textarea
+											{...register("notes")}
+											className="textarea textarea-bordered animate-in fade-in"
+											placeholder="Additional details..."
+											rows="3"
+										/>
+									</div>
+								</div>
+
+								{/* Right Column - Numpad and Amount */}
+								<div className="lg:col-span-5 flex flex-col justify-between border-t lg:border-t-0 lg:border-l border-base-300 pt-6 lg:pt-0 lg:pl-6">
+									<div className="form-control mb-4">
+										<label className="label">
+											<span className="label-text font-bold text-base">Amount</span>
 										</label>
 										<input
-											type="number"
-											step="0.01"
-											min="0.01"
+											type="text"
+											readOnly
+											inputMode="none"
+											placeholder="0.00"
 											{...register("amount", {
 												required: "Amount is required",
-												min: {
-													value: 0.01,
-													message: "Amount must be greater than 0",
-												},
+												validate: (v) => parseFloat(v) > 0 || "Amount must be greater than 0",
 											})}
-											className="input input-bordered"
+											className="input input-bordered text-right text-3xl font-bold font-mono h-16 w-full bg-base-200 border-2"
 										/>
 										{errors.amount && (
-											<span className="label-text-alt text-error">
+											<span className="label-text-alt text-error mt-1 block">
 												{errors.amount.message}
 											</span>
 										)}
 									</div>
-								</div>
 
-								{/* Category Selection */}
-								<div className="form-control">
-									<label className="label">
-										<span className="label-text">Category *</span>
-									</label>
-									<div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-										{expenseCategories.map((category) => (
+									{/* Numpad */}
+									<div className="grid grid-cols-3 gap-2 mt-auto">
+										{["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((num) => (
 											<button
-												key={category.value}
+												key={num}
 												type="button"
-												onClick={() => setValue("category", category.value)}
-												className={`btn btn-outline btn-sm ${
-													selectedCategoryWatch === category.value
-														? "btn-active"
-														: ""
-												}`}>
-												{category.label}
+												onClick={() => handleNumpadPress(num)}
+												className="btn btn-outline btn-lg text-2xl font-bold h-14"
+											>
+												{num}
 											</button>
 										))}
+										<button
+											type="button"
+											onClick={() => handleNumpadPress(".")}
+											className="btn btn-outline btn-lg text-2xl font-bold h-14"
+										>
+											.
+										</button>
+										<button
+											type="button"
+											onClick={() => handleNumpadPress("0")}
+											className="btn btn-outline btn-lg text-2xl font-bold h-14"
+										>
+											0
+										</button>
+										<button
+											type="button"
+											onClick={() => handleNumpadPress("⌫")}
+											className="btn btn-outline btn-lg text-2xl font-bold h-14 text-error"
+										>
+											⌫
+										</button>
+										<button
+											type="button"
+											onClick={() => handleNumpadPress("C")}
+											className="btn btn-error btn-outline col-span-3 text-lg font-bold h-12"
+										>
+											Clear
+										</button>
 									</div>
-									<input
-										type="hidden"
-										{...register("category", {
-											required: "Category is required",
-										})}
-									/>
-									{errors.category && (
-										<span className="label-text-alt text-error">
-											{errors.category.message}
-										</span>
-									)}
-
-									{/* Other Category Input */}
-									{selectedCategoryWatch === "other" && (
-										<div className="mt-2">
-											<label className="label">
-												<span className="label-text">Specify Category *</span>
-											</label>
-											<input
-												type="text"
-												{...register("other_category", {
-													required: "Please specify the category",
-												})}
-												className="input input-bordered w-full"
-												placeholder="Enter custom category..."
-											/>
-											{errors.other_category && (
-												<span className="label-text-alt text-error">
-													{errors.other_category.message}
-												</span>
-											)}
-										</div>
-									)}
-								</div>
-
-								{/* Description (Optional) */}
-								<div className="form-control">
-									<label className="label">
-										<span className="label-text">Description (Optional)</span>
-									</label>
-									<input
-										type="text"
-										{...register("description")}
-										className="input input-bordered"
-										placeholder="What was this expense for?"
-									/>
-								</div>
-
-								{/* Paid By Selection */}
-								<div className="form-control">
-									<label className="label">
-										<span className="label-text">Paid By *</span>
-									</label>
-									<div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-										{paidByOptions.map((option) => (
-											<button
-												key={option.value}
-												type="button"
-												onClick={() => setValue("paid_by", option.value)}
-												className={`btn btn-outline btn-sm ${
-													watch("paid_by") === option.value ? "btn-active" : ""
-												}`}>
-												{option.label}
-											</button>
-										))}
-									</div>
-									<input
-										type="hidden"
-										{...register("paid_by", {
-											required: "Paid by is required",
-										})}
-									/>
-									{errors.paid_by && (
-										<span className="label-text-alt text-error">
-											{errors.paid_by.message}
-										</span>
-									)}
-								</div>
-
-								{/* Notes (Optional) */}
-								<div className="form-control">
-									<label className="label">
-										<span className="label-text">Notes (Optional)</span>
-									</label>
-									<textarea
-										{...register("notes")}
-										className="textarea textarea-bordered"
-										placeholder="Additional details..."
-										rows="3"
-									/>
 								</div>
 							</div>
 
-							<div className="modal-action">
+							<div className="modal-action mt-6 border-t border-base-200 pt-4">
 								<button
 									type="button"
 									onClick={() => {
@@ -570,32 +674,35 @@ const DailyExpenses = () => {
 			<div className="mt-6">
 				<h2 className="text-lg font-bold mb-4">Category Breakdown</h2>
 				<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-					{expenseCategories.map((category) => {
+					{Array.from(new Set(expenses.map((e) => e.category))).map((cat) => {
 						const categoryTotal = expenses
-							.filter((e) => e.category === category.value)
+							.filter((e) => e.category === cat)
 							.reduce((sum, e) => sum + parseFloat(e.amount), 0);
 
 						if (categoryTotal === 0) return null;
 
 						const percentage = (categoryTotal / total) * 100;
+						const color = getCategoryColor(cat);
 
 						return (
-							<div key={category.value} className="card bg-base-100 shadow">
+							<div key={cat} className="card bg-base-100 shadow">
 								<div className="card-body p-4">
 									<div className="flex items-center justify-between">
 										<div>
-											<p className="text-sm text-gray-600">{category.label}</p>
+											<p className="text-sm text-gray-600">
+												{cat.charAt(0).toUpperCase() + cat.slice(1)}
+											</p>
 											<p className="text-xl font-bold">
 												${categoryTotal.toFixed(2)}
 											</p>
 										</div>
 										<div
-											className={`w-3 h-3 rounded-full ${category.color}`}></div>
+											className={`w-3 h-3 rounded-full ${color}`}></div>
 									</div>
 									<div className="mt-2">
 										<div className="w-full bg-gray-200 rounded-full h-2">
 											<div
-												className={`h-2 rounded-full ${category.color}`}
+												className={`h-2 rounded-full ${color}`}
 												style={{ width: `${percentage}%` }}></div>
 										</div>
 										<p className="text-xs text-gray-500 mt-1">
