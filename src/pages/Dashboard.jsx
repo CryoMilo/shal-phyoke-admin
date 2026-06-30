@@ -125,7 +125,7 @@ export const Dashboard = () => {
 			// 3. Fetch daily expenses for the selected date
 			const { data: dailyExpenses, error: expensesError } = await supabase
 				.from("daily_expenses")
-				.select("id, amount, category, paid_by, description, notes")
+				.select("id, amount, category, paid_by, notes")
 				.eq("date", bangkokDateStr);
 
 			if (expensesError) {

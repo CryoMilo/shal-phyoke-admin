@@ -42,7 +42,6 @@ const DailyExpenses = () => {
 	} = useForm({
 		defaultValues: {
 			category: "",
-			description: "",
 			amount: "",
 			paid_by: "cash_drawer",
 			notes: "",
@@ -122,6 +121,12 @@ const DailyExpenses = () => {
 		fetchMostUsedCategories();
 	}, []);
 
+	useEffect(() => {
+		if (showForm) {
+			fetchMostUsedCategories();
+		}
+	}, [showForm]);
+
 	const onSubmit = async (data) => {
 		try {
 			const expenseData = {
@@ -130,7 +135,6 @@ const DailyExpenses = () => {
 					data.category === "other" && data.other_category
 						? data.other_category
 						: data.category,
-				description: data.description || "No description provided",
 				amount: parseFloat(data.amount),
 				paid_by: data.paid_by,
 				notes: data.notes,
@@ -168,7 +172,6 @@ const DailyExpenses = () => {
 	const resetForm = () => {
 		reset({
 			category: mostUsedCategories[0] || "other",
-			description: "",
 			amount: "",
 			paid_by: "cash_drawer",
 			notes: "",
@@ -184,7 +187,6 @@ const DailyExpenses = () => {
 
 		reset({
 			category: category,
-			description: expense.description,
 			amount: expense.amount.toString(),
 			paid_by: expense.paid_by || "cash_drawer",
 			notes: expense.notes || "",
@@ -342,14 +344,12 @@ const DailyExpenses = () => {
 						</div>
 					</div>
 				</div>
-			</div>
-
-			{/* Expense Form Modal */}
+			</div>			{/* Expense Form Modal */}
 			{showForm && (
-				<div className="modal modal-open">
-					<div className="modal-box max-w-4xl w-11/12">
+				<div className="modal modal-open overflow-y-auto p-4 items-start md:items-center">
+					<div className="modal-box max-w-4xl w-11/12 max-h-[90vh] overflow-y-auto">
 						<div className="flex justify-between items-center mb-4">
-							<h3 className="font-bold text-lg">
+							<h3 className="font-bold text-lg text-base-content">
 								{editingId ? "Edit Expense" : "Add New Expense"}
 							</h3>
 							<button
@@ -358,7 +358,7 @@ const DailyExpenses = () => {
 									setEditingId(null);
 									resetForm();
 								}}
-								className="btn btn-ghost btn-sm btn-circle">
+								className="btn btn-ghost btn-sm btn-circle text-base-content">
 								<X className="w-4 h-4" />
 							</button>
 						</div>
@@ -437,23 +437,10 @@ const DailyExpenses = () => {
 										)}
 									</div>
 
-									{/* Description (Optional) */}
-									<div className="form-control">
-										<label className="label">
-											<span className="label-text font-semibold">Description (Optional)</span>
-										</label>
-										<input
-											type="text"
-											{...register("description")}
-											className="input input-bordered"
-											placeholder="What was this expense for?"
-										/>
-									</div>
-
 									{/* Paid By Selection */}
 									<div className="form-control">
 										<label className="label">
-											<span className="label-text font-semibold">Paid By</span>
+											<span className="label-text font-semibold">Paid By *</span>
 										</label>
 										<div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
 											{paidByOptions.map((option) => (
@@ -482,13 +469,13 @@ const DailyExpenses = () => {
 									</div>
 
 									{/* Notes (Optional) */}
-									<div className="form-control">
-										<label className="label">
-											<span className="label-text font-semibold">Notes (Optional)</span>
+									<div className="form-control w-full block mt-2">
+										<label className="label block pb-1">
+											<span className="label-text font-semibold text-base-content/85 block">Notes (Optional)</span>
 										</label>
 										<textarea
 											{...register("notes")}
-											className="textarea textarea-bordered animate-in fade-in"
+											className="textarea textarea-bordered w-full text-base min-h-[90px]"
 											placeholder="Additional details..."
 											rows="3"
 										/>
@@ -526,7 +513,7 @@ const DailyExpenses = () => {
 												key={num}
 												type="button"
 												onClick={() => handleNumpadPress(num)}
-												className="btn btn-outline btn-lg text-2xl font-bold h-14"
+												className="btn bg-base-200 border-none hover:bg-base-300 text-base-content text-2xl font-bold h-14 rounded-xl shadow-sm"
 											>
 												{num}
 											</button>
@@ -534,28 +521,28 @@ const DailyExpenses = () => {
 										<button
 											type="button"
 											onClick={() => handleNumpadPress(".")}
-											className="btn btn-outline btn-lg text-2xl font-bold h-14"
+											className="btn bg-base-200 border-none hover:bg-base-300 text-base-content text-2xl font-bold h-14 rounded-xl shadow-sm"
 										>
 											.
 										</button>
 										<button
 											type="button"
 											onClick={() => handleNumpadPress("0")}
-											className="btn btn-outline btn-lg text-2xl font-bold h-14"
+											className="btn bg-base-200 border-none hover:bg-base-300 text-base-content text-2xl font-bold h-14 rounded-xl shadow-sm"
 										>
 											0
 										</button>
 										<button
 											type="button"
 											onClick={() => handleNumpadPress("⌫")}
-											className="btn btn-outline btn-lg text-2xl font-bold h-14 text-error"
+											className="btn bg-error/10 hover:bg-error/20 text-error border-none text-2xl font-bold h-14 rounded-xl shadow-sm"
 										>
 											⌫
 										</button>
 										<button
 											type="button"
 											onClick={() => handleNumpadPress("C")}
-											className="btn btn-error btn-outline col-span-3 text-lg font-bold h-12"
+											className="btn btn-neutral bg-neutral hover:bg-neutral/80 text-neutral-content col-span-3 text-lg font-bold h-12 rounded-xl shadow-sm mt-1"
 										>
 											Clear
 										</button>
@@ -604,7 +591,7 @@ const DailyExpenses = () => {
 									<tr>
 										<th>Date</th>
 										<th>Category</th>
-										<th>Description</th>
+										<th>Notes</th>
 										<th>Amount</th>
 										<th>Paid By</th>
 										<th>Actions</th>
@@ -623,16 +610,9 @@ const DailyExpenses = () => {
 												</span>
 											</td>
 											<td>
-												<div>
-													<p className="font-medium">
-														{expense.description || "No description"}
-													</p>
-													{expense.notes && (
-														<p className="text-sm text-gray-600">
-															{expense.notes}
-														</p>
-													)}
-												</div>
+												<span className="text-sm text-gray-500">
+													{expense.notes || "-"}
+												</span>
 											</td>
 											<td className="font-bold text-error">
 												${parseFloat(expense.amount).toFixed(2)}
