@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { format } from "date-fns";
 import { Plus, Trash2, Edit, Save, X } from "lucide-react";
 import { useForm } from "react-hook-form";
@@ -8,6 +8,7 @@ import { showToast } from "../utils/toastUtils";
 import DeleteConfirmationModal from "../components/common/DeleteConfirmationModal";
 import BangkokDatePicker from "../components/common/BangkokDatePicker";
 import { toBangkokDateString } from "../utils/dateUtils";
+import Numpad from "../components/common/Numpad";
 
 // Paid By options
 const paidByOptions = [
@@ -267,29 +268,12 @@ const DailyExpenses = () => {
 		return paidBy ? paidBy.color : "badge-neutral";
 	};
 
-	const handleNumpadPress = (val) => {
-		let current = amountWatch.toString();
-		if (val === "C") {
-			setValue("amount", "");
-		} else if (val === "⌫") {
-			setValue("amount", current.slice(0, -1));
-		} else if (val === ".") {
-			if (!current.includes(".")) {
-				setValue("amount", current + ".");
-			}
-		} else {
-			if (current.includes(".")) {
-				const parts = current.split(".");
-				if (parts[1].length >= 2) return;
-			}
-			if (current === "0" && val === "0") return;
-			if (current === "0" && val !== ".") {
-				setValue("amount", val);
-			} else {
-				setValue("amount", current + val);
-			}
-		}
-	};
+	const handleNumpadChange = useCallback((newValue) => {
+		setValue("amount", newValue, { 
+		  shouldValidate: false,
+		  shouldDirty: true 
+		});
+	  }, [setValue]);
 
 	return (
 		<div className="p-4">
@@ -506,47 +490,11 @@ const DailyExpenses = () => {
 										)}
 									</div>
 
-									{/* Numpad */}
-									<div className="grid grid-cols-3 gap-2 mt-auto">
-										{["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((num) => (
-											<button
-												key={num}
-												type="button"
-												onClick={() => handleNumpadPress(num)}
-												className="btn bg-base-200 border-none hover:bg-base-300 text-base-content text-2xl font-bold h-14 rounded-xl shadow-sm"
-											>
-												{num}
-											</button>
-										))}
-										<button
-											type="button"
-											onClick={() => handleNumpadPress(".")}
-											className="btn bg-base-200 border-none hover:bg-base-300 text-base-content text-2xl font-bold h-14 rounded-xl shadow-sm"
-										>
-											.
-										</button>
-										<button
-											type="button"
-											onClick={() => handleNumpadPress("0")}
-											className="btn bg-base-200 border-none hover:bg-base-300 text-base-content text-2xl font-bold h-14 rounded-xl shadow-sm"
-										>
-											0
-										</button>
-										<button
-											type="button"
-											onClick={() => handleNumpadPress("⌫")}
-											className="btn bg-error/10 hover:bg-error/20 text-error border-none text-2xl font-bold h-14 rounded-xl shadow-sm"
-										>
-											⌫
-										</button>
-										<button
-											type="button"
-											onClick={() => handleNumpadPress("C")}
-											className="btn btn-neutral bg-neutral hover:bg-neutral/80 text-neutral-content col-span-3 text-lg font-bold h-12 rounded-xl shadow-sm mt-1"
-										>
-											Clear
-										</button>
-									</div>
+									<Numpad
+  value={amountWatch}
+  onChange={handleNumpadChange}
+  className="mt-auto"
+/>
 								</div>
 							</div>
 
