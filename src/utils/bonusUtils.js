@@ -7,12 +7,12 @@ const getSafeNumber = (value) => parseFloat(value) || 0;
 
 /**
  * Sum absence points for an employee within the current month,
- * excluding Sundays (shop closed, doesn't count against allowance).
+ * excluding closed days (which doesn't count against allowance).
  */
-export const sumAbsencePoints = (absences = []) => {
+export const sumAbsencePoints = (absences = [], openingDays = [1, 2, 3, 4, 5, 6]) => {
 	return absences.reduce((total, absence) => {
 		const d = new Date(`${absence.absence_date}T12:00:00`);
-		if (d.getDay() === 0) return total; // Sunday - free pass
+		if (!openingDays.includes(d.getDay())) return total; // Closed day - free pass
 		return total + getSafeNumber(absence.points);
 	}, 0);
 };
@@ -108,8 +108,9 @@ export const getMonthToDateRange = (referenceDate = new Date()) => {
  * fetchDayDataFn must be supplied by the caller (the store), since this
  * util has no Supabase access of its own — keeps it pure & testable.
  */
-export const computeMonthToDateProfit = async (fetchDayDataFn, referenceDate = new Date()) => {
+export const computeMonthToDateProfit = async (fetchDayDataFn, referenceDate = new Date(), openingDays = [1, 2, 3, 4, 5, 6]) => {
 	const days = getMonthToDateRange(referenceDate);
+	let closedDaysExpensesTotal = 0;
 
 	const dailyResults = await Promise.all(
 		days.map(async (day) => {
@@ -122,6 +123,17 @@ export const computeMonthToDateProfit = async (fetchDayDataFn, referenceDate = n
 				monthlyOverheads,
 			} = await fetchDayDataFn(day, dateStr);
 
+			const isClosedDay = !openingDays.includes(day.getDay());
+
+			if (isClosedDay) {
+				const closedExpenses = (dailyExpenses || []).reduce(
+					(sum, expense) => sum + getSafeNumber(expense.amount),
+					0
+				);
+				closedDaysExpensesTotal += closedExpenses;
+				return null;
+			}
+
 			return processDashboardData(
 				orders,
 				aggregatedSales,
@@ -129,16 +141,23 @@ export const computeMonthToDateProfit = async (fetchDayDataFn, referenceDate = n
 				dailyCash,
 				monthlyOverheads,
 				day,
-				dateStr
+				dateStr,
+				openingDays
 			);
 		})
 	);
 
-	const totals = accumulateDailyResults(dailyResults);
+	const openDaysResults = dailyResults.filter(Boolean);
+	const totals = accumulateDailyResults(openDaysResults);
+
+	// Redistribute expenses registered on closed days to open days' profit
+	totals.totalDailyExpenses += closedDaysExpensesTotal;
+	totals.totalExpenses += closedDaysExpensesTotal;
+	totals.netProfit -= closedDaysExpensesTotal;
 
 	return {
 		...totals,
-		daysCounted: dailyResults.length,
+		daysCounted: openDaysResults.length,
 		monthLabel: format(referenceDate, "MMMM yyyy"),
 	};
 };
@@ -158,7 +177,8 @@ export const calculateEmployeeBonuses = (
 	monthToDateProfit,
 	employees = [],
 	absencesByEmployee = {},
-	config
+	config,
+	openingDays = [1, 2, 3, 4, 5, 6]
 ) => {
 	const poolPercentage = getSafeNumber(config?.pool_percentage ?? 10);
 	const allowedAbsences = getSafeNumber(config?.allowed_absences ?? 1);
@@ -174,7 +194,7 @@ export const calculateEmployeeBonuses = (
 	// First pass: compute each employee's penalty + raw forfeited amount
 	const computed = employees.map((employee) => {
 		const absences = absencesByEmployee[employee.id] || [];
-		const absencePoints = sumAbsencePoints(absences);
+		const absencePoints = sumAbsencePoints(absences, openingDays);
 		const penaltyPercentage = getPenaltyPercentage(
 			absencePoints,
 			allowedAbsences,

@@ -7,6 +7,7 @@ import {
 	computeMonthToDateProfit,
 	calculateEmployeeBonuses,
 } from "../utils/bonusUtils";
+import useStaffAccessStore from "./staffAccessStore";
 
 const useBonusStore = create((set, get) => ({
 	loading: false,
@@ -15,7 +16,7 @@ const useBonusStore = create((set, get) => ({
 	// Live tracker results
 	totalPool: 0,
 	poolPercentage: 10,
-	allowedAbsences: 4,
+	allowedAbsences: 1,
 	monthLabel: "",
 	monthToDateProfit: 0,
 	employeeBonuses: [], // [{ employeeId, name, position, absencePoints, penaltyPercentage, estimatedBonus, ... }]
@@ -120,7 +121,7 @@ const useBonusStore = create((set, get) => ({
 			return (
 				data || {
 					pool_percentage: 10,
-					allowed_absences: 4,
+					allowed_absences: 1,
 					penalty_tiers: { 2: 50, 3: 75, 4: 100 },
 				}
 			);
@@ -128,7 +129,7 @@ const useBonusStore = create((set, get) => ({
 			console.error("Error fetching bonus config, using defaults:", error);
 			return {
 				pool_percentage: 10,
-				allowed_absences: 4,
+				allowed_absences: 1,
 				penalty_tiers: { 2: 50, 3: 75, 4: 100 },
 			};
 		}
@@ -178,33 +179,42 @@ const useBonusStore = create((set, get) => ({
 
 			if (employeesError) throw employeesError;
 
-			// 2. Month-to-date accumulated profit, reusing processData.js per day
+			// 2. Retrieve openingDays from staffAccessStore
+			let openingDays = useStaffAccessStore.getState().openingDays;
+			if (!openingDays || openingDays.length === 0) {
+				await useStaffAccessStore.getState().fetchPermissions();
+				openingDays = useStaffAccessStore.getState().openingDays || [1, 2, 3, 4, 5, 6];
+			}
+
+			// 3. Month-to-date accumulated profit, reusing processData.js per day
 			const monthToDate = await computeMonthToDateProfit(
 				_fetchDayData,
-				referenceDate
+				referenceDate,
+				openingDays
 			);
 
-			// 3. Bonus configuration (pool %, absence allowance, penalty tiers)
+			// 4. Bonus configuration (pool %, absence allowance, penalty tiers)
 			const config = await _fetchActiveBonusConfig(referenceDate);
 
-			// 4. This month's absences per employee
+			// 5. This month's absences per employee
 			const absencesByEmployee = await _fetchCurrentMonthAbsencesByEmployee(
 				referenceDate
 			);
 
-			// 5. Crunch the numbers
+			// 6. Crunch the numbers
 			const { totalPool, poolPercentage, employeeBonuses } =
 				calculateEmployeeBonuses(
 					monthToDate.netProfit,
 					employees || [],
 					absencesByEmployee,
-					config
+					config,
+					openingDays
 				);
 
 			set({
 				totalPool,
 				poolPercentage,
-				allowedAbsences: config?.allowed_absences ?? 4,
+				allowedAbsences: config?.allowed_absences ?? 1,
 				monthLabel: monthToDate.monthLabel,
 				monthToDateProfit: monthToDate.netProfit,
 				employeeBonuses,

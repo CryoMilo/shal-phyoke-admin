@@ -3,6 +3,7 @@ import { Plus, Trash2, X } from "lucide-react";
 import { format } from "date-fns";
 import useEmployeeStore from "../../stores/employeeStore";
 import useEmployeeAbsenceStore from "../../stores/employeeAbsenceStore";
+import useStaffAccessStore from "../../stores/staffAccessStore";
 import DeleteConfirmationModal from "../common/DeleteConfirmationModal";
 import { showToast } from "../../utils/toastUtils";
 import { sumAbsencePoints } from "../../utils/bonusUtils";
@@ -12,6 +13,7 @@ const AbsenceTab = () => {
 	const { employees, fetchEmployees } = useEmployeeStore();
 	const { absences, loading, fetchAbsences, addAbsence, deleteAbsence } =
 		useEmployeeAbsenceStore();
+	const { openingDays, fetchPermissions: fetchStaffSettings } = useStaffAccessStore();
 
 	const [selectedMonth, setSelectedMonth] = useState(format(new Date(), "yyyy-MM"));
 	const [showModal, setShowModal] = useState(false);
@@ -24,7 +26,8 @@ const AbsenceTab = () => {
 
 	useEffect(() => {
 		fetchEmployees();
-	}, [fetchEmployees]);
+		fetchStaffSettings();
+	}, [fetchEmployees, fetchStaffSettings]);
 
 	useEffect(() => {
 		fetchAbsences(selectedMonth);
@@ -66,13 +69,13 @@ const AbsenceTab = () => {
 		setDeleteId(null);
 	};
 
-	const isSunday = (dateStr) => {
+	const isClosedDay = (dateStr) => {
 		const d = new Date(dateStr + "T12:00:00");
-		return d.getDay() === 0;
+		return !openingDays.includes(d.getDay());
 	};
 
 	const pointsByEmployee = absences.reduce((acc, a) => {
-		if (isSunday(a.absence_date)) return acc;
+		if (isClosedDay(a.absence_date)) return acc;
 		const id = a.employee_id;
 		if (!acc[id]) acc[id] = [];
 		acc[id].push(a);
@@ -101,7 +104,7 @@ const AbsenceTab = () => {
 				<div className="flex flex-wrap gap-2 mb-4">
 					{Object.entries(pointsByEmployee).map(([empId, empAbsences]) => {
 						const emp = employees.find((e) => e.id === empId);
-						const total = sumAbsencePoints(empAbsences);
+						const total = sumAbsencePoints(empAbsences, openingDays);
 						return (
 							<span key={empId} className="badge badge-outline badge-lg">
 								{emp?.name || "Unknown"}: {total} pts
@@ -129,11 +132,11 @@ const AbsenceTab = () => {
 						</thead>
 						<tbody>
 							{absences.map((a) => (
-								<tr key={a.id} className={isSunday(a.absence_date) ? "opacity-50" : ""}>
+								<tr key={a.id} className={isClosedDay(a.absence_date) ? "opacity-50" : ""}>
 									<td>
 										{format(new Date(a.absence_date + "T12:00:00"), "MMM d, yyyy")}
-										{isSunday(a.absence_date) && (
-											<span className="badge badge-xs ml-1">Sun</span>
+										{isClosedDay(a.absence_date) && (
+											<span className="badge badge-xs ml-1">Closed</span>
 										)}
 									</td>
 									<td>{a.employee?.name || "—"}</td>
