@@ -5,7 +5,7 @@ const formatCurrency = (amount) =>
 	new Intl.NumberFormat("en-US", {
 		minimumFractionDigits: 0,
 		maximumFractionDigits: 0,
-	}).format(Math.round(amount) || 0);
+	}).format(Math.floor(amount) || 0);
 
 /**
  * EmployeeBonusCard

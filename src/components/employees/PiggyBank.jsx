@@ -17,7 +17,7 @@ const PiggyBank = ({ poolAmount = 0, caption = "" }) => {
 
 			<div className="text-center">
 				<div className="text-2xl sm:text-3xl font-extrabold text-primary tabular-nums">
-					฿{Math.round(poolAmount).toLocaleString()}
+					฿{Math.floor(poolAmount).toLocaleString()}
 				</div>
 				{caption && (
 					<p className="text-xs text-base-content/60 mt-0.5 font-medium">

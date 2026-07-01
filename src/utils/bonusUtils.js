@@ -95,7 +95,7 @@ export const getMonthToDateRange = (referenceDate = new Date()) => {
 		referenceDate.getFullYear() === today.getFullYear() &&
 		referenceDate.getMonth() === today.getMonth();
 
-	const rangeEnd = isCurrentMonth ? today : new Date(referenceDate);
+	const rangeEnd = isCurrentMonth ? today : endOfMonth(referenceDate);
 
 	return eachDayOfInterval({ start: monthStart, end: rangeEnd });
 };
@@ -131,6 +131,13 @@ export const computeMonthToDateProfit = async (fetchDayDataFn, referenceDate = n
 					0
 				);
 				closedDaysExpensesTotal += closedExpenses;
+				return null;
+			}
+
+			// If it is today and no orders or expenses are recorded yet,
+			// skip today to avoid premature overhead deduction resetting the pool.
+			const isToday = toBangkokDateString(day) === toBangkokDateString(new Date());
+			if (isToday && (!orders || orders.length === 0) && (!dailyExpenses || dailyExpenses.length === 0)) {
 				return null;
 			}
 
