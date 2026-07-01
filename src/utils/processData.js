@@ -3,21 +3,35 @@ import { startOfMonth, endOfMonth, differenceInDays } from "date-fns";
 // Helper functions
 const getSafeNumber = (value) => parseFloat(value) || 0;
 
-const calculateDailyOverheadCost = (monthlyOverheads, selectedDate) => {
+const calculateDailyOverheadCost = (monthlyOverheads, selectedDate, openingDays = [1, 2, 3, 4, 5, 6]) => {
 	if (!monthlyOverheads || monthlyOverheads.length === 0) return 0;
+
+	// Check if selectedDate is an open day
+	const dayOfWeek = selectedDate.getDay();
+	if (!openingDays.includes(dayOfWeek)) {
+		return 0; // Closed day, overhead is 0
+	}
 
 	const monthStart = startOfMonth(selectedDate);
 	const monthEnd = endOfMonth(selectedDate);
-	const daysInMonth = differenceInDays(monthEnd, monthStart) + 1;
 
-	// Calculate total pending overheads for the month
-	const totalPendingOverheads = monthlyOverheads.reduce((sum, overhead) => {
-		if (overhead.paid_date) return sum; // Skip paid overheads
+	// Count number of open days in the month
+	let openDaysCount = 0;
+	const currentDate = new Date(monthStart);
+	while (currentDate <= monthEnd) {
+		if (openingDays.includes(currentDate.getDay())) {
+			openDaysCount++;
+		}
+		currentDate.setDate(currentDate.getDate() + 1);
+	}
+
+	// Calculate total overheads for the month (both paid and pending)
+	const totalOverheads = monthlyOverheads.reduce((sum, overhead) => {
 		return sum + getSafeNumber(overhead.amount);
 	}, 0);
 
 	// Return daily portion
-	return daysInMonth > 0 ? totalPendingOverheads / daysInMonth : 0;
+	return openDaysCount > 0 ? totalOverheads / openDaysCount : 0;
 };
 
 const processSalesData = (orders, aggregatedSales, dateStr) => {
@@ -150,7 +164,7 @@ const processDailyExpenses = (dailyExpenses) => {
 	};
 };
 
-const processMonthlyOverheads = (monthlyOverheads, selectedDate) => {
+const processMonthlyOverheads = (monthlyOverheads, selectedDate, openingDays = [1, 2, 3, 4, 5, 6]) => {
 	const totalMonthlyOverheads = monthlyOverheads.reduce(
 		(sum, overhead) => sum + getSafeNumber(overhead.amount),
 		0
@@ -180,7 +194,8 @@ const processMonthlyOverheads = (monthlyOverheads, selectedDate) => {
 	// Calculate daily portion for dashboard
 	const dailyOverheadCost = calculateDailyOverheadCost(
 		monthlyOverheads,
-		selectedDate
+		selectedDate,
+		openingDays
 	);
 
 	return {
@@ -223,12 +238,13 @@ export const processDashboardData = (
 	dailyCash,
 	monthlyOverheads,
 	selectedDate,
-	dateStr
+	dateStr,
+	openingDays = [1, 2, 3, 4, 5, 6]
 ) => {
 	// Process each section
 	const salesData = processSalesData(orders, aggregatedSales, dateStr);
 	const expensesData = processDailyExpenses(dailyExpenses);
-	const overheadsData = processMonthlyOverheads(monthlyOverheads, selectedDate);
+	const overheadsData = processMonthlyOverheads(monthlyOverheads, selectedDate, openingDays);
 	const cashData = processCashData(dailyCash, salesData.cashSales);
 
 	// Calculate totals

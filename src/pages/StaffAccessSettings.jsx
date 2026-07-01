@@ -43,9 +43,10 @@ const ALL_TABS = [
 ];
 
 const StaffAccessSettings = () => {
-	const { permissions, autoPrintKitchenTicket, savePermissions, fetchPermissions, loading } = useStaffAccessStore();
+	const { permissions, autoPrintKitchenTicket, openingDays, savePermissions, fetchPermissions, loading } = useStaffAccessStore();
 	const [tempPermissions, setTempPermissions] = useState(permissions);
 	const [tempAutoPrint, setTempAutoPrint] = useState(autoPrintKitchenTicket);
+	const [tempOpeningDays, setTempOpeningDays] = useState(openingDays || [1, 2, 3, 4, 5, 6]);
 
 	useEffect(() => {
 		fetchPermissions();
@@ -54,7 +55,8 @@ const StaffAccessSettings = () => {
 	useEffect(() => {
 		setTempPermissions(permissions);
 		setTempAutoPrint(autoPrintKitchenTicket);
-	}, [permissions, autoPrintKitchenTicket]);
+		setTempOpeningDays(openingDays || [1, 2, 3, 4, 5, 6]);
+	}, [permissions, autoPrintKitchenTicket, openingDays]);
 
 	const togglePermission = (role, path) => {
 		setTempPermissions(prev => {
@@ -71,13 +73,14 @@ const StaffAccessSettings = () => {
 	};
 
 	const handleSave = async () => {
-		await savePermissions(tempPermissions, tempAutoPrint);
+		await savePermissions(tempPermissions, tempAutoPrint, tempOpeningDays);
 	};
 
 	const handleReset = () => {
 		if (window.confirm("Are you sure you want to reset all settings to default?")) {
 			setTempPermissions(DEFAULT_PERMISSIONS);
 			setTempAutoPrint(false);
+			setTempOpeningDays([1, 2, 3, 4, 5, 6]);
 		}
 	};
 
@@ -87,7 +90,7 @@ const StaffAccessSettings = () => {
 		<div className="container mx-auto pb-10">
 			<PageHeader
 				title="Staff Access Settings"
-				description="Configure which sidebar tabs are visible for Admins and Staff members."
+				description="Configure sidebar tabs visibility, printer settings, and weekly opening days."
 				buttons={[
 					{
 						label: "Reset to Default",
@@ -134,6 +137,60 @@ const StaffAccessSettings = () => {
 								checked={tempAutoPrint}
 								onChange={(e) => setTempAutoPrint(e.target.checked)}
 							/>
+						</div>
+					</div>
+				</div>
+
+				{/* Opening Days Settings */}
+				<div className="card bg-base-100 shadow-sm border border-base-300 overflow-hidden">
+					<div className="p-6 bg-accent/5 border-b border-base-300 flex items-center gap-3">
+						<div className="p-2 bg-accent/10 rounded-lg text-accent">
+							<Calendar className="w-6 h-6" />
+						</div>
+						<div>
+							<h2 className="text-xl font-bold">Opening Days Settings</h2>
+							<p className="text-sm opacity-60">Configure which days of the week the shop is open (used to calculate daily overhead portion)</p>
+						</div>
+					</div>
+					<div className="p-6">
+						<div className="flex flex-wrap gap-4 items-center justify-between p-4 bg-base-200/50 rounded-2xl border border-base-300">
+							<div className="flex flex-col gap-1">
+								<h3 className="font-bold text-lg">Weekly Opening Days</h3>
+								<p className="text-sm opacity-60">Select the days the business is open. Closed days are excluded from daily overhead calculations.</p>
+							</div>
+							<div className="flex flex-wrap gap-2 mt-2 md:mt-0">
+								{[
+									{ label: "Sun", value: 0 },
+									{ label: "Mon", value: 1 },
+									{ label: "Tue", value: 2 },
+									{ label: "Wed", value: 3 },
+									{ label: "Thu", value: 4 },
+									{ label: "Fri", value: 5 },
+									{ label: "Sat", value: 6 }
+								].map((day) => {
+									const isOpen = tempOpeningDays.includes(day.value);
+									return (
+										<button
+											key={day.value}
+											type="button"
+											onClick={() => {
+												setTempOpeningDays(prev => 
+													prev.includes(day.value)
+														? prev.filter(d => d !== day.value)
+														: [...prev, day.value].sort()
+												);
+											}}
+											className={`btn btn-sm px-4 rounded-xl font-semibold transition-all ${
+												isOpen 
+													? "btn-primary" 
+													: "btn-outline btn-ghost opacity-50"
+											}`}
+										>
+											{day.label}
+										</button>
+									);
+								})}
+							</div>
 						</div>
 					</div>
 				</div>

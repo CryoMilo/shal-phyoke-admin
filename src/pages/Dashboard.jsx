@@ -25,8 +25,10 @@ import {
 } from "../utils/dateUtils";
 import { processDashboardData } from "../utils/processData"; // Import the refactored function
 import { showToast } from "../utils/toastUtils";
+import useStaffAccessStore from "../stores/staffAccessStore";
 
 export const Dashboard = () => {
+	const { openingDays, fetchPermissions: fetchStaffSettings } = useStaffAccessStore();
 	const [salesData, setSalesData] = useState({
 		dailySales: [],
 		totalIncome: 0,
@@ -74,9 +76,13 @@ export const Dashboard = () => {
 	);
 
 	useEffect(() => {
+		fetchStaffSettings();
+	}, [fetchStaffSettings]);
+
+	useEffect(() => {
 		fetchDashboardData();
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [selectedDate]);
+	}, [selectedDate, openingDays]);
 
 	const fetchDashboardData = async (isRefresh = false) => {
 		try {
@@ -168,7 +174,8 @@ export const Dashboard = () => {
 				dailyCash || {},
 				monthlyOverheads || [],
 				selectedDate, // Pass selectedDate for daily overhead calculation
-				bangkokDateStr
+				bangkokDateStr,
+				openingDays
 			);
 
 			setSalesData(dashboardData);

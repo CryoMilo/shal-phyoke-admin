@@ -491,10 +491,10 @@ const DailyExpenses = () => {
 									</div>
 
 									<Numpad
-  value={amountWatch}
-  onChange={handleNumpadChange}
-  className="mt-auto"
-/>
+  										value={amountWatch}
+  										onChange={handleNumpadChange}
+  										className="mt-auto"
+									/>
 								</div>
 							</div>
 
