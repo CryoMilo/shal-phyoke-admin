@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Heart, ChevronDown, Sparkles } from "lucide-react";
+import { HeartCrack, ChevronDown, Sparkles } from "lucide-react";
 
 const formatCurrency = (amount) =>
 	new Intl.NumberFormat("en-US", {
@@ -105,22 +105,20 @@ const EmployeeBonusCard = ({
 
 				{/* Absence hearts */}
 				<div className="flex items-center justify-center gap-1.5 py-2">
-					{hearts.map((used, i) => (
-						<Heart
-							key={i}
-							className={`w-5 h-5 ${
-								used
-									? "fill-error/70 text-error/70"
-									: "fill-pink-200 text-pink-300"
-							}`}
-						/>
-					))}
-					{absencePoints === 0 && (
+
+					{absencePoints === 0 ? (
 						<span className="text-xs text-base-content/50 ml-1 flex items-center gap-1">
 							<Sparkles className="w-3.5 h-3.5" />
 							1 free pass untouched
 						</span>
-					)}
+					) :
+						hearts.map((used, i) => (
+							<HeartCrack
+								key={i}
+								className="stroke-red-500 stroke-2"
+							/>
+						))
+					}
 				</div>
 
 				{/* Why toggle */}
@@ -129,9 +127,8 @@ const EmployeeBonusCard = ({
 					className="btn btn-ghost btn-xs w-full mt-1 gap-1 text-base-content/50">
 					Why?
 					<ChevronDown
-						className={`w-3.5 h-3.5 transition-transform ${
-							showDetails ? "rotate-180" : ""
-						}`}
+						className={`w-3.5 h-3.5 transition-transform ${showDetails ? "rotate-180" : ""
+							}`}
 					/>
 				</button>
 
