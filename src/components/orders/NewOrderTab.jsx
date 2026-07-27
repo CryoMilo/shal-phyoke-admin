@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { supabase } from "../../services/supabase";
 import { Split, Copy, Check, FolderOpen } from "lucide-react";
 import ItemNoteModal from "./ItemNoteModal";
+import TableSelectionModal from "./TableSelectionModal";
 import useMenuStore from "../../stores/menuStore";
 import { useAuth } from "../../contexts/AuthContext";
 import useOrderStore from "../../stores/orderStore";
@@ -24,38 +25,46 @@ const getTodayWeekday = () => {
 };
 
 const NewOrderTab = ({
-	cart,
-	orderType,
-	setOrderType,
-	customerInfo,
-	setCustomerInfo,
-	tableNumber,
-	deliveryFee,
-	setDeliveryFee,
-	setShowTableModal,
-	paymentMethod,
-	setPaymentMethod,
-	discountAmount,
-	setDiscountAmount,
-	notes,
-	setNotes,
-	itemNotes,
-	itemExtraPrices,
-	updateItemNote,
-	subtotal,
-	totalAmount,
-	addToCart,
-	updateQuantity,
-	splitItem,
-	clearCart,
 	processOrder,
 	isProcessing,
 }) => {
 	const { allMenuItems, fetchAllMenuItems, getActiveFixedCombos } =
 		useMenuStore();
 	const { isAdmin, isStaff } = useAuth();
-	// const loadOrder = useOrderStore((state) => state.loadOrder);
-	const saveCurrentToDraft = useOrderStore((state) => state.saveCurrentToDraft);
+	
+	const {
+		cart,
+		orderType,
+		customerInfo,
+		tableNumber,
+		deliveryFee,
+		paymentMethod,
+		discountAmount,
+		notes,
+		itemNotes,
+		itemExtraPrices,
+		drafts,
+		setOrderType,
+		setCustomerInfo,
+		setTableNumber,
+		setDeliveryFee,
+		setPaymentMethod,
+		setDiscountAmount,
+		setNotes,
+		addToCart,
+		updateQuantity,
+		splitItem,
+		updateItemNote,
+		clearCart,
+		saveCurrentToDraft,
+		loadDraft,
+		deleteDraft,
+		getSubtotal,
+		getTotalAmount,
+	} = useOrderStore();
+
+	const subtotal = getSubtotal();
+	const totalAmount = getTotalAmount();
 
 	useEffect(() => {
 		setOrderType("dine_in");
@@ -64,8 +73,10 @@ const NewOrderTab = ({
 	const [todaysSpecialRaw, setTodaysSpecialRaw] = useState([]);
 	const [activeCategory, setActiveCategory] = useState("Today's Special");
 
-	// State for Item Note Modal
+	// Modals State
 	const [showNoteModal, setShowNoteModal] = useState(false);
+	const [showTableModal, setShowTableModal] = useState(false);
+	const [showDraftsModal, setShowDraftsModal] = useState(false);
 	const [activeItemForNote, setActiveItemForNote] = useState(null);
 
 	// Payment Confirmation Modal State
@@ -287,6 +298,17 @@ const NewOrderTab = ({
 								{type === "takeaway" ? "Takeaway" : "Delivery"}
 							</button>
 						))}
+						<button
+							className="btn btn-sm btn-outline btn-secondary gap-1"
+							onClick={() => setShowDraftsModal(true)}>
+							<FolderOpen className="w-4 h-4" />
+							Drafts
+							{drafts.length > 0 && (
+								<span className="badge badge-secondary badge-sm font-bold">
+									{drafts.length}
+								</span>
+							)}
+						</button>
 					</div>
 				</div>
 
@@ -369,9 +391,7 @@ const NewOrderTab = ({
 									!item.is_active
 										? "grayscale opacity-50 cursor-not-allowed border-base-300"
 										: "cursor-pointer hover:shadow-md border-base-300 " +
-										  (item.isCombo
-												? "border-primary/30 ring-1 ring-primary/10"
-												: "")
+										  (item.isCombo ? "border-primary/30 ring-1 ring-primary/10" : "")
 								}`}
 								onClick={() => {
 									if (!item.is_active) return;
@@ -457,9 +477,7 @@ const NewOrderTab = ({
 						<div
 							key={item.cart_id}
 							className={`bg-base-100 p-2 rounded-lg border shadow-sm ${
-								item.isCombo
-									? "border-primary/20 bg-primary/5"
-									: "border-base-300"
+								item.isCombo ? "border-primary/20 bg-primary/5" : "border-base-300"
 							}`}>
 							<div className="flex justify-between items-start mb-1">
 								<div className="flex-1">
@@ -467,8 +485,7 @@ const NewOrderTab = ({
 										{item.name_burmese}
 									</div>
 									<div className="text-[10px] text-base-content/70 mt-1">
-										฿{item.price} × {item.quantity} = ฿
-										{item.price * item.quantity}
+										฿{item.price} × {item.quantity} = ฿{item.price * item.quantity}
 									</div>
 								</div>
 								<div className="flex items-center gap-1 bg-base-200 rounded-full px-1">
@@ -522,9 +539,7 @@ const NewOrderTab = ({
 						</div>
 					))}
 					{cart.length === 0 && (
-						<div className="text-center text-base-content/50 py-8">
-							No items added
-						</div>
+						<div className="text-center text-base-content/50 py-8 text-sm">No items added</div>
 					)}
 				</div>
 
@@ -591,9 +606,7 @@ const NewOrderTab = ({
 				{/* Payment Method */}
 				<div className="mt-4">
 					<label className="label py-1">
-						<span className="label-text font-semibold text-xs">
-							Payment Method
-						</span>
+						<span className="label-text font-semibold text-xs">Payment Method</span>
 					</label>
 					<div className="flex gap-1">
 						{["unpaid", "cash", "qr"].map((method) => (
@@ -603,11 +616,7 @@ const NewOrderTab = ({
 									paymentMethod === method ? "btn-primary" : "btn-outline"
 								}`}
 								onClick={() => handlePaymentMethodClick(method)}>
-								{method === "unpaid"
-									? "Unpaid"
-									: method === "cash"
-									? "Cash"
-									: "QR"}
+								{method === "unpaid" ? "Unpaid" : method === "cash" ? "Cash" : "QR"}
 							</button>
 						))}
 					</div>
@@ -649,12 +658,6 @@ const NewOrderTab = ({
 				{/* Action Buttons */}
 				<div className="mt-6 space-y-2">
 					<button
-						className="btn btn-info w-full"
-						onClick={saveCurrentToDraft}
-						disabled={cart.length === 0 || isProcessing}>
-						Save to Draft
-					</button>
-					<button
 						className="btn btn-primary w-full"
 						disabled={cart.length === 0 || isProcessing}
 						onClick={processOrder}>
@@ -673,6 +676,12 @@ const NewOrderTab = ({
 						disabled={isProcessing}>
 						Clear Order
 					</button>
+					<button
+						className="btn btn-secondary btn-outline btn-xs w-full mt-2"
+						onClick={saveCurrentToDraft}
+						disabled={cart.length === 0 || isProcessing}>
+						Save to Draft
+					</button>
 				</div>
 			</div>
 
@@ -684,6 +693,17 @@ const NewOrderTab = ({
 				onSave={handleSaveNote}
 			/>
 
+			{/* Table Selection Modal */}
+			<TableSelectionModal
+				show={showTableModal}
+				onClose={() => setShowTableModal(false)}
+				onSelect={(num) => {
+					setTableNumber(num);
+					setShowTableModal(false);
+				}}
+				selectedTable={tableNumber}
+			/>
+
 			{/* Payment Confirmation Modal */}
 			<PaymentModal
 				isOpen={showPaymentModal}
@@ -692,6 +712,118 @@ const NewOrderTab = ({
 				amount={totalAmount}
 				paymentMethod={pendingPaymentMethod}
 			/>
+
+			{/* Drafts Modal */}
+			{showDraftsModal && (
+				<div className="modal modal-open z-50">
+					<div className="modal-box max-w-4xl p-0 overflow-hidden bg-base-100">
+						<div className="p-4 bg-base-200 border-b border-base-300 flex justify-between items-center">
+							<h3 className="font-bold text-lg flex items-center gap-2">
+								<FolderOpen className="w-5 h-5 text-secondary" /> Local Drafts / Parked Orders
+							</h3>
+							<button
+								className="btn btn-sm btn-circle btn-ghost"
+								onClick={() => setShowDraftsModal(false)}>
+								✕
+							</button>
+						</div>
+
+						<div className="p-6 max-h-[70vh] overflow-y-auto">
+							{drafts.length > 0 ? (
+								<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+									{drafts.map((draft) => {
+										const timeElapsed = Math.floor((new Date() - new Date(draft.created_at)) / 60000);
+										return (
+											<div
+												key={draft.id}
+												className="card border-2 border-secondary/20 bg-base-100 hover:border-secondary transition-all cursor-pointer shadow-sm hover:scale-[1.02] active:scale-95 group relative">
+												
+												{/* Delete Button */}
+												<button
+													className="absolute top-2 right-2 btn btn-circle btn-xs btn-error z-10 text-white"
+													onClick={(e) => {
+														e.stopPropagation();
+														deleteDraft(draft.id);
+														showToast.success("Draft deleted");
+													}}
+													title="Delete draft">
+													✕
+												</button>
+
+												<div
+													className="card-body p-4 relative"
+													onClick={() => {
+														loadDraft(draft);
+														setShowDraftsModal(false);
+														showToast.success("Loaded draft into POS");
+													}}>
+													
+													<div className="text-[10px] opacity-40 font-mono mb-1">
+														{timeElapsed}m ago
+													</div>
+
+													<div className="flex items-center gap-2 mb-2">
+														<div
+															className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-sm
+															${
+																draft.orderType === "dine_in"
+																	? "bg-primary text-primary-content"
+																	: draft.orderType === "delivery"
+																	? "bg-accent text-accent-content"
+																	: "bg-secondary text-secondary-content"
+															}`}>
+															{draft.tableNumber ||
+																draft.customerInfo?.name?.substring(0, 2).toUpperCase() ||
+																"?"}
+														</div>
+														<div className="flex-1 min-w-0">
+															<div className="text-xs font-bold truncate">
+																{draft.customerInfo?.name ||
+																	(draft.orderType === "dine_in"
+																		? `Table ${draft.tableNumber}`
+																		: draft.orderType.toUpperCase())}
+															</div>
+															<div className="text-[10px] opacity-50 font-mono">
+																Draft
+															</div>
+														</div>
+													</div>
+
+													<div className="text-xs space-y-1 mb-3 flex-1">
+														<div className="opacity-70 font-semibold line-clamp-2">
+															{draft.cart.map(item => `${item.quantity}x ${item.name_burmese}`).join(", ")}
+														</div>
+														{draft.notes && (
+															<div className="text-[10px] text-accent truncate italic">
+																"{draft.notes}"
+															</div>
+														)}
+													</div>
+
+													<div className="flex justify-between items-center mt-auto pt-2 border-t border-base-200">
+														<span className="font-bold text-primary text-sm">
+															฿{draft.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0)}
+														</span>
+														<span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold bg-secondary/20 text-secondary">
+															DRAFT
+														</span>
+													</div>
+												</div>
+											</div>
+										);
+									})}
+								</div>
+							) : (
+								<div className="text-center py-12 opacity-50">
+									<FolderOpen className="w-12 h-12 mx-auto mb-2 opacity-30" />
+									<p>No parked drafts available.</p>
+								</div>
+							)}
+						</div>
+					</div>
+					<div className="modal-backdrop bg-black/50" onClick={() => setShowDraftsModal(false)}></div>
+				</div>
+			)}
 		</div>
 	);
 };
