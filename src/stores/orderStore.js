@@ -11,6 +11,9 @@ const useOrderStore = create(
 			deliveryFee: 0,
 			paymentMethod: "unpaid",
 			discountAmount: 0,
+			editingOrderId: null,
+			editingDraftId: null,
+			drafts: [],
 			notes: "",
 			itemNotes: {}, // { cartId: "note" }
 			itemExtraPrices: {}, // { cartId: extraPrice }
@@ -26,6 +29,95 @@ const useOrderStore = create(
 			setPaymentMethod: (method) => set({ paymentMethod: method }),
 			setDiscountAmount: (amount) => set({ discountAmount: amount }),
 			setNotes: (notes) => set({ notes }),
+			loadOrder: (order) => {
+				set({
+					editingOrderId: order.id,
+					cart: order.order_items.map((item) => ({
+						...item,
+						cart_id: item.cart_id || `cart_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+					})),
+					orderType: order.order_type || "dine_in",
+					customerInfo: {
+						name: order.customer_name || "",
+						phone: order.customer_phone || "",
+						address: order.delivery_address || "",
+					},
+					tableNumber: order.table_number || null,
+					deliveryFee: order.delivery_fee || 0,
+					paymentMethod: order.payment_method || "unpaid",
+					discountAmount: order.discount_amount || 0,
+					notes: order.notes || "",
+					itemNotes: order.item_notes || {},
+					itemExtraPrices: order.item_extra_prices || {},
+				});
+			},
+			saveCurrentToDraft: () => {
+				const {
+					cart,
+					orderType,
+					customerInfo,
+					tableNumber,
+					deliveryFee,
+					discountAmount,
+					notes,
+					itemNotes,
+					itemExtraPrices,
+					drafts,
+					editingDraftId,
+				} = get();
+
+				if (cart.length === 0) return;
+
+				const draftData = {
+					cart,
+					orderType,
+					customerInfo,
+					tableNumber,
+					deliveryFee,
+					discountAmount,
+					notes,
+					itemNotes,
+					itemExtraPrices,
+					updated_at: new Date().toISOString(),
+				};
+
+				if (editingDraftId) {
+					set({
+						drafts: drafts.map((d) =>
+							d.id === editingDraftId ? { ...d, ...draftData } : d
+						),
+					});
+				} else {
+					const newDraft = {
+						id: `draft_${Date.now()}`,
+						created_at: new Date().toISOString(),
+						...draftData,
+					};
+					set({
+						drafts: [newDraft, ...drafts],
+					});
+				}
+				get().clearCart();
+			},
+			loadDraft: (draft) => {
+				set({
+					editingDraftId: draft.id,
+					cart: draft.cart,
+					orderType: draft.orderType,
+					customerInfo: draft.customerInfo,
+					tableNumber: draft.tableNumber,
+					deliveryFee: draft.deliveryFee,
+					discountAmount: draft.discountAmount,
+					notes: draft.notes,
+					itemNotes: draft.itemNotes,
+					itemExtraPrices: draft.itemExtraPrices,
+				});
+			},
+			deleteDraft: (draftId) => {
+				set({
+					drafts: get().drafts.filter((d) => d.id !== draftId),
+				});
+			},
 
 			addToCart: (menuItem, initialNote = null, initialExtraPrice = 0) => {
 				const { cart, itemNotes } = get();
@@ -132,6 +224,8 @@ const useOrderStore = create(
 					itemNotes: {},
 					itemExtraPrices: {},
 					paymentMethod: "unpaid",
+					editingOrderId: null,
+					editingDraftId: null,
 				});
 			},
 

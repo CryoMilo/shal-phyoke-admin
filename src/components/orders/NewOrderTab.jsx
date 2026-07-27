@@ -1,10 +1,11 @@
 // components/NewOrderTab.jsx
 import React, { useState, useEffect, useMemo } from "react";
 import { supabase } from "../../services/supabase";
-import { Split, Copy, Check } from "lucide-react";
+import { Split, Copy, Check, FolderOpen } from "lucide-react";
 import ItemNoteModal from "./ItemNoteModal";
 import useMenuStore from "../../stores/menuStore";
 import { useAuth } from "../../contexts/AuthContext";
+import useOrderStore from "../../stores/orderStore";
 import PaymentModal from "../common/PaymentModal";
 import { showToast } from "../../utils/toastUtils";
 import { generateOrderDetailsText } from "../../utils/orderUtils";
@@ -50,12 +51,11 @@ const NewOrderTab = ({
 	processOrder,
 	isProcessing,
 }) => {
-	const {
-		allMenuItems,
-		fetchAllMenuItems,
-		getActiveFixedCombos,
-	} = useMenuStore();
+	const { allMenuItems, fetchAllMenuItems, getActiveFixedCombos } =
+		useMenuStore();
 	const { isAdmin, isStaff } = useAuth();
+	// const loadOrder = useOrderStore((state) => state.loadOrder);
+	const saveCurrentToDraft = useOrderStore((state) => state.saveCurrentToDraft);
 
 	useEffect(() => {
 		setOrderType("dine_in");
@@ -89,8 +89,7 @@ const NewOrderTab = ({
 	const combos = useMemo(() => getActiveFixedCombos(), [allMenuItems]);
 
 	const menuItems = useMemo(
-		() =>
-			allMenuItems.filter((i) => i.is_regular && !i.is_combo),
+		() => allMenuItems.filter((i) => i.is_regular && !i.is_combo),
 		[allMenuItems]
 	);
 
@@ -138,9 +137,7 @@ const NewOrderTab = ({
 			if (itemsError) throw itemsError;
 
 			// Flatten the data to get an array of menu_items
-			const specialItems = items
-				.map((item) => item.menu_items)
-				.filter(Boolean);
+			const specialItems = items.map((item) => item.menu_items).filter(Boolean);
 
 			setTodaysSpecialRaw(specialItems);
 		} catch (error) {
@@ -184,12 +181,7 @@ const NewOrderTab = ({
 			return todaysSpecialItems;
 		}
 		return menuItems.filter((item) => item.category === activeCategory);
-	}, [
-		menuItems,
-		todaysSpecialItems,
-		activeCategory,
-		combos,
-	]);
+	}, [menuItems, todaysSpecialItems, activeCategory, combos]);
 
 	// Set default category to the first available one
 	React.useEffect(() => {
@@ -374,9 +366,12 @@ const NewOrderTab = ({
 							<div
 								key={item.id}
 								className={`bg-base-100 border rounded-lg p-3 relative overflow-hidden transition-all ${
-									!item.is_active 
-										? "grayscale opacity-50 cursor-not-allowed border-base-300" 
-										: "cursor-pointer hover:shadow-md border-base-300 " + (item.isCombo ? "border-primary/30 ring-1 ring-primary/10" : "")
+									!item.is_active
+										? "grayscale opacity-50 cursor-not-allowed border-base-300"
+										: "cursor-pointer hover:shadow-md border-base-300 " +
+										  (item.isCombo
+												? "border-primary/30 ring-1 ring-primary/10"
+												: "")
 								}`}
 								onClick={() => {
 									if (!item.is_active) return;
@@ -435,12 +430,13 @@ const NewOrderTab = ({
 			<div className="rounded-lg h-fit col-span-2 sticky top-4 bg-base-200 p-4">
 				<div className="flex justify-between items-center mb-4">
 					<h2 className="text-lg font-bold">Current Order</h2>
-					<button 
-						className={`btn btn-sm btn-ghost gap-2 ${isCopied ? 'text-success' : 'opacity-60 hover:opacity-100'}`}
+					<button
+						className={`btn btn-sm btn-ghost gap-2 ${
+							isCopied ? "text-success" : "opacity-60 hover:opacity-100"
+						}`}
 						onClick={handleCopyOrder}
 						disabled={cart.length === 0}
-						title="Copy order details"
-					>
+						title="Copy order details">
 						{isCopied ? (
 							<>
 								<Check className="w-4 h-4" />
@@ -652,6 +648,12 @@ const NewOrderTab = ({
 
 				{/* Action Buttons */}
 				<div className="mt-6 space-y-2">
+					<button
+						className="btn btn-info w-full"
+						onClick={saveCurrentToDraft}
+						disabled={cart.length === 0 || isProcessing}>
+						Save to Draft
+					</button>
 					<button
 						className="btn btn-primary w-full"
 						disabled={cart.length === 0 || isProcessing}
