@@ -7,6 +7,7 @@ import useMenuStore from "../../stores/menuStore";
 import { useAuth } from "../../contexts/AuthContext";
 import PaymentModal from "../common/PaymentModal";
 import { showToast } from "../../utils/toastUtils";
+import { generateOrderDetailsText } from "../../utils/orderUtils";
 
 const getTodayWeekday = () => {
 	const d = new Date();
@@ -38,6 +39,7 @@ const NewOrderTab = ({
 	notes,
 	setNotes,
 	itemNotes,
+	itemExtraPrices,
 	updateItemNote,
 	subtotal,
 	totalAmount,
@@ -236,37 +238,19 @@ const NewOrderTab = ({
 	const handleCopyOrder = () => {
 		if (cart.length === 0) return;
 
-		let text = `📦 *ORDER DETAILS*\n`;
-		text += `--------------------------\n`;
-		
-		if (customerInfo.name) text += `👤 *Customer:* ${customerInfo.name}\n`;
-		if (customerInfo.phone) text += `📞 *Phone:* ${customerInfo.phone}\n`;
-		if (customerInfo.address) text += `📍 *Address:* ${customerInfo.address}\n`;
-		
-		text += `🍴 *Type:* ${orderType.toUpperCase()}\n`;
-		if (tableNumber) text += `🪑 *Table:* ${tableNumber}\n`;
-		text += `--------------------------\n\n`;
-
-		cart.forEach((item, index) => {
-			text += `${index + 1}. *${item.name_burmese}*\n`;
-			if (item.name_english) text += `   (${item.name_english})\n`;
-			
-			const note = itemNotes[item.cart_id];
-			if (note) text += `   📝 _Note: ${note}_\n`;
-			
-			text += `   ${item.quantity} x ฿${item.price} = *฿${item.quantity * item.price}*\n\n`;
+		const text = generateOrderDetailsText({
+			cart,
+			customerInfo,
+			orderType,
+			tableNumber,
+			itemNotes,
+			itemExtraPrices,
+			subtotal,
+			discountAmount,
+			deliveryFee,
+			totalAmount,
+			notes,
 		});
-
-		text += `--------------------------\n`;
-		text += `Subtotal: ฿${subtotal.toFixed(2)}\n`;
-		if (discountAmount > 0) text += `Discount: -฿${discountAmount.toFixed(2)}\n`;
-		if (orderType === "delivery" && deliveryFee > 0) text += `Delivery Fee: +฿${deliveryFee.toFixed(2)}\n`;
-		text += `--------------------------\n`;
-		text += `💰 *TOTAL: ฿${totalAmount.toFixed(2)}*\n`;
-		
-		if (notes) {
-			text += `\n📝 *General Notes:* ${notes}\n`;
-		}
 
 		navigator.clipboard.writeText(text).then(() => {
 			setIsCopied(true);

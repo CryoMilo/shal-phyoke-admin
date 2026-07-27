@@ -172,6 +172,7 @@ export const Orders = () => {
 						notes={notes}
 						setNotes={setNotes}
 						itemNotes={itemNotes}
+						itemExtraPrices={itemExtraPrices}
 						updateItemNote={updateItemNote}
 						subtotal={subtotal}
 						totalAmount={totalAmount}
