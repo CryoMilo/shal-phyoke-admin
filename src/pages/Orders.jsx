@@ -174,6 +174,11 @@ export const Orders = () => {
 					onClick={() => setShowDraftsModal(true)}>
 					<FolderOpen className="w-4 h-4" />
 					Drafts
+					{drafts.length > 0 && (
+						<span className="badge badge-secondary badge-sm font-bold ml-1">
+							{drafts.length}
+						</span>
+					)}
 				</button>
 			</div>
 
