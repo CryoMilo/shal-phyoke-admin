@@ -59,10 +59,35 @@ export const PerformanceCard = ({ salesData }) => {
 								<span>฿{salesData.totalDeliveryFees.toFixed(2)}</span>
 							</div>
 							<div className="flex justify-between border-t pt-2">
-								<span className="font-medium">Total</span>
-								<span className="font-bold">
+								<span className="font-medium">Total Income</span>
+								<span className="font-bold text-success">
 									฿{salesData.totalIncome.toFixed(2)}
 								</span>
+							</div>
+						</div>
+					</div>
+
+					{/* Order Exceptions (Cancelled & Refunded) */}
+					<div className="p-3 bg-base-300 rounded-lg">
+						<p className="text-sm text-base-content/70 mb-2">Order Exceptions</p>
+						<div className="grid grid-cols-2 gap-4">
+							<div className="p-2 bg-base-200 rounded-md border border-error/20">
+								<p className="text-xs text-base-content/70">Cancelled Orders</p>
+								<p className="text-lg font-bold text-error">
+									{salesData.cancelledCount || 0}
+								</p>
+								<p className="text-xs text-base-content/60">
+									฿{(salesData.cancelledAmount || 0).toFixed(2)}
+								</p>
+							</div>
+							<div className="p-2 bg-base-200 rounded-md border border-warning/20">
+								<p className="text-xs text-base-content/70">Refunded Orders</p>
+								<p className="text-lg font-bold text-warning">
+									{salesData.refundedCount || 0}
+								</p>
+								<p className="text-xs text-base-content/60">
+									฿{(salesData.refundedAmount || 0).toFixed(2)}
+								</p>
 							</div>
 						</div>
 					</div>

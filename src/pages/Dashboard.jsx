@@ -14,10 +14,12 @@ import { Loading } from "../components/common/Loading";
 import {
 	SummaryCards,
 	PieChartCard,
+	TrafficAnalyticsCard,
 	PerformanceCard,
 	ExpenseBreakdownCard,
 	ItemDetailsModal,
 } from "../components/dashboard";
+
 import {
 	formatDisplayDate,
 	getBangkokDayRange,
@@ -91,12 +93,11 @@ export const Dashboard = () => {
 			const bangkokDateStr = toBangkokDateString(selectedDate);
 			const { start, end } = getBangkokDayRange(selectedDate);
 
-			// 1. Fetch orders using exact UTC window
+			// 1. Fetch orders using exact UTC window (completed, cancelled, refunded)
 			const { data: orders, error: ordersError } = await supabase
 				.from("orders")
-				.select("id, created_at, total_amount, delivery_fee, payment_method, order_items")
-				.eq("pos_order_status", "completed")
-				.eq("payment_status", "paid")
+				.select("id, created_at, total_amount, delivery_fee, payment_method, pos_order_status, order_items")
+				.in("pos_order_status", ["completed", "cancelled", "refunded"])
 				.gte("created_at", start)
 				.lte("created_at", end);
 
@@ -386,6 +387,10 @@ export const Dashboard = () => {
 						onChartClick={() => setShowItemDetails(true)}
 						date={selectedDate}
 					/>
+					<TrafficAnalyticsCard hourlyTraffic={salesData.hourlyTraffic} />
+				</div>
+
+				<div className="mb-6">
 					<PerformanceCard salesData={salesData} />
 				</div>
 

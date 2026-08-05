@@ -35,23 +35,33 @@ const calculateDailyOverheadCost = (monthlyOverheads, selectedDate, openingDays 
 };
 
 const processSalesData = (orders, aggregatedSales, dateStr) => {
-	// totalIncome should be (total_amount - delivery_fee) for each order
-	const totalIncome = orders.reduce(
+	// Filter completed orders (only completed orders count towards sales income, items sold, and traffic)
+	const completedOrders = orders.filter((o) => o.pos_order_status === "completed");
+	const cancelledOrders = orders.filter((o) => o.pos_order_status === "cancelled");
+	const refundedOrders = orders.filter((o) => o.pos_order_status === "refunded");
+
+	const cancelledCount = cancelledOrders.length;
+	const refundedCount = refundedOrders.length;
+	const cancelledAmount = cancelledOrders.reduce((sum, o) => sum + getSafeNumber(o.total_amount), 0);
+	const refundedAmount = refundedOrders.reduce((sum, o) => sum + getSafeNumber(o.total_amount), 0);
+
+	// totalIncome should be (total_amount - delivery_fee) for completed orders
+	const totalIncome = completedOrders.reduce(
 		(sum, o) =>
 			sum + (getSafeNumber(o.total_amount) - getSafeNumber(o.delivery_fee)),
 		0
 	);
-	const totalDeliveryFees = orders.reduce(
+	const totalDeliveryFees = completedOrders.reduce(
 		(sum, o) => sum + getSafeNumber(o.delivery_fee),
 		0
 	);
-	const totalOrders = orders.length;
-	const totalItems = orders.reduce(
+	const totalOrders = completedOrders.length;
+	const totalItems = completedOrders.reduce(
 		(sum, o) => sum + (o.order_items?.length || 0),
 		0
 	);
 
-	const cashSales = orders
+	const cashSales = completedOrders
 		.filter((o) => o.payment_method?.toLowerCase() === "cash")
 		.reduce(
 			(sum, o) =>
@@ -122,6 +132,27 @@ const processSalesData = (orders, aggregatedSales, dateStr) => {
 		percentage: i.percentage,
 	}));
 
+	// Process hourly traffic (Bangkok Time UTC+7) for completed orders
+	const hourlyMap = {};
+	for (let h = 0; h < 24; h++) {
+		const hourLabel = `${h.toString().padStart(2, "0")}:00`;
+		hourlyMap[hourLabel] = { hour: hourLabel, orders: 0, revenue: 0 };
+	}
+
+	completedOrders.forEach((o) => {
+		if (o.created_at) {
+			const dateObj = new Date(o.created_at);
+			// Convert to Bangkok hour (UTC+7)
+			const bangkokHour = (dateObj.getUTCHours() + 7) % 24;
+			const hourLabel = `${bangkokHour.toString().padStart(2, "0")}:00`;
+			const amount = getSafeNumber(o.total_amount) - getSafeNumber(o.delivery_fee);
+			hourlyMap[hourLabel].orders += 1;
+			hourlyMap[hourLabel].revenue += amount;
+		}
+	});
+
+	const hourlyTraffic = Object.values(hourlyMap);
+
 	return {
 		totalIncome,
 		totalDeliveryFees,
@@ -132,6 +163,11 @@ const processSalesData = (orders, aggregatedSales, dateStr) => {
 		avgOrderValue,
 		itemDetailsList,
 		topSellingItems,
+		hourlyTraffic,
+		cancelledCount,
+		cancelledAmount,
+		refundedCount,
+		refundedAmount,
 	};
 };
 
@@ -277,6 +313,7 @@ export const processDashboardData = (
 	return {
 		// Sales Data
 		dailySales: salesData.topSellingItems,
+		hourlyTraffic: salesData.hourlyTraffic,
 		totalIncome: salesData.totalIncome,
 		totalDeliveryFees: salesData.totalDeliveryFees,
 		cashSales: salesData.cashSales,
@@ -285,6 +322,10 @@ export const processDashboardData = (
 		totalItems: salesData.totalItems,
 		avgOrderValue: salesData.avgOrderValue,
 		itemDetailsList: salesData.itemDetailsList,
+		cancelledCount: salesData.cancelledCount,
+		cancelledAmount: salesData.cancelledAmount,
+		refundedCount: salesData.refundedCount,
+		refundedAmount: salesData.refundedAmount,
 
 		// Expense Data (DAILY ONLY in dashboard)
 		totalDailyExpenses: expensesData.totalDailyExpenses,
