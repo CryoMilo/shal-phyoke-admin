@@ -63,7 +63,11 @@ const useMenuStore = create(
 							menu.name_english?.toLowerCase().includes(query) ||
 							menu.name_burmese?.toLowerCase().includes(query) ||
 							menu.name_thai?.toLowerCase().includes(query) ||
-							menu.description?.toLowerCase().includes(query)
+							menu.description?.toLowerCase().includes(query) ||
+							(Array.isArray(menu.aliases) &&
+								menu.aliases.some((alias) =>
+									alias.toLowerCase().includes(query)
+								))
 					);
 				}
 

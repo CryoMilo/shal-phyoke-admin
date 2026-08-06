@@ -7,10 +7,12 @@ import OrderHistoryTab from "../components/orders/OrderHistoryTab";
 import { showToast } from "../utils/toastUtils";
 import useQuickNoteStore from "../stores/quickNoteStore";
 import useOrderStore from "../stores/orderStore";
+import useMenuStore from "../stores/menuStore";
 import useStaffAccessStore from "../stores/staffAccessStore";
 import { sendToKitchenPrinter } from "../services/printerService";
 import { playDeliveryNotificationSound } from "../utils/soundUtils";
 import { markOrderAsPlayed } from "../components/common/DeliveryNotificationListener";
+import { deductStockForOrder } from "../utils/stockUtils";
 
 export const Orders = () => {
 	const fetchActiveNotes = useQuickNoteStore((state) => state.fetchActiveNotes);
@@ -96,6 +98,13 @@ export const Orders = () => {
 						.single();
 
 			if (error) throw error;
+
+			// Deduct stock for ordered items and add-ons if creating a new order
+			if (!editingOrderId) {
+				await deductStockForOrder(cart, itemNotes);
+				// Refresh menu items in menuStore so stock count updates immediately across POS/Menu
+				useMenuStore.getState().fetchAllMenuItems();
+			}
 
 			// If we successfully processed a draft, delete it from our drafts list
 			if (editingDraftId) {

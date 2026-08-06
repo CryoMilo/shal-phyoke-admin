@@ -428,13 +428,23 @@ const NewOrderTab = ({
 										{item.name_english}
 									</p>
 								)}
-								<div className="mt-1 flex flex-col">
+								<div className="mt-1 flex items-center justify-between">
 									<p className="text-primary font-bold">฿{item.price}</p>
-									{item.isCombo && (
-										<span className="badge badge-primary badge-xs mt-1">
+									{item.isCombo ? (
+										<span className="badge badge-primary badge-xs">
 											Combo Set
 										</span>
-									)}
+									) : item.stock_quantity !== undefined && item.stock_quantity !== -1 ? (
+										<span className={`badge badge-xs font-semibold ${
+											item.stock_quantity === 0
+												? "badge-error"
+												: item.stock_quantity <= 5
+												? "badge-warning"
+												: "badge-info"
+										}`}>
+											{item.stock_quantity} left
+										</span>
+									) : null}
 								</div>
 							</div>
 						))

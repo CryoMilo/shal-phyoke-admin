@@ -29,6 +29,12 @@ const MenuForm = ({
 		defaultValues: editingMenu
 			? {
 					...editingMenu,
+					stock_quantity: editingMenu?.stock_quantity ?? -1,
+					aliases: Array.isArray(editingMenu?.aliases)
+						? editingMenu.aliases.join(", ")
+						: typeof editingMenu?.aliases === "string"
+						? editingMenu.aliases
+						: "",
 					is_vegan: editingMenu?.is_vegan ?? false,
 					quick_note_ids: editingMenu?.quick_note_ids ?? [],
 					sensitive_ingredients: Array.isArray(
@@ -42,6 +48,8 @@ const MenuForm = ({
 					name_english: "",
 					name_thai: "",
 					price: 0,
+					stock_quantity: -1,
+					aliases: "",
 					category: "Chicken",
 					taste_profile: "",
 					description: "",
@@ -64,6 +72,12 @@ const MenuForm = ({
 		if (editingMenu) {
 			reset({
 				...editingMenu,
+				stock_quantity: editingMenu?.stock_quantity ?? -1,
+				aliases: Array.isArray(editingMenu?.aliases)
+					? editingMenu.aliases.join(", ")
+					: typeof editingMenu?.aliases === "string"
+					? editingMenu.aliases
+					: "",
 				is_vegan: editingMenu?.is_vegan ?? false,
 				quick_note_ids: editingMenu?.quick_note_ids ?? [],
 				sensitive_ingredients: Array.isArray(editingMenu.sensitive_ingredients)
@@ -76,6 +90,8 @@ const MenuForm = ({
 				name_english: "",
 				name_thai: "",
 				price: 0,
+				stock_quantity: -1,
+				aliases: "",
 				category: "Chicken",
 				taste_profile: "",
 				description: "",
@@ -90,8 +106,15 @@ const MenuForm = ({
 	}, [editingMenu, reset, isRegularOnly]);
 
 	const handleFormSubmit = (data) => {
+		const rawAliases = typeof data.aliases === "string"
+			? data.aliases.split(",").map((s) => s.trim()).filter(Boolean)
+			: Array.isArray(data.aliases)
+			? data.aliases
+			: [];
 		const processedData = {
 			...data,
+			stock_quantity: typeof data.stock_quantity === "number" ? data.stock_quantity : parseInt(data.stock_quantity, 10) || -1,
+			aliases: rawAliases,
 			sensitive_ingredients: data.sensitive_ingredients
 				? data.sensitive_ingredients.split(",").map((item) => item.trim())
 				: [],
@@ -201,6 +224,43 @@ const MenuForm = ({
 							</span>
 						</label>
 					)}
+				</div>
+
+				<div className="form-control">
+					<label className="label">
+						<span className="label-text font-medium">Stock Quantity (-1 for Unlimited)</span>
+					</label>
+					<input
+						{...register("stock_quantity", { valueAsNumber: true })}
+						type="number"
+						step="1"
+						min="-1"
+						className="input input-bordered w-full"
+						placeholder="-1"
+						disabled={loading}
+					/>
+					<label className="label">
+						<span className="label-text-alt text-gray-500">
+							Set to -1 for unlimited stock. When quantity reaches 0, item automatically marks as out of stock.
+						</span>
+					</label>
+				</div>
+
+				<div className="form-control col-span-1 md:col-span-2">
+					<label className="label">
+						<span className="label-text font-medium">Aliases (Comma separated)</span>
+					</label>
+					<input
+						{...register("aliases")}
+						className="input input-bordered w-full"
+						placeholder="e.g., Mohinga, Fish Soup, Noodle Soup"
+						disabled={loading}
+					/>
+					<label className="label">
+						<span className="label-text-alt text-gray-500">
+							Alternative or search keywords for this item.
+						</span>
+					</label>
 				</div>
 
 				<div className="form-control">
