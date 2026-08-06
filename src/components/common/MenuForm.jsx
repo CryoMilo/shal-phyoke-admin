@@ -133,23 +133,129 @@ const MenuForm = ({
 		<form
 			onSubmit={handleSubmit(handleFormSubmit)}
 			className="space-y-4 md:space-y-6">
-			{/* Image Upload Section */}
-			<div className="bg-base-200/50 p-4 rounded-xl border border-base-300">
-				<ImageUploadField
-					name="image_url"
-					control={control}
-					bucket="menu_items"
-					label="Menu Item Image"
-					placeholder="Optional: Upload a photo now or add it later"
-					required={false}
-				/>
-				{errors.image_url && (
-					<label className="label">
-						<span className="label-text-alt text-error">
-							{errors.image_url.message}
-						</span>
-					</label>
-				)}
+			{/* Top Section: Image Upload (Left) & Stock Control (Right) */}
+			<div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 bg-base-200/50 p-4 rounded-xl border border-base-300">
+				{/* Left Column: Image Upload */}
+				<div className="flex flex-col justify-center">
+					<ImageUploadField
+						name="image_url"
+						control={control}
+						bucket="menu_items"
+						label="Menu Item Image"
+						placeholder="Optional: Upload photo"
+						required={false}
+					/>
+					{errors.image_url && (
+						<label className="label">
+							<span className="label-text-alt text-error">
+								{errors.image_url.message}
+							</span>
+						</label>
+					)}
+				</div>
+
+				{/* Right Column: Stock Quantity Control */}
+				<div className="flex flex-col justify-between">
+					<Controller
+						name="stock_quantity"
+						control={control}
+						render={({ field }) => {
+							const stockVal = typeof field.value === "number" ? field.value : parseInt(field.value, 10) || -1;
+							const isUnlimited = stockVal === -1;
+
+							const handleIncrement = (delta) => {
+								if (isUnlimited) {
+									field.onChange(1);
+								} else {
+									const next = Math.max(0, stockVal + delta);
+									field.onChange(next);
+								}
+							};
+
+							const handleToggleUnlimited = () => {
+								if (isUnlimited) {
+									field.onChange(10); // default starting stock
+								} else {
+									field.onChange(-1);
+								}
+							};
+
+							return (
+								<div className="form-control h-full flex flex-col justify-between">
+									<label className="label py-1">
+										<span className="label-text font-medium text-xs text-base-content/80">
+											Stock Quantity
+										</span>
+									</label>
+
+									<div className="bg-base-100 p-4 rounded-xl border border-base-300 flex-1 flex flex-col justify-center gap-3">
+										<div className="flex items-center justify-between gap-3">
+											<div className="flex items-center gap-2 flex-1">
+												<button
+													type="button"
+													className="btn btn-circle btn-outline btn-sm font-bold text-lg"
+													onClick={() => handleIncrement(-1)}
+													disabled={loading || isUnlimited || stockVal <= 0}>
+													-
+												</button>
+
+												<div className="flex-1 text-center">
+													{isUnlimited ? (
+														<span className="text-2xl font-bold text-primary">
+															∞
+														</span>
+													) : (
+														<input
+															type="number"
+															className="input input-bordered input-sm w-full text-center font-bold text-lg"
+															value={stockVal}
+															onChange={(e) => {
+																const val = parseInt(e.target.value, 10);
+																field.onChange(isNaN(val) ? 0 : Math.max(0, val));
+															}}
+															disabled={loading}
+														/>
+													)}
+												</div>
+
+												<button
+													type="button"
+													className="btn btn-circle btn-outline btn-sm font-bold text-lg"
+													onClick={() => handleIncrement(1)}
+													disabled={loading}>
+													+
+												</button>
+											</div>
+										</div>
+
+										<div className="flex items-center justify-between border-t border-base-200 pt-2">
+											<span className="text-xs font-semibold text-base-content/70">
+												Unlimited Stock (∞)
+											</span>
+											<input
+												type="checkbox"
+												className="toggle toggle-primary toggle-sm"
+												checked={isUnlimited}
+												onChange={handleToggleUnlimited}
+												disabled={loading}
+											/>
+										</div>
+									</div>
+
+									<label className="label py-1">
+										<span className="label-text-alt text-gray-500">
+											{isUnlimited
+												? "Stock is unlimited."
+												: stockVal === 0
+												? "Item will automatically show as Out of Stock."
+												: `Stock will drop by 1 with each order.`}
+										</span>
+									</label>
+								</div>
+							);
+						}}
+					/>
+				</div>
 			</div>
 
 			{/* Basic Information Grid */}
@@ -224,26 +330,6 @@ const MenuForm = ({
 							</span>
 						</label>
 					)}
-				</div>
-
-				<div className="form-control">
-					<label className="label">
-						<span className="label-text font-medium">Stock Quantity (-1 for Unlimited)</span>
-					</label>
-					<input
-						{...register("stock_quantity", { valueAsNumber: true })}
-						type="number"
-						step="1"
-						min="-1"
-						className="input input-bordered w-full"
-						placeholder="-1"
-						disabled={loading}
-					/>
-					<label className="label">
-						<span className="label-text-alt text-gray-500">
-							Set to -1 for unlimited stock. When quantity reaches 0, item automatically marks as out of stock.
-						</span>
-					</label>
 				</div>
 
 				<div className="form-control col-span-1 md:col-span-2">

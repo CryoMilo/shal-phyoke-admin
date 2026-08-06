@@ -1,34 +1,16 @@
 // src/components/common/ImageUpload.jsx
 import { useState, useRef } from "react";
-import { Upload, X, Image as ImageIcon, Loader2 } from "lucide-react";
+import { Camera, X, Loader2, Image as ImageIcon } from "lucide-react";
 import { supabase } from "../../services/supabase";
 
-/**
- * Reusable Image Upload Component
- *
- * @param {Object} props
- * @param {string} props.bucket - Supabase storage bucket name (default: 'inventory-images')
- * @param {string} props.folder - Folder path within bucket (default: '')
- * @param {string} props.value - Current image URL
- * @param {function} props.onChange - Callback when image changes (receives URL string)
- * @param {string} props.className - Additional CSS classes
- * @param {string} props.label - Label text
- * @param {boolean} props.required - Whether image is required
- * @param {string} props.placeholder - Placeholder text when no image
- * @param {number} props.maxSizeMB - Max file size in MB (default: 5)
- * @param {string[]} props.allowedTypes - Allowed MIME types (default: ['image/jpeg', 'image/png', 'image/webp'])
- * @param {string} props.error - Error message
- * @param {function} props.onError - Error callback
- */
 const ImageUpload = ({
 	bucket = "inventory-images",
 	folder = "",
 	value = "",
 	onChange,
 	className = "",
-	label = "Image",
+	label = "Menu Item Image",
 	required = false,
-	placeholder = "No image selected",
 	maxSizeMB = 5,
 	allowedTypes = ["image/jpeg", "image/png", "image/webp"],
 	error: externalError,
@@ -42,19 +24,15 @@ const ImageUpload = ({
 	const error = externalError || internalError;
 
 	const validateFile = (file) => {
-		// Check file type
 		if (!allowedTypes.includes(file.type)) {
-			return `File type not allowed. Please upload: ${allowedTypes
+			return `File type not allowed. Allowed: ${allowedTypes
 				.map((t) => t.split("/")[1])
 				.join(", ")}`;
 		}
-
-		// Check file size
 		const maxSizeBytes = maxSizeMB * 1024 * 1024;
 		if (file.size > maxSizeBytes) {
-			return `File size too large. Maximum size is ${maxSizeMB}MB`;
+			return `File size too large (max ${maxSizeMB}MB)`;
 		}
-
 		return null;
 	};
 
@@ -62,26 +40,18 @@ const ImageUpload = ({
 		const file = e.target.files?.[0];
 		if (!file) return;
 
-		// Clear previous errors
 		setInternalError("");
-
-		// Validate file
 		const validationError = validateFile(file);
 		if (validationError) {
 			setInternalError(validationError);
 			onError?.(validationError);
-			// Reset file input
-			if (fileInputRef.current) {
-				fileInputRef.current.value = "";
-			}
+			if (fileInputRef.current) fileInputRef.current.value = "";
 			return;
 		}
 
-		// Create preview
 		const objectUrl = URL.createObjectURL(file);
 		setPreview(objectUrl);
 
-		// Upload to Supabase
 		setUploading(true);
 		try {
 			const fileExt = file.name.split(".").pop();
@@ -100,26 +70,22 @@ const ImageUpload = ({
 				data: { publicUrl },
 			} = supabase.storage.from(bucket).getPublicUrl(filePath);
 
-			// Call onChange with the public URL
 			onChange?.(publicUrl);
-
-			// Clean up preview object URL
 			URL.revokeObjectURL(objectUrl);
-		} catch (error) {
-			console.error("Error uploading image:", error);
-			const errorMessage = error.message || "Failed to upload image";
-			setInternalError(errorMessage);
-			onError?.(errorMessage);
-			// Reset preview
+		} catch (err) {
+			console.error("Error uploading image:", err);
+			const msg = err.message || "Failed to upload image";
+			setInternalError(msg);
+			onError?.(msg);
 			setPreview(value);
 		} finally {
 			setUploading(false);
 		}
 	};
 
-	const handleRemove = async () => {
+	const handleRemove = async (e) => {
+		e.stopPropagation();
 		if (value) {
-			// Extract file path from URL
 			try {
 				const url = new URL(value);
 				const pathParts = url.pathname.split("/");
@@ -127,14 +93,12 @@ const ImageUpload = ({
 					.slice(pathParts.indexOf("object") + 2)
 					.join("/");
 
-				// Remove from storage
 				await supabase.storage.from(bucket).remove([filePath]);
-			} catch (error) {
-				console.error("Error removing file:", error);
+			} catch (err) {
+				console.error("Error removing file:", err);
 			}
 		}
 
-		// Reset states
 		setPreview("");
 		onChange?.("");
 		setInternalError("");
@@ -143,106 +107,82 @@ const ImageUpload = ({
 		}
 	};
 
-	const handleRetry = () => {
-		setInternalError("");
-		if (fileInputRef.current) {
-			fileInputRef.current.click();
-		}
-	};
-
 	return (
 		<div className={`form-control w-full ${className}`}>
 			{label && (
-				<label className="label">
-					<span className="label-text">
+				<label className="label py-1">
+					<span className="label-text font-medium text-xs text-base-content/80">
 						{label}
 						{required && <span className="text-error ml-1">*</span>}
 					</span>
 				</label>
 			)}
 
-			<div className="flex items-start gap-4">
-				{/* Image Preview */}
-				<div className="relative">
-					<div className="w-24 h-24 rounded-lg bg-base-300 flex items-center justify-center overflow-hidden border-2 border-base-300">
-						{uploading ? (
-							<div className="flex flex-col items-center justify-center">
-								<Loader2 className="w-8 h-8 animate-spin text-primary" />
-								<span className="text-xs mt-1">Uploading...</span>
-							</div>
-						) : preview ? (
-							<img
-								src={preview}
-								alt="Preview"
-								className="w-full h-full object-cover"
-							/>
-						) : (
-							<ImageIcon className="w-10 h-10 text-gray-500" />
-						)}
+			<input
+				ref={fileInputRef}
+				type="file"
+				accept={allowedTypes.join(",")}
+				onChange={handleFileSelect}
+				className="hidden"
+			/>
+
+			<div
+				onClick={() => !uploading && fileInputRef.current?.click()}
+				className={`group relative w-full h-36 rounded-xl border-2 border-dashed transition-all duration-200 cursor-pointer overflow-hidden flex flex-col items-center justify-center ${
+					error
+						? "border-error bg-error/5"
+						: preview
+						? "border-primary/40 bg-base-100 hover:border-primary shadow-sm"
+						: "border-base-300 bg-base-200/50 hover:bg-base-200 hover:border-primary/50"
+				}`}>
+				{uploading ? (
+					<div className="flex flex-col items-center justify-center p-4">
+						<Loader2 className="w-8 h-8 animate-spin text-primary mb-2" />
+						<span className="text-xs font-semibold text-base-content/70">
+							Uploading image...
+						</span>
 					</div>
-					{value && !uploading && (
+				) : preview || value ? (
+					<>
+						<img
+							src={preview || value}
+							alt="Preview"
+							className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+						/>
+						{/* Hover Overlay */}
+						<div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white gap-1 backdrop-blur-[1px]">
+							<Camera className="w-6 h-6" />
+							<span className="text-xs font-medium">Click to change image</span>
+						</div>
+						{/* Delete button */}
 						<button
 							type="button"
 							onClick={handleRemove}
-							className="absolute -top-2 -right-2 btn btn-circle btn-xs btn-error"
+							className="absolute top-2 right-2 btn btn-circle btn-xs btn-error shadow-md opacity-80 hover:opacity-100 z-10"
 							title="Remove image">
-							<X className="w-3 h-3" />
+							<X className="w-3.5 h-3.5" />
 						</button>
-					)}
-				</div>
-
-				{/* Upload Controls */}
-				<div className="flex-1">
-					<input
-						ref={fileInputRef}
-						type="file"
-						accept={allowedTypes.join(",")}
-						onChange={handleFileSelect}
-						className="hidden"
-						id="image-upload-input"
-					/>
-
-					<div className="flex flex-wrap gap-2">
-						<label
-							htmlFor="image-upload-input"
-							className={`btn btn-outline btn-sm gap-2 ${
-								uploading ? "btn-disabled" : ""
-							}`}>
-							<Upload className="w-4 h-4" />
-							{value ? "Change Image" : "Upload Image"}
-						</label>
-
-						{error && (
-							<button
-								type="button"
-								onClick={handleRetry}
-								className="btn btn-warning btn-sm gap-2">
-								Retry
-							</button>
-						)}
-					</div>
-
-					{/* File requirements */}
-					<div className="mt-2 text-xs text-gray-500">
-						<p>
-							Max size: {maxSizeMB}MB • Allowed:{" "}
-							{allowedTypes.map((t) => t.split("/")[1]).join(", ")}
+					</>
+				) : (
+					<div className="flex flex-col items-center justify-center text-center p-4 text-base-content/60 group-hover:text-primary transition-colors">
+						<div className="p-2.5 rounded-full bg-base-100 shadow-xs mb-2 group-hover:scale-110 transition-transform">
+							<Camera className="w-6 h-6 text-primary" />
+						</div>
+						<p className="text-xs font-semibold">Click to upload photo</p>
+						<p className="text-[10px] text-base-content/50 mt-0.5">
+							PNG, JPG, WEBP up to {maxSizeMB}MB
 						</p>
 					</div>
-
-					{/* Error message */}
-					{error && (
-						<div className="mt-2 text-xs text-error flex items-center gap-1">
-							<span>⚠️ {error}</span>
-						</div>
-					)}
-
-					{/* Placeholder text when no image */}
-					{!value && !uploading && !error && (
-						<p className="mt-2 text-xs text-gray-400 italic">{placeholder}</p>
-					)}
-				</div>
+				)}
 			</div>
+
+			{error && (
+				<label className="label py-1">
+					<span className="label-text-alt text-error text-[11px]">
+						⚠️ {error}
+					</span>
+				</label>
+			)}
 		</div>
 	);
 };

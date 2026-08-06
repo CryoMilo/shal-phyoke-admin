@@ -16,6 +16,8 @@ import {
 	toBangkokDateString,
 } from "../../utils/dateUtils";
 import PaymentModal from "../common/PaymentModal";
+import useMenuStore from "../../stores/menuStore";
+import { restoreStockForOrder } from "../../utils/stockUtils";
 
 // Synchronous guard to prevent duplicate order completions across re-renders
 const inProgressOrders = new Set();
@@ -391,11 +393,17 @@ const SingularOrderModal = ({ order, onClose, onUpdate }) => {
 				.from("orders")
 				.update({ pos_order_status: status })
 				.eq("id", order.id);
+
+			// Restore stock for items and add-ons in cancelled/refunded order
+			await restoreStockForOrder(order);
+			useMenuStore.getState().fetchAllMenuItems();
+
 			showToast.success(`Order ${status}`);
 			onUpdate();
 			onClose();
 			// eslint-disable-next-line no-unused-vars
 		} catch (error) {
+			console.error("Error cancelling/refunding order:", error);
 			showToast.error("Update failed");
 		}
 	};
@@ -771,6 +779,19 @@ const TableBillsModal = ({ table, onClose, onUpdate }) => {
 					.eq("id", orderId);
 
 				if (error) throw error;
+
+				// Fetch target order data and restore stock
+				const { data: targetOrder } = await supabase
+					.from("orders")
+					.select("*")
+					.eq("id", orderId)
+					.single();
+
+				if (targetOrder) {
+					await restoreStockForOrder(targetOrder);
+					useMenuStore.getState().fetchAllMenuItems();
+				}
+
 				showToast.success(
 					`Order ${
 						updates.pos_order_status === "cancelled" ? "cancelled" : "refunded"

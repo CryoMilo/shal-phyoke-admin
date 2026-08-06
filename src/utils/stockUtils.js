@@ -82,3 +82,87 @@ export const deductStockForOrder = async (cart, itemNotes = {}, allMenuItems = [
 
 	await Promise.all(updatePromises);
 };
+
+/**
+ * Restores stock quantity for items and add-ons from a cancelled/refunded order.
+ * If stock quantity increases above 0, automatically sets is_active to true (restoring item to active).
+ * Items with stock_quantity = -1 (unlimited) are bypassed.
+ * 
+ * @param {Object} order - Order object containing order_items, item_notes, etc.
+ */
+export const restoreStockForOrder = async (order) => {
+	if (!order || !order.order_items || order.order_items.length === 0) return;
+
+	const cart = order.order_items;
+	const itemNotes = order.item_notes || {};
+
+	// Map to accumulate stock additions by menu_item id
+	const additionMap = {}; // { menuItemId: totalQuantityToRestore }
+
+	const addAddition = (id, qty) => {
+		if (!id) return;
+		additionMap[id] = (additionMap[id] || 0) + qty;
+	};
+
+	// 1. Accumulate main order items
+	cart.forEach((cartItem) => {
+		const qty = cartItem.quantity || 1;
+		const itemId = cartItem.id || cartItem.menu_item_id;
+		addAddition(itemId, qty);
+
+		// 2. Accumulate add-ons / extras attached to this item
+		const note = itemNotes[cartItem.cart_id];
+		if (note && cartItem.available_extras && cartItem.available_extras.length > 0) {
+			const noteParts = note.split(",").map((s) => s.trim());
+			cartItem.available_extras.forEach((extra) => {
+				const toppingName = extra.name_burmese || extra.name_english;
+				if (toppingName && noteParts.includes(toppingName)) {
+					const extraItemId = extra.extra_item_id || extra.extra_item?.id;
+					if (extraItemId) {
+						addAddition(extraItemId, qty);
+					}
+				}
+			});
+		}
+	});
+
+	const itemIds = Object.keys(additionMap);
+	if (itemIds.length === 0) return;
+
+	// 3. Fetch current stock_quantity and is_active from database
+	const { data: dbItems, error: fetchError } = await supabase
+		.from("menu_items")
+		.select("id, stock_quantity, is_active")
+		.in("id", itemIds);
+
+	if (fetchError) {
+		console.error("Error fetching stock for restoration:", fetchError);
+		return;
+	}
+
+	// 4. Restore stock and set is_active = true if stock > 0
+	const updatePromises = dbItems.map(async (item) => {
+		if (item.stock_quantity === -1 || item.stock_quantity === null || item.stock_quantity === undefined) {
+			return; // Unlimited stock
+		}
+
+		const qtyToRestore = additionMap[item.id] || 0;
+		const newStock = item.stock_quantity + qtyToRestore;
+		// Re-activate item if new stock > 0
+		const newIsActive = newStock > 0 ? true : item.is_active;
+
+		const { error: updateError } = await supabase
+			.from("menu_items")
+			.update({
+				stock_quantity: newStock,
+				is_active: newIsActive,
+			})
+			.eq("id", item.id);
+
+		if (updateError) {
+			console.error(`Error restoring stock for menu item ${item.id}:`, updateError);
+		}
+	});
+
+	await Promise.all(updatePromises);
+};
