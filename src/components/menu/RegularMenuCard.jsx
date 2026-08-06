@@ -12,6 +12,8 @@ const RegularMenuCard = ({ menu, onEdit, onDelete, onToggleStatus }) => {
 				return "badge-secondary";
 			case "Regular_Drinks":
 				return "badge-accent";
+			case "Discontinued":
+				return "badge-ghost opacity-60";
 			default:
 				return "badge-outline";
 		}

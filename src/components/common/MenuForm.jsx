@@ -51,7 +51,7 @@ const MenuForm = ({
 					price: 0,
 					stock_quantity: -1,
 					aliases: "",
-					category: "Chicken",
+					category: "Rice",
 					taste_profile: "",
 					description: "",
 					image_url: "",
@@ -95,7 +95,7 @@ const MenuForm = ({
 				price: 0,
 				stock_quantity: -1,
 				aliases: "",
-				category: "Chicken",
+				category: "Rice",
 				taste_profile: "",
 				description: "",
 				image_url: "",
@@ -562,12 +562,7 @@ const MenuForm = ({
 							disabled={loading}
 						/>
 						<div className="flex flex-col">
-							<span className="label-text font-medium">
-								Require Mandatory Add-on Selection
-							</span>
-							<span className="label-text-alt text-gray-500">
-								If enabled, user MUST select an in-stock add-on choice (No plain option)
-							</span>
+							<span className="label-text font-medium">Must have Add-on</span>
 						</div>
 					</label>
 				</div>

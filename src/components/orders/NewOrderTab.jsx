@@ -136,7 +136,10 @@ const NewOrderTab = ({
 	const combos = useMemo(() => getActiveFixedCombos(), [allMenuItems]);
 
 	const menuItems = useMemo(
-		() => allMenuItems.filter((i) => i.is_regular && !i.is_combo),
+		() =>
+			allMenuItems.filter(
+				(i) => i.is_regular && !i.is_combo && i.category !== "Discontinued"
+			),
 		[allMenuItems]
 	);
 
@@ -184,7 +187,9 @@ const NewOrderTab = ({
 			if (itemsError) throw itemsError;
 
 			// Flatten the data to get an array of menu_items
-			const specialItems = items.map((item) => item.menu_items).filter(Boolean);
+			const specialItems = items
+				.map((item) => item.menu_items)
+				.filter((i) => i && i.category !== "Discontinued");
 
 			setTodaysSpecialRaw(specialItems);
 		} catch (error) {
