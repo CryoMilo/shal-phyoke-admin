@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { supabase } from "../../services/supabase";
 import { Split, Copy, Check, FolderOpen } from "lucide-react";
 import ItemNoteModal from "./ItemNoteModal";
+import AddonSelectionModal from "./AddonSelectionModal";
 import TableSelectionModal from "./TableSelectionModal";
 import useMenuStore from "../../stores/menuStore";
 import { useAuth } from "../../contexts/AuthContext";
@@ -10,6 +11,7 @@ import useOrderStore from "../../stores/orderStore";
 import PaymentModal from "../common/PaymentModal";
 import { showToast } from "../../utils/toastUtils";
 import { generateOrderDetailsText } from "../../utils/orderUtils";
+import { isBaseItemAvailable } from "../../utils/stockUtils";
 
 const getTodayWeekday = () => {
 	const d = new Date();
@@ -78,6 +80,40 @@ const NewOrderTab = ({
 	const [showTableModal, setShowTableModal] = useState(false);
 	const [showDraftsModal, setShowDraftsModal] = useState(false);
 	const [activeItemForNote, setActiveItemForNote] = useState(null);
+	const [showAddonModal, setShowAddonModal] = useState(false);
+	const [itemForAddon, setItemForAddon] = useState(null);
+
+	const handleItemClick = (item) => {
+		const isAvailable = isBaseItemAvailable(item);
+		if (!isAvailable) return;
+
+		if (item.isCombo) {
+			addToCart(item, item.combo_note_summary || null, 0);
+			return;
+		}
+
+		// Find master item to get available_extras
+		const masterItem = allMenuItems.find((m) => String(m.id) === String(item.id)) || item;
+		const availableExtras = masterItem.available_extras || [];
+
+		// If item has linked extras / add-ons attached
+		if (availableExtras.length > 0) {
+			setItemForAddon({ ...item, available_extras: availableExtras });
+			setShowAddonModal(true);
+			return;
+		}
+
+		// Direct add to cart
+		addToCart({ ...item, available_extras: availableExtras });
+	};
+
+	const handleConfirmAddon = (note, extraPrice) => {
+		if (itemForAddon) {
+			addToCart(itemForAddon, note || null, extraPrice || 0);
+		}
+		setShowAddonModal(false);
+		setItemForAddon(null);
+	};
 
 	// Payment Confirmation Modal State
 	const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -384,30 +420,28 @@ const NewOrderTab = ({
 				{/* Menu Items Grid */}
 				<div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
 					{filteredItems.length > 0 ? (
-						filteredItems.map((item) => (
-							<div
-								key={item.id}
-								className={`bg-base-100 border rounded-lg p-3 relative overflow-hidden transition-all ${
-									!item.is_active
-										? "grayscale opacity-50 cursor-not-allowed border-base-300"
-										: "cursor-pointer hover:shadow-md border-base-300 " +
-										  (item.isCombo ? "border-primary/30 ring-1 ring-primary/10" : "")
-								}`}
-								onClick={() => {
-									if (!item.is_active) return;
-									if (item.isCombo) {
-										addToCart(item, item.combo_note_summary || null, 0);
-										return;
-									}
-									addToCart(item);
-								}}>
-								{!item.is_active && (
-									<div className="absolute inset-0 bg-base-200/20 z-10 flex items-center justify-center">
-										<span className="bg-error text-error-content text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-widest shadow-lg rotate-[-12deg]">
-											Out of Stock
-										</span>
-									</div>
-								)}
+						filteredItems.map((item) => {
+							const masterItem = allMenuItems.find((m) => String(m.id) === String(item.id)) || item;
+							const fullItem = { ...item, available_extras: masterItem.available_extras || [] };
+							const isAvailable = isBaseItemAvailable(fullItem);
+
+							return (
+								<div
+									key={item.id}
+									className={`bg-base-100 border rounded-lg p-3 relative overflow-hidden transition-all ${
+										!isAvailable
+											? "grayscale opacity-50 cursor-not-allowed border-base-300"
+											: "cursor-pointer hover:shadow-md border-base-300 " +
+											  (item.isCombo ? "border-primary/30 ring-1 ring-primary/10" : "")
+									}`}
+									onClick={() => handleItemClick(fullItem)}>
+									{!isAvailable && (
+										<div className="absolute inset-0 bg-base-200/20 z-10 flex items-center justify-center">
+											<span className="bg-error text-error-content text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-widest shadow-lg rotate-[-12deg]">
+												Out of Stock
+											</span>
+										</div>
+									)}
 								{item.isCombo && (
 									<div className="absolute top-0 right-0 bg-primary text-primary-content text-[8px] font-bold px-1.5 py-0.5 rounded-bl-lg uppercase tracking-tighter z-20">
 										Combo
@@ -447,7 +481,8 @@ const NewOrderTab = ({
 									) : null}
 								</div>
 							</div>
-						))
+						);
+					})
 					) : (
 						<div className="col-span-full text-center py-8 text-base-content/50">
 							No items found in {activeCategory}
@@ -834,6 +869,16 @@ const NewOrderTab = ({
 					<div className="modal-backdrop bg-black/50" onClick={() => setShowDraftsModal(false)}></div>
 				</div>
 			)}
+			{/* Add-on Selection Modal */}
+			<AddonSelectionModal
+				isOpen={showAddonModal}
+				onClose={() => {
+					setShowAddonModal(false);
+					setItemForAddon(null);
+				}}
+				onConfirm={handleConfirmAddon}
+				item={itemForAddon}
+			/>
 		</div>
 	);
 };

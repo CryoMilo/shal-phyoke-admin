@@ -361,9 +361,10 @@ const useMenuStore = create(
 
 			createMenuItem: async (menuData) => {
 				try {
+					const { available_extras, ...cleanData } = menuData;
 					const { data, error } = await supabase
 						.from("menu_items")
-						.insert([menuData])
+						.insert([cleanData])
 						.select()
 						.maybeSingle();
 
@@ -397,10 +398,13 @@ const useMenuStore = create(
 						return { data: null, error: new Error("Menu item not found") };
 					}
 
+					// Strip UI-only fields like available_extras that aren't database columns
+					const { available_extras, ...cleanData } = menuData;
+
 					// Perform the update
 					const { data, error } = await supabase
 						.from("menu_items")
-						.update(menuData)
+						.update(cleanData)
 						.eq("id", id)
 						.select(); // Remove .maybeSingle() to get array
 

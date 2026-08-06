@@ -1,7 +1,9 @@
 import React from "react";
 import { Edit, Trash2 } from "lucide-react";
+import { isBaseItemAvailable } from "../../utils/stockUtils";
 
 const RegularMenuCard = ({ menu, onEdit, onDelete, onToggleStatus }) => {
+	const isAvailable = isBaseItemAvailable(menu);
 	const getCategoryBadgeColor = (category) => {
 		switch (category) {
 			case "Regular":
@@ -51,9 +53,9 @@ const RegularMenuCard = ({ menu, onEdit, onDelete, onToggleStatus }) => {
 				<div className="absolute top-2 right-2">
 					<span
 						className={`badge ${
-							menu.is_active ? "badge-success" : "badge-error"
+							isAvailable ? "badge-success" : "badge-error"
 						}`}>
-						{menu.is_active ? "Available" : "Out of Stock"}
+						{isAvailable ? "Available" : "Out of Stock"}
 					</span>
 				</div>
 			</figure>

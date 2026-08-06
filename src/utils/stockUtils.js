@@ -166,3 +166,48 @@ export const restoreStockForOrder = async (order) => {
 
 	await Promise.all(updatePromises);
 };
+
+/**
+ * Checks whether an add-on extra option is available (in-stock).
+ *
+ * @param {Object} extra - Extra object from item.available_extras
+ * @returns {boolean} - True if stock > 0 or -1 (unlimited) or stock is undefined
+ */
+export const isAddonAvailable = (extra) => {
+	if (!extra) return false;
+	const extraItem = extra.extra_item;
+	if (extraItem) {
+		if (extraItem.is_active === false) return false;
+		if (extraItem.stock_quantity === 0) return false;
+	}
+	return true;
+};
+
+/**
+ * Computes availability of a base menu item.
+ * Rule:
+ * 1. If base item is_active is false, return false (out of stock / inactive).
+ * 2. If base item stock_quantity === 0, return false.
+ * 3. If base item requires add-on selection (`requires_addon === true`)
+ *    AND all linked extras are out of stock (`stock_quantity === 0`), return false (SOLD OUT).
+ *
+ * @param {Object} item - Menu item object with available_extras
+ * @returns {boolean} - True if item can be ordered
+ */
+export const isBaseItemAvailable = (item) => {
+	if (!item) return false;
+	if (!item.is_active) return false;
+	if (item.stock_quantity === 0) return false;
+
+	const hasExtras = Array.isArray(item.available_extras) && item.available_extras.length > 0;
+
+	// If add-on selection is mandatory (requires_addon === true) and item has linked extras
+	if (item.requires_addon && hasExtras) {
+		const hasAvailableAddon = item.available_extras.some((extra) => isAddonAvailable(extra));
+		if (!hasAvailableAddon) {
+			return false; // All mandatory add-on choices are sold out
+		}
+	}
+
+	return true;
+};

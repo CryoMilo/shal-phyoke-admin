@@ -34,6 +34,7 @@ export const menuSchema = z.object({
 	quick_note_ids: z.array(z.string()).default([]),
 	stock_quantity: z.number().int().default(-1),
 	aliases: z.any().optional().default([]),
+	requires_addon: z.boolean().default(false),
 	// Combo fields (optional/nullable since most items are not combos)
 	is_combo: z.boolean().default(false),
 	combo_type: z.enum(["fixed", "rotating"]).nullable().optional(),

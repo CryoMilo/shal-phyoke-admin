@@ -35,6 +35,7 @@ const MenuForm = ({
 						: typeof editingMenu?.aliases === "string"
 						? editingMenu.aliases
 						: "",
+					requires_addon: editingMenu?.requires_addon ?? false,
 					is_vegan: editingMenu?.is_vegan ?? false,
 					quick_note_ids: editingMenu?.quick_note_ids ?? [],
 					sensitive_ingredients: Array.isArray(
@@ -58,6 +59,7 @@ const MenuForm = ({
 					is_active: true,
 					is_regular: isRegularOnly ? true : false,
 					is_vegan: false,
+					requires_addon: false,
 					quick_note_ids: [],
 			  },
 	});
@@ -78,6 +80,7 @@ const MenuForm = ({
 					: typeof editingMenu?.aliases === "string"
 					? editingMenu.aliases
 					: "",
+				requires_addon: editingMenu?.requires_addon ?? false,
 				is_vegan: editingMenu?.is_vegan ?? false,
 				quick_note_ids: editingMenu?.quick_note_ids ?? [],
 				sensitive_ingredients: Array.isArray(editingMenu.sensitive_ingredients)
@@ -100,20 +103,28 @@ const MenuForm = ({
 				is_active: true,
 				is_regular: isRegularOnly ? true : false,
 				is_vegan: false,
+				requires_addon: false,
 				quick_note_ids: [],
 			});
 		}
 	}, [editingMenu, reset, isRegularOnly]);
 
 	const handleFormSubmit = (data) => {
-		const rawAliases = typeof data.aliases === "string"
-			? data.aliases.split(",").map((s) => s.trim()).filter(Boolean)
-			: Array.isArray(data.aliases)
-			? data.aliases
-			: [];
+		const rawAliases =
+			typeof data.aliases === "string"
+				? data.aliases
+						.split(",")
+						.map((s) => s.trim())
+						.filter(Boolean)
+				: Array.isArray(data.aliases)
+				? data.aliases
+				: [];
 		const processedData = {
 			...data,
-			stock_quantity: typeof data.stock_quantity === "number" ? data.stock_quantity : parseInt(data.stock_quantity, 10) || -1,
+			stock_quantity:
+				typeof data.stock_quantity === "number"
+					? data.stock_quantity
+					: parseInt(data.stock_quantity, 10) || -1,
 			aliases: rawAliases,
 			sensitive_ingredients: data.sensitive_ingredients
 				? data.sensitive_ingredients.split(",").map((item) => item.trim())
@@ -160,7 +171,10 @@ const MenuForm = ({
 						name="stock_quantity"
 						control={control}
 						render={({ field }) => {
-							const stockVal = typeof field.value === "number" ? field.value : parseInt(field.value, 10) || -1;
+							const stockVal =
+								typeof field.value === "number"
+									? field.value
+									: parseInt(field.value, 10) || -1;
 							const isUnlimited = stockVal === -1;
 
 							const handleIncrement = (delta) => {
@@ -211,7 +225,9 @@ const MenuForm = ({
 															value={stockVal}
 															onChange={(e) => {
 																const val = parseInt(e.target.value, 10);
-																field.onChange(isNaN(val) ? 0 : Math.max(0, val));
+																field.onChange(
+																	isNaN(val) ? 0 : Math.max(0, val)
+																);
 															}}
 															disabled={loading}
 														/>
@@ -334,7 +350,9 @@ const MenuForm = ({
 
 				<div className="form-control col-span-1 md:col-span-2">
 					<label className="label">
-						<span className="label-text font-medium">Aliases (Comma separated)</span>
+						<span className="label-text font-medium">
+							Aliases (Comma separated)
+						</span>
 					</label>
 					<input
 						{...register("aliases")}
@@ -530,6 +548,25 @@ const MenuForm = ({
 							<span className="label-text font-medium">Vegan</span>
 							<span className="label-text-alt text-gray-500">
 								Mark this item as vegan-friendly
+							</span>
+						</div>
+					</label>
+				</div>
+
+				<div className="form-control">
+					<label className="label cursor-pointer justify-start gap-3 p-0">
+						<input
+							{...register("requires_addon")}
+							type="checkbox"
+							className="toggle toggle-accent"
+							disabled={loading}
+						/>
+						<div className="flex flex-col">
+							<span className="label-text font-medium">
+								Require Mandatory Add-on Selection
+							</span>
+							<span className="label-text-alt text-gray-500">
+								If enabled, user MUST select an in-stock add-on choice (No plain option)
 							</span>
 						</div>
 					</label>
