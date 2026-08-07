@@ -473,17 +473,23 @@ const NewOrderTab = ({
 										<span className="badge badge-primary badge-xs">
 											Combo Set
 										</span>
-									) : item.stock_quantity !== undefined && item.stock_quantity !== -1 ? (
-										<span className={`badge badge-xs font-semibold ${
-											item.stock_quantity === 0
-												? "badge-error"
-												: item.stock_quantity <= 5
-												? "badge-warning"
-												: "badge-info"
-										}`}>
-											{item.stock_quantity} left
-										</span>
-									) : null}
+									) : (() => {
+										const itemStock = fullItem.effective_available_stock !== undefined ? fullItem.effective_available_stock : fullItem.stock_quantity;
+										if (itemStock !== undefined && itemStock !== null && itemStock !== -1) {
+											return (
+												<span className={`badge badge-xs font-semibold ${
+													itemStock === 0
+														? "badge-error"
+														: itemStock <= 5
+														? "badge-warning"
+														: "badge-info"
+												}`}>
+													{itemStock} left
+												</span>
+											);
+										}
+										return null;
+									})()}
 								</div>
 							</div>
 						);

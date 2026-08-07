@@ -175,10 +175,12 @@ export const restoreStockForOrder = async (order) => {
  */
 export const isAddonAvailable = (extra) => {
 	if (!extra) return false;
-	const extraItem = extra.extra_item;
-	if (extraItem) {
-		if (extraItem.is_active === false) return false;
-		if (extraItem.stock_quantity === 0) return false;
+	
+	if (extra.effective_available_stock !== undefined) {
+		if (extra.effective_available_stock === 0) return false;
+	} else if (extra.extra_item) {
+		if (extra.extra_item.is_active === false) return false;
+		if (extra.extra_item.stock_quantity === 0) return false;
 	}
 	return true;
 };
@@ -187,7 +189,7 @@ export const isAddonAvailable = (extra) => {
  * Computes availability of a base menu item.
  * Rule:
  * 1. If base item is_active is false, return false (out of stock / inactive).
- * 2. If base item stock_quantity === 0, return false.
+ * 2. If base item stock_quantity === 0 (or effective_available_stock === 0), return false.
  * 3. If base item requires add-on selection (`requires_addon === true`)
  *    AND all linked extras are out of stock (`stock_quantity === 0`), return false (SOLD OUT).
  *
@@ -197,7 +199,12 @@ export const isAddonAvailable = (extra) => {
 export const isBaseItemAvailable = (item) => {
 	if (!item) return false;
 	if (!item.is_active) return false;
-	if (item.stock_quantity === 0) return false;
+	
+	if (item.effective_available_stock !== undefined) {
+		if (item.effective_available_stock === 0) return false;
+	} else if (item.stock_quantity === 0) {
+		return false;
+	}
 
 	const hasExtras = Array.isArray(item.available_extras) && item.available_extras.length > 0;
 

@@ -35,13 +35,16 @@ const MenuTable = ({
 							</td>
 							<td>฿{menu.price}</td>
 							<td>
-								{menu.stock_quantity === -1 ? (
-									<span className="badge badge-ghost badge-sm font-semibold">∞ Unlimited</span>
-								) : menu.stock_quantity === 0 ? (
-									<span className="badge badge-error badge-sm font-bold">0 Out of Stock</span>
-								) : (
-									<span className="badge badge-info badge-sm font-semibold">{menu.stock_quantity} left</span>
-								)}
+								{(() => {
+									const itemStock = menu.effective_available_stock !== undefined ? menu.effective_available_stock : menu.stock_quantity;
+									return itemStock === -1 ? (
+										<span className="badge badge-ghost badge-sm font-semibold">∞ Unlimited</span>
+									) : itemStock === 0 ? (
+										<span className="badge badge-error badge-sm font-bold">0 Out of Stock</span>
+									) : (
+										<span className="badge badge-info badge-sm font-semibold">{itemStock} left</span>
+									);
+								})()}
 							</td>
 							<td>
 								<div className="flex items-center">

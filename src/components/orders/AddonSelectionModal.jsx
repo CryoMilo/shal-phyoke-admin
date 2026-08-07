@@ -1,18 +1,43 @@
 import React, { useState, useEffect } from "react";
 import { X, Check, Utensils, AlertTriangle } from "lucide-react";
-import { isAddonAvailable } from "../../utils/stockUtils";
+import useOrderStore from "../../stores/orderStore";
 
 const AddonSelectionModal = ({ isOpen, onClose, onConfirm, item }) => {
 	const [selectedExtra, setSelectedExtra] = useState(null);
 
+	// eslint-disable-next-line react-hooks/exhaustive-deps
 	const availableExtras = item?.available_extras || [];
 	// if requires_addon is true, selecting an add-on is mandatory (no "Plain" option allowed)
 	const allowNoAddon = !item?.requires_addon;
 
+	// Compute max allowed quantity
+	const alreadyInCartQty = useOrderStore
+		.getState()
+		.cart.filter((c) => c.id === item?.id)
+		.reduce((sum, c) => sum + c.quantity, 0);
+	const stock = item?.effective_available_stock;
+	const maxAllowedNewQty =
+		stock !== undefined && stock !== -1 && stock !== null
+			? Math.max(0, stock - alreadyInCartQty)
+			: 999;
+
+	const [quantity, setQuantity] = useState(1);
+
+	// Local helper to check if addon is available based on live stock
+	const checkAddonAvailability = (extra) => {
+		if (!extra) return false;
+		if (extra.extra_item && extra.extra_item.is_active === false) return false;
+		const extraStock = extra.effective_available_stock !== undefined
+			? extra.effective_available_stock
+			: (extra.extra_item?.stock_quantity ?? -1);
+		return extraStock === -1 || extraStock > 0;
+	};
+
 	useEffect(() => {
 		if (isOpen) {
-			// Pre-select first available in-stock extra if available
-			const firstInStock = availableExtras.find((e) => isAddonAvailable(e));
+			setQuantity(1);
+			// ... existing select logic
+			const firstInStock = availableExtras.find((e) => checkAddonAvailability(e));
 			if (firstInStock) {
 				setSelectedExtra(firstInStock);
 			} else if (allowNoAddon) {
@@ -21,12 +46,13 @@ const AddonSelectionModal = ({ isOpen, onClose, onConfirm, item }) => {
 				setSelectedExtra(null);
 			}
 		}
-	}, [isOpen, item]);
+	}, [isOpen, item, availableExtras, allowNoAddon]);
 
 	if (!isOpen || !item) return null;
 
 	const handleAdd = () => {
 		if (!selectedExtra && !allowNoAddon) return;
+		if (maxAllowedNewQty === 0) return;
 
 		let note = "";
 		let extraPrice = 0;
@@ -41,12 +67,13 @@ const AddonSelectionModal = ({ isOpen, onClose, onConfirm, item }) => {
 			extraPrice = Number(selectedExtra.additional_price || 0);
 		}
 
-		onConfirm(note, extraPrice);
+		onConfirm(note, extraPrice, quantity);
 	};
 
 	const canSubmit =
-		selectedExtra === "none" ||
-		(selectedExtra && isAddonAvailable(selectedExtra));
+		(selectedExtra === "none" ||
+			(selectedExtra && checkAddonAvailability(selectedExtra))) &&
+		maxAllowedNewQty > 0;
 
 	return (
 		<>
@@ -84,6 +111,14 @@ const AddonSelectionModal = ({ isOpen, onClose, onConfirm, item }) => {
 
 					{/* Options Body */}
 					<div className="p-5 space-y-4 max-h-[60vh] overflow-y-auto">
+						{maxAllowedNewQty === 0 && (
+							<div className="alert alert-warning text-xs p-3 rounded-xl mb-4">
+								<AlertTriangle className="w-4 h-4 shrink-0" />
+								<span>
+									⚠️ All available stock for this item is already in your cart.
+								</span>
+							</div>
+						)}
 						<p className="text-xs font-semibold text-base-content/60 uppercase tracking-wider">
 							{allowNoAddon
 								? "Choose an add-on or plain dish:"
@@ -119,7 +154,12 @@ const AddonSelectionModal = ({ isOpen, onClose, onConfirm, item }) => {
 
 							{/* Linked Add-on Options */}
 							{availableExtras.map((extra) => {
-								const inStock = isAddonAvailable(extra);
+								// Respect effective_available_stock if available, otherwise fallback
+								const extraStock =
+									extra.effective_available_stock !== undefined
+										? extra.effective_available_stock
+										: extra.extra_item?.stock_quantity ?? -1;
+								const inStock = extraStock === -1 || extraStock > 0;
 								const isSelected = selectedExtra?.id === extra.id;
 								const toppingName =
 									extra.name_burmese ||
@@ -127,7 +167,6 @@ const AddonSelectionModal = ({ isOpen, onClose, onConfirm, item }) => {
 									extra.extra_item?.name_burmese ||
 									extra.extra_item?.name_english;
 								const imgUrl = extra.extra_item?.image_url;
-								const stockQty = extra.extra_item?.stock_quantity;
 
 								return (
 									<div
@@ -165,9 +204,9 @@ const AddonSelectionModal = ({ isOpen, onClose, onConfirm, item }) => {
 													<span className="badge badge-error badge-xs font-bold text-[9px]">
 														Out of Stock
 													</span>
-												) : stockQty !== undefined && stockQty !== -1 ? (
+												) : extraStock !== -1 ? (
 													<span className="text-[10px] text-base-content/60">
-														({stockQty} left)
+														({extraStock} left)
 													</span>
 												) : null}
 											</div>
@@ -184,7 +223,13 @@ const AddonSelectionModal = ({ isOpen, onClose, onConfirm, item }) => {
 						</div>
 
 						{!allowNoAddon &&
-							availableExtras.every((e) => !isAddonAvailable(e)) && (
+							availableExtras.every((e) => {
+								const stock =
+									e.effective_available_stock !== undefined
+										? e.effective_available_stock
+										: e.extra_item?.stock_quantity ?? -1;
+								return stock !== -1 && stock <= 0;
+							}) && (
 								<div className="alert alert-error text-xs p-3 rounded-xl">
 									<AlertTriangle className="w-4 h-4 shrink-0" />
 									<span>All add-on choices are currently out of stock.</span>
@@ -193,20 +238,43 @@ const AddonSelectionModal = ({ isOpen, onClose, onConfirm, item }) => {
 					</div>
 
 					{/* Footer Actions */}
-					<div className="p-4 bg-base-200/50 border-t border-base-300 flex justify-end gap-2">
-						<button
-							type="button"
-							className="btn btn-ghost btn-sm"
-							onClick={onClose}>
-							Cancel
-						</button>
-						<button
-							type="button"
-							className="btn btn-primary btn-sm px-6"
-							disabled={!canSubmit}
-							onClick={handleAdd}>
-							Add to Order
-						</button>
+					<div className="p-4 bg-base-200/50 border-t border-base-300 flex justify-between items-center gap-2">
+						<div className="flex items-center gap-3">
+							<button
+								type="button"
+								className="btn btn-circle btn-sm btn-outline font-bold"
+								onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+								disabled={quantity <= 1}>
+								-
+							</button>
+							<span className="font-bold min-w-[30px] text-center">
+								{quantity}
+							</span>
+							<button
+								type="button"
+								className="btn btn-circle btn-sm btn-outline font-bold"
+								onClick={() =>
+									setQuantity((q) => Math.min(maxAllowedNewQty, q + 1))
+								}
+								disabled={quantity >= maxAllowedNewQty}>
+								+
+							</button>
+						</div>
+						<div className="flex items-center gap-2">
+							<button
+								type="button"
+								className="btn btn-ghost btn-sm"
+								onClick={onClose}>
+								Cancel
+							</button>
+							<button
+								type="button"
+								className="btn btn-primary btn-sm px-6"
+								disabled={!canSubmit}
+								onClick={handleAdd}>
+								Add to Order
+							</button>
+						</div>
 					</div>
 				</div>
 			</div>

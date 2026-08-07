@@ -12,7 +12,6 @@ import useStaffAccessStore from "../stores/staffAccessStore";
 import { sendToKitchenPrinter } from "../services/printerService";
 import { playDeliveryNotificationSound } from "../utils/soundUtils";
 import { markOrderAsPlayed } from "../components/common/DeliveryNotificationListener";
-import { deductStockForOrder } from "../utils/stockUtils";
 
 export const Orders = () => {
 	const fetchActiveNotes = useQuickNoteStore((state) => state.fetchActiveNotes);
@@ -62,7 +61,10 @@ export const Orders = () => {
 				delivery_address:
 					orderType === "delivery" ? customerInfo.address : null,
 				delivery_fee: orderType === "delivery" ? deliveryFee : 0,
-				table_number: (orderType === "dine_in" || orderType === "takeaway") ? tableNumber : null,
+				table_number:
+					orderType === "dine_in" || orderType === "takeaway"
+						? tableNumber
+						: null,
 				order_items: cart.map((item) => {
 					// Strip UI-only flags and combo store data
 					// before persisting to the database
@@ -84,24 +86,64 @@ export const Orders = () => {
 				item_extra_prices: itemExtraPrices,
 			};
 
-			const { data, error } = editingOrderId
-				? await supabase
+			// Validate stock limits before proceeding
+			for (const item of cart) {
+				const stock = item.effective_available_stock;
+				if (stock !== undefined && stock !== -1 && stock !== null) {
+					const totalQty = cart
+						.filter((c) => c.id === item.id)
+						.reduce((sum, c) => sum + c.quantity, 0);
+					if (totalQty > stock) {
+						throw new Error(
+							`Cannot order ${totalQty} of ${
+								item.name_english || item.name_burmese
+							}. Only ${stock} available.`
+						);
+					}
+				}
+			}
+
+			let returnedOrderId;
+			let dbError;
+
+			if (editingOrderId) {
+				const { data, error } = await supabase
+					.from("orders")
+					.update(orderData)
+					.eq("id", editingOrderId)
+					.select()
+					.single();
+				returnedOrderId = data?.id;
+				dbError = error;
+			} else {
+				// Use the RPC to place new order and deduct stock
+				const { data, error } = await supabase.rpc(
+					"place_order_with_stock_deduction",
+					{
+						p_customer_name: customerInfo?.name || null,
+						p_total_amount: totalAmount,
+						p_order_items: cart.map((item) => ({
+							menu_item_id: item.id,
+							quantity: item.quantity,
+						})),
+					}
+				);
+				returnedOrderId = data;
+				dbError = error;
+
+				// Since RPC might only set basic fields, update it with the rest of the POS data
+				if (!dbError && returnedOrderId) {
+					await supabase
 						.from("orders")
 						.update(orderData)
-						.eq("id", editingOrderId)
-						.select()
-						.single()
-				: await supabase
-						.from("orders")
-						.insert([orderData])
-						.select()
-						.single();
+						.eq("id", returnedOrderId);
+				}
+			}
 
-			if (error) throw error;
+			if (dbError) throw dbError;
 
 			// Deduct stock for ordered items and add-ons if creating a new order
 			if (!editingOrderId) {
-				await deductStockForOrder(cart, itemNotes);
 				// Refresh menu items in menuStore so stock count updates immediately across POS/Menu
 				useMenuStore.getState().fetchAllMenuItems();
 			}
@@ -114,12 +156,12 @@ export const Orders = () => {
 			// Play sound for delivery orders
 			if (orderType === "delivery") {
 				playDeliveryNotificationSound();
-				markOrderAsPlayed(data.id);
+				markOrderAsPlayed(returnedOrderId);
 			}
 
 			// Trigger auto-print if enabled
 			if (autoPrintKitchenTicket) {
-				sendToKitchenPrinter(data).catch((err) => {
+				sendToKitchenPrinter({ id: returnedOrderId }).catch((err) => {
 					console.error("Auto-print failed:", err);
 				});
 			}

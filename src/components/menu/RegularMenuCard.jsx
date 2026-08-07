@@ -82,13 +82,16 @@ const RegularMenuCard = ({ menu, onEdit, onDelete, onToggleStatus }) => {
 				{/* Price & Stock */}
 				<div className="flex items-center justify-between mt-2">
 					<div className="text-xl font-bold text-primary">฿{menu.price}</div>
-					{menu.stock_quantity === -1 ? (
-						<span className="badge badge-ghost badge-sm text-xs font-medium">Stock: ∞</span>
-					) : menu.stock_quantity === 0 ? (
-						<span className="badge badge-error badge-sm text-xs font-bold">Stock: Out</span>
-					) : (
-						<span className="badge badge-info badge-sm text-xs font-semibold">Stock: {menu.stock_quantity}</span>
-					)}
+					{(() => {
+						const itemStock = menu.effective_available_stock !== undefined ? menu.effective_available_stock : menu.stock_quantity;
+						return itemStock === -1 ? (
+							<span className="badge badge-ghost badge-sm text-xs font-medium">Stock: ∞</span>
+						) : itemStock === 0 ? (
+							<span className="badge badge-error badge-sm text-xs font-bold">Stock: Out</span>
+						) : (
+							<span className="badge badge-info badge-sm text-xs font-semibold">Stock: {itemStock}</span>
+						);
+					})()}
 				</div>
 
 				{/* Actions */}
