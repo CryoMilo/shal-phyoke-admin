@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { ALL_CATEGORIES, CATEGORY_DISPLAY_NAMES } from "../../constants";
 import ImageUploadField from "./ImageUploadField";
 import useQuickNoteStore from "../../stores/quickNoteStore";
+import useMenuStore from "../../stores/menuStore";
 
 const MenuForm = ({
 	editingMenu,
@@ -12,8 +13,10 @@ const MenuForm = ({
 	onCancel,
 	loading = false,
 	isRegularOnly = false,
+	activeTab = "basic",
 }) => {
 	const { activeNotes, fetchActiveNotes } = useQuickNoteStore();
+	const { allMenuItems } = useMenuStore();
 
 	const {
 		register,
@@ -38,6 +41,8 @@ const MenuForm = ({
 					requires_addon: editingMenu?.requires_addon ?? false,
 					is_vegan: editingMenu?.is_vegan ?? false,
 					quick_note_ids: editingMenu?.quick_note_ids ?? [],
+					stock_link_id: editingMenu?.stock_link_id ?? null,
+					stock_consumption_ratio: editingMenu?.stock_consumption_ratio ?? 1,
 					sensitive_ingredients: Array.isArray(
 						editingMenu.sensitive_ingredients
 					)
@@ -61,6 +66,8 @@ const MenuForm = ({
 					is_vegan: false,
 					requires_addon: false,
 					quick_note_ids: [],
+					stock_link_id: null,
+					stock_consumption_ratio: 1,
 			  },
 	});
 
@@ -69,6 +76,9 @@ const MenuForm = ({
 	}, [fetchActiveNotes]);
 
 	const watchIsRegular = watch("is_regular");
+	const watchStockLinkId = watch("stock_link_id");
+	const isLinkedStock = watchStockLinkId !== null && watchStockLinkId !== "" && watchStockLinkId !== "select_master";
+	const selectedMasterForBadge = isLinkedStock ? allMenuItems.find(m => String(m.id) === String(watchStockLinkId)) : null;
 
 	useEffect(() => {
 		if (editingMenu) {
@@ -83,6 +93,8 @@ const MenuForm = ({
 				requires_addon: editingMenu?.requires_addon ?? false,
 				is_vegan: editingMenu?.is_vegan ?? false,
 				quick_note_ids: editingMenu?.quick_note_ids ?? [],
+				stock_link_id: editingMenu?.stock_link_id ?? null,
+				stock_consumption_ratio: editingMenu?.stock_consumption_ratio ?? 1,
 				sensitive_ingredients: Array.isArray(editingMenu.sensitive_ingredients)
 					? editingMenu.sensitive_ingredients.join(", ")
 					: editingMenu.sensitive_ingredients || "",
@@ -105,6 +117,8 @@ const MenuForm = ({
 				is_vegan: false,
 				requires_addon: false,
 				quick_note_ids: [],
+				stock_link_id: null,
+				stock_consumption_ratio: 1,
 			});
 		}
 	}, [editingMenu, reset, isRegularOnly]);
@@ -119,12 +133,18 @@ const MenuForm = ({
 				: Array.isArray(data.aliases)
 				? data.aliases
 				: [];
+		const finalStockLinkId = data.stock_link_id === "select_master" || data.stock_link_id === "" ? null : data.stock_link_id;
+		const finalConsumptionRatio = finalStockLinkId === null ? 1 : (parseInt(data.stock_consumption_ratio, 10) || 1);
+
 		const processedData = {
 			...data,
-			stock_quantity:
-				typeof data.stock_quantity === "number"
+			stock_quantity: finalStockLinkId !== null 
+				? null 
+				: (typeof data.stock_quantity === "number"
 					? data.stock_quantity
-					: parseInt(data.stock_quantity, 10) || -1,
+					: parseInt(data.stock_quantity, 10) || -1),
+			stock_link_id: finalStockLinkId,
+			stock_consumption_ratio: finalConsumptionRatio,
 			aliases: rawAliases,
 			sensitive_ingredients: data.sensitive_ingredients
 				? data.sensitive_ingredients.split(",").map((item) => item.trim())
@@ -144,6 +164,8 @@ const MenuForm = ({
 		<form
 			onSubmit={handleSubmit(handleFormSubmit)}
 			className="space-y-4 md:space-y-6">
+			
+			<div className={activeTab === "basic" ? "block space-y-4 md:space-y-6" : "hidden"}>
 			{/* Top Section: Image Upload (Left) & Stock Control (Right) */}
 			<div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 bg-base-200/50 p-4 rounded-xl border border-base-300">
 				{/* Left Column: Image Upload */}
@@ -202,6 +224,16 @@ const MenuForm = ({
 										</span>
 									</label>
 
+									{isLinkedStock ? (
+										<div className="bg-info/10 text-info p-4 rounded-xl border border-info/20 flex-1 flex flex-col justify-center gap-3">
+											<div className="flex items-start gap-3">
+												<span className="text-xl">ℹ️</span>
+												<p className="text-sm">
+													Direct stock input is disabled for this item because its stock is linked to <strong>{selectedMasterForBadge ? selectedMasterForBadge.name_english || selectedMasterForBadge.name_burmese : "Master Item"}</strong>. Physical inventory is managed on the master item.
+												</p>
+											</div>
+										</div>
+									) : (
 									<div className="bg-base-100 p-4 rounded-xl border border-base-300 flex-1 flex flex-col justify-center gap-3">
 										<div className="flex items-center justify-between gap-3">
 											<div className="flex items-center gap-2 flex-1">
@@ -257,16 +289,19 @@ const MenuForm = ({
 											/>
 										</div>
 									</div>
+									)}
 
-									<label className="label py-1">
-										<span className="label-text-alt text-gray-500">
-											{isUnlimited
-												? "Stock is unlimited."
-												: stockVal === 0
-												? "Item will automatically show as Out of Stock."
-												: `Stock will drop by 1 with each order.`}
-										</span>
-									</label>
+									{!isLinkedStock && (
+										<label className="label py-1">
+											<span className="label-text-alt text-gray-500">
+												{isUnlimited
+													? "Stock is unlimited."
+													: stockVal === 0
+													? "Item will automatically show as Out of Stock."
+													: `Stock will drop by 1 with each order.`}
+											</span>
+										</label>
+									)}
 								</div>
 							);
 						}}
@@ -585,6 +620,146 @@ const MenuForm = ({
 						</label>
 					</div>
 				)}
+			</div>
+			</div>
+
+			{/* Stock Link Tab */}
+			<div className={activeTab === "stock" ? "block space-y-4 md:space-y-6" : "hidden"}>
+				<div className="bg-base-200/50 p-6 rounded-xl border border-base-300">
+					<h3 className="font-bold text-lg mb-4">Stock Linking Configuration</h3>
+					
+					{/* Strategy Selector */}
+					<Controller
+						name="stock_link_id"
+						control={control}
+						render={({ field }) => {
+							const isLinked = field.value !== null && field.value !== "";
+							return (
+								<div className="space-y-6">
+									<div className="form-control">
+										<label className="label cursor-pointer justify-start gap-4 p-4 border rounded-lg bg-base-100 hover:border-primary transition-colors">
+											<input
+												type="radio"
+												name="stock_strategy"
+												className="radio radio-primary"
+												checked={!isLinked}
+												onChange={() => {
+													field.onChange(null);
+													const currentStock = watch("stock_quantity");
+													if (currentStock === null) {
+														setValue("stock_quantity", -1);
+													}
+												}}
+											/>
+											<div>
+												<span className="font-bold block">Standalone Stock</span>
+												<span className="text-sm text-base-content/70">Use this item's own direct stock count</span>
+											</div>
+										</label>
+									</div>
+									<div className="form-control">
+										<label className="label cursor-pointer justify-start gap-4 p-4 border rounded-lg bg-base-100 hover:border-primary transition-colors">
+											<input
+												type="radio"
+												name="stock_strategy"
+												className="radio radio-primary"
+												checked={isLinked}
+												onChange={() => {
+													if (!field.value) field.onChange("select_master");
+													setValue("stock_quantity", null);
+												}}
+											/>
+											<div>
+												<span className="font-bold block">Linked Stock</span>
+												<span className="text-sm text-base-content/70">Derive availability from another master item's stock</span>
+											</div>
+										</label>
+									</div>
+
+									{isLinked && (
+										<div className="mt-4 p-4 bg-base-100 rounded-xl border border-primary/20 space-y-4">
+											<div className="form-control">
+												<label className="label">
+													<span className="label-text font-bold">Select Master Item</span>
+												</label>
+												<select
+													className="select select-bordered w-full"
+													value={field.value === "select_master" ? "" : field.value || ""}
+													onChange={(e) => field.onChange(e.target.value)}
+												>
+													<option value="" disabled>-- Select a master item --</option>
+													{allMenuItems.filter(m => String(m.id) !== String(editingMenu?.id)).map(m => (
+														<option key={m.id} value={m.id}>
+															{m.name_burmese} {m.name_english && `(${m.name_english})`} - Stock: {m.stock_quantity === -1 ? '∞' : m.stock_quantity}
+														</option>
+													))}
+												</select>
+											</div>
+
+											<Controller
+												name="stock_consumption_ratio"
+												control={control}
+												render={({ field: ratioField }) => {
+													const ratio = parseInt(ratioField.value, 10) || 1;
+													const selectedMaster = allMenuItems.find(m => String(m.id) === String(field.value));
+													
+													let previewText = "Please select a master item to see the preview.";
+													let previewClass = "bg-base-200/50";
+													
+													if (selectedMaster) {
+														if (selectedMaster.stock_quantity === -1) {
+															previewText = `👉 Preview: Master item has unlimited stock. This dish will also be unlimited.`;
+															previewClass = "bg-info/10 text-info";
+														} else if (selectedMaster.stock_quantity === 0) {
+															previewText = `🚫 Preview: Master item is out of stock. This dish will show as SOLD OUT on the POS grid.`;
+															previewClass = "bg-error/10 text-error";
+														} else {
+															const yieldAmount = Math.floor(selectedMaster.stock_quantity / ratio);
+															previewText = `👉 Preview: With ${selectedMaster.stock_quantity} units in stock, this dish will display as ${yieldAmount} servings available on the POS grid.`;
+															previewClass = "bg-success/10 text-success-content";
+														}
+													}
+
+													return (
+														<>
+															<div className="form-control">
+																<label className="label">
+																	<span className="label-text font-bold">Consumption Ratio per Portion</span>
+																	<span className="label-text-alt text-base-content/60">How many units of the master item does 1 order consume?</span>
+																</label>
+																<div className="flex items-center gap-3">
+																	<button
+																		type="button"
+																		className="btn btn-circle btn-sm btn-outline"
+																		onClick={() => ratioField.onChange(Math.max(1, ratio - 1))}
+																	>
+																		-
+																	</button>
+																	<span className="font-bold text-lg w-8 text-center">{ratio}</span>
+																	<button
+																		type="button"
+																		className="btn btn-circle btn-sm btn-outline"
+																		onClick={() => ratioField.onChange(ratio + 1)}
+																	>
+																		+
+																	</button>
+																</div>
+															</div>
+															
+															<div className={`mt-4 p-4 rounded-lg border font-medium text-sm ${previewClass}`}>
+																{previewText}
+															</div>
+														</>
+													);
+												}}
+											/>
+										</div>
+									)}
+								</div>
+							);
+						}}
+					/>
+				</div>
 			</div>
 
 			{/* Form Errors Summary */}

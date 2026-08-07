@@ -47,10 +47,10 @@ const MenuFormModal = ({
 						)}
 
 						{/* Tabs - Always show them now */}
-						<div className="flex gap-2 mt-4">
+						<div className="flex gap-2 mt-4 overflow-x-auto">
 							<button
 								onClick={() => setActiveTab("basic")}
-								className={`px-4 py-2 font-medium text-sm rounded-t-lg transition-colors ${
+								className={`px-4 py-2 font-medium text-sm rounded-t-lg transition-colors whitespace-nowrap ${
 									activeTab === "basic"
 										? "bg-primary text-white"
 										: "hover:bg-base-200"
@@ -58,8 +58,17 @@ const MenuFormModal = ({
 								Basic Information
 							</button>
 							<button
+								onClick={() => setActiveTab("stock")}
+								className={`px-4 py-2 font-medium text-sm rounded-t-lg transition-colors whitespace-nowrap ${
+									activeTab === "stock"
+										? "bg-primary text-white"
+										: "hover:bg-base-200"
+								}`}>
+								Stock Link
+							</button>
+							<button
 								onClick={() => setActiveTab("extras")}
-								className={`px-4 py-2 font-medium text-sm rounded-t-lg transition-colors ${
+								className={`px-4 py-2 font-medium text-sm rounded-t-lg transition-colors whitespace-nowrap ${
 									activeTab === "extras"
 										? "bg-primary text-white"
 										: "hover:bg-base-200"
@@ -71,16 +80,22 @@ const MenuFormModal = ({
 
 					{/* Form Content */}
 					<div className="p-6 pt-4">
-						<div className={activeTab === "basic" ? "block" : "hidden"}>
+						<div
+							className={
+								activeTab === "basic" || activeTab === "stock"
+									? "block"
+									: "hidden"
+							}>
 							<MenuForm
 								editingMenu={editingMenu}
 								onSubmit={handleSubmit}
 								onCancel={() => setShowModal(false)}
 								loading={loading}
 								isRegularOnly={isRegularOnly}
+								activeTab={activeTab}
 							/>
 						</div>
-						
+
 						<div className={activeTab === "extras" ? "block" : "hidden"}>
 							<div className="py-4">
 								{editingMenu ? (
@@ -99,7 +114,9 @@ const MenuFormModal = ({
 								) : (
 									<div className="text-center py-12 bg-base-200 rounded-xl border-2 border-dashed border-base-300">
 										<div className="max-w-xs mx-auto">
-											<h4 className="font-bold text-lg mb-2">Item Not Created Yet</h4>
+											<h4 className="font-bold text-lg mb-2">
+												Item Not Created Yet
+											</h4>
 											<p className="text-sm text-gray-500 mb-6">
 												You need to save this menu item first before you can
 												manage its extras and toppings.
