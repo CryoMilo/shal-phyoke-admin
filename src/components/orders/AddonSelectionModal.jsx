@@ -3,7 +3,7 @@ import { X, Check, Utensils, AlertTriangle } from "lucide-react";
 import useOrderStore from "../../stores/orderStore";
 
 const AddonSelectionModal = ({ isOpen, onClose, onConfirm, item }) => {
-	const [selectedExtra, setSelectedExtra] = useState(null);
+	const [selectedExtras, setSelectedExtras] = useState([]);
 
 	// eslint-disable-next-line react-hooks/exhaustive-deps
 	const availableExtras = item?.available_extras || [];
@@ -36,14 +36,11 @@ const AddonSelectionModal = ({ isOpen, onClose, onConfirm, item }) => {
 	useEffect(() => {
 		if (isOpen) {
 			setQuantity(1);
-			// ... existing select logic
 			const firstInStock = availableExtras.find((e) => checkAddonAvailability(e));
-			if (firstInStock) {
-				setSelectedExtra(firstInStock);
-			} else if (allowNoAddon) {
-				setSelectedExtra("none");
+			if (firstInStock && !allowNoAddon) {
+				setSelectedExtras([firstInStock]);
 			} else {
-				setSelectedExtra(null);
+				setSelectedExtras([]);
 			}
 		}
 	}, [isOpen, item, availableExtras, allowNoAddon]);
@@ -51,29 +48,46 @@ const AddonSelectionModal = ({ isOpen, onClose, onConfirm, item }) => {
 	if (!isOpen || !item) return null;
 
 	const handleAdd = () => {
-		if (!selectedExtra && !allowNoAddon) return;
+		if (!allowNoAddon && selectedExtras.length === 0) return;
 		if (maxAllowedNewQty === 0) return;
 
 		let note = "";
 		let extraPrice = 0;
 
-		if (selectedExtra && selectedExtra !== "none") {
-			const toppingName =
-				selectedExtra.name_burmese ||
-				selectedExtra.name_english ||
-				selectedExtra.extra_item?.name_burmese ||
-				selectedExtra.extra_item?.name_english;
-			note = toppingName;
-			extraPrice = Number(selectedExtra.additional_price || 0);
+		if (selectedExtras.length > 0) {
+            const names = [];
+            selectedExtras.forEach(extra => {
+                const toppingName =
+                    extra.name_burmese ||
+                    extra.name_english ||
+                    extra.extra_item?.name_burmese ||
+                    extra.extra_item?.name_english;
+                names.push(toppingName);
+                extraPrice += Number(extra.additional_price || 0);
+            });
+            note = names.join(", ");
 		}
 
 		onConfirm(note, extraPrice, quantity);
 	};
 
 	const canSubmit =
-		(selectedExtra === "none" ||
-			(selectedExtra && checkAddonAvailability(selectedExtra))) &&
-		maxAllowedNewQty > 0;
+		maxAllowedNewQty > 0 && (allowNoAddon || selectedExtras.length > 0);
+
+	const toggleExtra = (extra) => {
+		if (extra === "none") {
+			setSelectedExtras([]);
+		} else {
+			setSelectedExtras((prev) => {
+				const isSelected = prev.some(e => e.id === extra.id);
+				if (isSelected) {
+					return prev.filter(e => e.id !== extra.id);
+				} else {
+					return [...prev, extra];
+				}
+			});
+		}
+	};
 
 	return (
 		<>
@@ -129,9 +143,9 @@ const AddonSelectionModal = ({ isOpen, onClose, onConfirm, item }) => {
 							{/* Optional "No Add-on" choice */}
 							{allowNoAddon && (
 								<div
-									onClick={() => setSelectedExtra("none")}
+									onClick={() => toggleExtra("none")}
 									className={`relative flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
-										selectedExtra === "none"
+										selectedExtras.length === 0
 											? "border-primary bg-primary/5 ring-1 ring-primary/20 shadow-xs"
 											: "border-base-300 bg-base-100 hover:border-base-400"
 									}`}>
@@ -144,7 +158,7 @@ const AddonSelectionModal = ({ isOpen, onClose, onConfirm, item }) => {
 											Base Price Only
 										</p>
 									</div>
-									{selectedExtra === "none" && (
+									{selectedExtras.length === 0 && (
 										<div className="w-5 h-5 rounded-full bg-primary text-white flex items-center justify-center shrink-0">
 											<Check className="w-3.5 h-3.5" />
 										</div>
@@ -160,7 +174,7 @@ const AddonSelectionModal = ({ isOpen, onClose, onConfirm, item }) => {
 										? extra.effective_available_stock
 										: extra.extra_item?.stock_quantity ?? -1;
 								const inStock = extraStock === -1 || extraStock > 0;
-								const isSelected = selectedExtra?.id === extra.id;
+								const isSelected = selectedExtras.some(e => e.id === extra.id);
 								const toppingName =
 									extra.name_burmese ||
 									extra.name_english ||
@@ -171,7 +185,7 @@ const AddonSelectionModal = ({ isOpen, onClose, onConfirm, item }) => {
 								return (
 									<div
 										key={extra.id}
-										onClick={() => inStock && setSelectedExtra(extra)}
+										onClick={() => inStock && toggleExtra(extra)}
 										className={`relative flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${
 											!inStock
 												? "border-base-200 bg-base-200/40 opacity-50 cursor-not-allowed"

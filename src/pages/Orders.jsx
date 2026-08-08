@@ -116,16 +116,45 @@ export const Orders = () => {
 				returnedOrderId = data?.id;
 				dbError = error;
 			} else {
+				// Aggregate cart items and their selected extras (add-ons) to pass all items to the stock deduction RPC
+				const rawItemsToDeduct = [];
+				cart.forEach((item) => {
+					const qty = item.quantity || 1;
+					rawItemsToDeduct.push({ id: item.id, qty });
+
+					const note = itemNotes[item.cart_id];
+					if (note && item.available_extras && item.available_extras.length > 0) {
+						const noteParts = note.split(",").map((s) => s.trim());
+						item.available_extras.forEach((extra) => {
+							const toppingName = extra.name_burmese || extra.name_english;
+							if (toppingName && noteParts.includes(toppingName)) {
+								const extraItemId = extra.extra_item_id || extra.extra_item?.id;
+								if (extraItemId) {
+									rawItemsToDeduct.push({ id: extraItemId, qty });
+								}
+							}
+						});
+					}
+				});
+
+				// Group by menu_item_id to sum quantities for duplicates
+				const groupedDeductions = {};
+				rawItemsToDeduct.forEach(({ id, qty }) => {
+					groupedDeductions[id] = (groupedDeductions[id] || 0) + qty;
+				});
+
+				const orderItemsPayload = Object.entries(groupedDeductions).map(([id, qty]) => ({
+					menu_item_id: id,
+					quantity: qty,
+				}));
+
 				// Use the RPC to place new order and deduct stock
 				const { data, error } = await supabase.rpc(
 					"place_order_with_stock_deduction",
 					{
 						p_customer_name: customerInfo?.name || null,
 						p_total_amount: totalAmount,
-						p_order_items: cart.map((item) => ({
-							menu_item_id: item.id,
-							quantity: item.quantity,
-						})),
+						p_order_items: orderItemsPayload,
 					}
 				);
 				returnedOrderId = data;
