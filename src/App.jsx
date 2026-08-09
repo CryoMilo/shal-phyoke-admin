@@ -3,17 +3,18 @@ import { Outlet, useLocation } from "@tanstack/react-router";
 import Sidebar from "./components/Sidebar";
 import { useAuth } from "./contexts/AuthContext";
 import { Loading } from "./components/common/Loading";
+import useOrderStore from "./stores/orderStore";
 
 function App() {
 	const { user, loading } = useAuth();
 	const location = useLocation();
 	const isLoginPage = location.pathname === "/login";
+	const isNightMode = useOrderStore((state) => state.isNightMode);
 
 	useEffect(() => {
-		const isNight = localStorage.getItem("pos_night_mode") === "true";
-		const theme = isNight ? "dim" : "bumblebee";
+		const theme = isNightMode ? "dim" : "bumblebee";
 		document.documentElement.setAttribute("data-theme", theme);
-	}, []);
+	}, [isNightMode]);
 
 	if (loading) {
 		return (

@@ -17,6 +17,7 @@ const useOrderStore = create(
 			notes: "",
 			itemNotes: {}, // { cartId: "note" }
 			itemExtraPrices: {}, // { cartId: extraPrice }
+			isNightMode: false,
 
 			// Setters
 			setOrderType: (type) => set({ orderType: type, deliveryFee: 0 }),
@@ -29,6 +30,7 @@ const useOrderStore = create(
 			setPaymentMethod: (method) => set({ paymentMethod: method }),
 			setDiscountAmount: (amount) => set({ discountAmount: amount }),
 			setNotes: (notes) => set({ notes }),
+			setIsNightMode: (isNight) => set({ isNightMode: isNight }),
 			loadOrder: (order) => {
 				set({
 					editingOrderId: order.id,

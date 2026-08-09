@@ -43,6 +43,8 @@ const NewOrderTab = ({ processOrder, isProcessing }) => {
 		itemNotes,
 		itemExtraPrices,
 		drafts,
+		isNightMode,
+		setIsNightMode,
 		setOrderType,
 		setCustomerInfo,
 		setTableNumber,
@@ -71,15 +73,6 @@ const NewOrderTab = ({ processOrder, isProcessing }) => {
 
 	const [todaysSpecialRaw, setTodaysSpecialRaw] = useState([]);
 	const [activeCategory, setActiveCategory] = useState("Today's Special");
-	const [isNightMode, setIsNightMode] = useState(() => {
-		return localStorage.getItem("pos_night_mode") === "true";
-	});
-
-	useEffect(() => {
-		localStorage.setItem("pos_night_mode", isNightMode);
-		const theme = isNightMode ? "dim" : "bumblebee";
-		document.documentElement.setAttribute("data-theme", theme);
-	}, [isNightMode]);
 
 	// Modals State
 	const [showNoteModal, setShowNoteModal] = useState(false);
@@ -458,23 +451,19 @@ const NewOrderTab = ({ processOrder, isProcessing }) => {
 						))}
 					</div>
 
-					{/* Night Menu Mode Toggle */}
+					{/* Night Menu Mode Toggle (Desktop only) */}
 					<button
 						onClick={() => setIsNightMode(!isNightMode)}
-						className={`btn btn-sm flex-shrink-0 gap-1.5 transition-all duration-300 rounded-full px-4 border ${
+						className={`btn btn-sm flex-shrink-0 gap-1.5 transition-all duration-300 rounded-full px-4 border hidden lg:inline-flex ${
 							isNightMode
 								? "bg-slate-900 hover:bg-slate-800 text-yellow-300 border-indigo-500 shadow-md shadow-indigo-500/30"
 								: "btn-outline border-base-300 text-base-content/75 hover:bg-base-200"
 						}`}
 						title="Toggle Night Menu Mode">
 						{isNightMode ? (
-							<>
-								<span className="animate-pulse">🌙</span>
-							</>
+							<span className="animate-pulse">🌙</span>
 						) : (
-							<>
-								<span>☀️</span>
-							</>
+							<span>☀️</span>
 						)}
 					</button>
 				</div>

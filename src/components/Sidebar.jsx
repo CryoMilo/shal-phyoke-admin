@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { Link, useLocation, Outlet } from "@tanstack/react-router";
 import { useAuth } from "../contexts/AuthContext";
 import useStaffAccessStore from "../stores/staffAccessStore";
+import useOrderStore from "../stores/orderStore";
 import {
 	Home,
 	UtensilsCrossed,
@@ -29,6 +30,7 @@ const Sidebar = ({ children }) => {
 	const [isCollapsed, setIsCollapsed] = useState(false);
 	const { profile, signOut, isAdmin, isStaff } = useAuth();
 	const { permissions, fetchPermissions } = useStaffAccessStore();
+	const { isNightMode, setIsNightMode } = useOrderStore();
 
 	useEffect(() => {
 		fetchPermissions();
@@ -204,6 +206,21 @@ const Sidebar = ({ children }) => {
 							</div>
 						</div>
 						<span className="text-xl font-bold">Shal Phyoke</span>
+					</div>
+					
+					{/* Night Menu Mode Toggle */}
+					<div className="flex-none pr-2">
+						<button
+							onClick={() => setIsNightMode(!isNightMode)}
+							className={`btn btn-sm btn-circle transition-all duration-300 ${
+								isNightMode
+									? "bg-slate-900 text-yellow-300 border-indigo-500 shadow-md shadow-indigo-500/30"
+									: "btn-ghost border border-base-content/10 text-base-content/75 hover:bg-base-200"
+							}`}
+							title="Toggle Night Menu Mode"
+						>
+							{isNightMode ? "🌙" : "☀️"}
+						</button>
 					</div>
 				</div>
 
