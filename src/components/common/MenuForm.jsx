@@ -77,8 +77,13 @@ const MenuForm = ({
 
 	const watchIsRegular = watch("is_regular");
 	const watchStockLinkId = watch("stock_link_id");
-	const isLinkedStock = watchStockLinkId !== null && watchStockLinkId !== "" && watchStockLinkId !== "select_master";
-	const selectedMasterForBadge = isLinkedStock ? allMenuItems.find(m => String(m.id) === String(watchStockLinkId)) : null;
+	const isLinkedStock =
+		watchStockLinkId !== null &&
+		watchStockLinkId !== "" &&
+		watchStockLinkId !== "select_master";
+	const selectedMasterForBadge = isLinkedStock
+		? allMenuItems.find((m) => String(m.id) === String(watchStockLinkId))
+		: null;
 
 	useEffect(() => {
 		if (editingMenu) {
@@ -133,16 +138,23 @@ const MenuForm = ({
 				: Array.isArray(data.aliases)
 				? data.aliases
 				: [];
-		const finalStockLinkId = data.stock_link_id === "select_master" || data.stock_link_id === "" ? null : data.stock_link_id;
-		const finalConsumptionRatio = finalStockLinkId === null ? 1 : (parseInt(data.stock_consumption_ratio, 10) || 1);
+		const finalStockLinkId =
+			data.stock_link_id === "select_master" || data.stock_link_id === ""
+				? null
+				: data.stock_link_id;
+		const finalConsumptionRatio =
+			finalStockLinkId === null
+				? 1
+				: parseInt(data.stock_consumption_ratio, 10) || 1;
 
 		const processedData = {
 			...data,
-			stock_quantity: finalStockLinkId !== null 
-				? null 
-				: (typeof data.stock_quantity === "number"
+			stock_quantity:
+				finalStockLinkId !== null
+					? null
+					: typeof data.stock_quantity === "number"
 					? data.stock_quantity
-					: parseInt(data.stock_quantity, 10) || -1),
+					: parseInt(data.stock_quantity, 10) || -1,
 			stock_link_id: finalStockLinkId,
 			stock_consumption_ratio: finalConsumptionRatio,
 			aliases: rawAliases,
@@ -164,470 +176,489 @@ const MenuForm = ({
 		<form
 			onSubmit={handleSubmit(handleFormSubmit)}
 			className="space-y-4 md:space-y-6">
-			
-			<div className={activeTab === "basic" ? "block space-y-4 md:space-y-6" : "hidden"}>
-			{/* Top Section: Image Upload (Left) & Stock Control (Right) */}
-			<div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 bg-base-200/50 p-4 rounded-xl border border-base-300">
-				{/* Left Column: Image Upload */}
-				<div className="flex flex-col justify-center">
-					<ImageUploadField
-						name="image_url"
-						control={control}
-						bucket="menu_items"
-						label="Menu Item Image"
-						placeholder="Optional: Upload photo"
-						required={false}
-					/>
-					{errors.image_url && (
-						<label className="label">
-							<span className="label-text-alt text-error">
-								{errors.image_url.message}
-							</span>
-						</label>
-					)}
-				</div>
+			<div
+				className={
+					activeTab === "basic" ? "block space-y-4 md:space-y-6" : "hidden"
+				}>
+				{/* Top Section: Image Upload (Left) & Stock Control (Right) */}
+				<div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 bg-base-200/50 p-4 rounded-xl border border-base-300">
+					{/* Left Column: Image Upload */}
+					<div className="flex flex-col justify-center">
+						<ImageUploadField
+							name="image_url"
+							control={control}
+							bucket="menu_items"
+							label="Menu Item Image"
+							placeholder="Optional: Upload photo"
+							required={false}
+						/>
+						{errors.image_url && (
+							<label className="label">
+								<span className="label-text-alt text-error">
+									{errors.image_url.message}
+								</span>
+							</label>
+						)}
+					</div>
 
-				{/* Right Column: Stock Quantity Control */}
-				<div className="flex flex-col justify-between">
-					<Controller
-						name="stock_quantity"
-						control={control}
-						render={({ field }) => {
-							const stockVal =
-								typeof field.value === "number"
-									? field.value
-									: parseInt(field.value, 10) || -1;
-							const isUnlimited = stockVal === -1;
+					{/* Right Column: Stock Quantity Control */}
+					<div className="flex flex-col justify-between">
+						<Controller
+							name="stock_quantity"
+							control={control}
+							render={({ field }) => {
+								const stockVal =
+									typeof field.value === "number"
+										? field.value
+										: parseInt(field.value, 10) || -1;
+								const isUnlimited = stockVal === -1;
 
-							const handleIncrement = (delta) => {
-								if (isUnlimited) {
-									field.onChange(1);
-								} else {
-									const next = Math.max(0, stockVal + delta);
-									field.onChange(next);
-								}
-							};
+								const handleIncrement = (delta) => {
+									if (isUnlimited) {
+										field.onChange(1);
+									} else {
+										const next = Math.max(0, stockVal + delta);
+										field.onChange(next);
+									}
+								};
 
-							const handleToggleUnlimited = () => {
-								if (isUnlimited) {
-									field.onChange(10); // default starting stock
-								} else {
-									field.onChange(-1);
-								}
-							};
+								const handleToggleUnlimited = () => {
+									if (isUnlimited) {
+										field.onChange(10); // default starting stock
+									} else {
+										field.onChange(-1);
+									}
+								};
 
-							return (
-								<div className="form-control h-full flex flex-col justify-between">
-									<label className="label py-1">
-										<span className="label-text font-medium text-xs text-base-content/80">
-											Stock Quantity
-										</span>
-									</label>
-
-									{isLinkedStock ? (
-										<div className="bg-info/10 text-info p-4 rounded-xl border border-info/20 flex-1 flex flex-col justify-center gap-3">
-											<div className="flex items-start gap-3">
-												<span className="text-xl">ℹ️</span>
-												<p className="text-sm">
-													Direct stock input is disabled for this item because its stock is linked to <strong>{selectedMasterForBadge ? selectedMasterForBadge.name_english || selectedMasterForBadge.name_burmese : "Master Item"}</strong>. Physical inventory is managed on the master item.
-												</p>
-											</div>
-										</div>
-									) : (
-									<div className="bg-base-100 p-4 rounded-xl border border-base-300 flex-1 flex flex-col justify-center gap-3">
-										<div className="flex items-center justify-between gap-3">
-											<div className="flex items-center gap-2 flex-1">
-												<button
-													type="button"
-													className="btn btn-circle btn-outline btn-sm font-bold text-lg"
-													onClick={() => handleIncrement(-1)}
-													disabled={loading || isUnlimited || stockVal <= 0}>
-													-
-												</button>
-
-												<div className="flex-1 text-center">
-													{isUnlimited ? (
-														<span className="text-2xl font-bold text-primary">
-															∞
-														</span>
-													) : (
-														<input
-															type="number"
-															className="input input-bordered input-sm w-full text-center font-bold text-lg"
-															value={stockVal}
-															onChange={(e) => {
-																const val = parseInt(e.target.value, 10);
-																field.onChange(
-																	isNaN(val) ? 0 : Math.max(0, val)
-																);
-															}}
-															disabled={loading}
-														/>
-													)}
-												</div>
-
-												<button
-													type="button"
-													className="btn btn-circle btn-outline btn-sm font-bold text-lg"
-													onClick={() => handleIncrement(1)}
-													disabled={loading}>
-													+
-												</button>
-											</div>
-										</div>
-
-										<div className="flex items-center justify-between border-t border-base-200 pt-2">
-											<span className="text-xs font-semibold text-base-content/70">
-												Unlimited Stock (∞)
-											</span>
-											<input
-												type="checkbox"
-												className="toggle toggle-primary toggle-sm"
-												checked={isUnlimited}
-												onChange={handleToggleUnlimited}
-												disabled={loading}
-											/>
-										</div>
-									</div>
-									)}
-
-									{!isLinkedStock && (
+								return (
+									<div className="form-control h-full flex flex-col justify-between">
 										<label className="label py-1">
-											<span className="label-text-alt text-gray-500">
-												{isUnlimited
-													? "Stock is unlimited."
-													: stockVal === 0
-													? "Item will automatically show as Out of Stock."
-													: `Stock will drop by 1 with each order.`}
+											<span className="label-text font-medium text-xs text-base-content/80">
+												Stock Quantity
 											</span>
 										</label>
-									)}
-								</div>
-							);
-						}}
-					/>
-				</div>
-			</div>
 
-			{/* Basic Information Grid */}
-			<div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-				<div className="form-control">
-					<label className="label">
-						<span className="label-text font-medium">Burmese Name *</span>
-					</label>
-					<input
-						{...register("name_burmese")}
-						className="input input-bordered w-full"
-						placeholder="Enter Burmese name"
-						disabled={loading}
-					/>
-					{errors.name_burmese && (
-						<label className="label">
-							<span className="label-text-alt text-error">
-								{errors.name_burmese.message}
-							</span>
-						</label>
-					)}
-				</div>
+										{isLinkedStock ? (
+											<div className="bg-info/10 text-info p-4 rounded-xl border border-info/20 flex-1 flex flex-col justify-center gap-3">
+												<div className="flex items-start gap-3">
+													<span className="text-xl">ℹ️</span>
+													<p className="text-sm">
+														Direct stock input is disabled for this item because
+														its stock is linked to{" "}
+														<strong>
+															{selectedMasterForBadge
+																? selectedMasterForBadge.name_english ||
+																  selectedMasterForBadge.name_burmese
+																: "Master Item"}
+														</strong>
+														. Physical inventory is managed on the master item.
+													</p>
+												</div>
+											</div>
+										) : (
+											<div className="bg-base-100 p-4 rounded-xl border border-base-300 flex-1 flex flex-col justify-center gap-3">
+												<div className="flex items-center justify-between gap-3">
+													<div className="flex items-center gap-2 flex-1">
+														<button
+															type="button"
+															className="btn btn-circle btn-outline btn-sm font-bold text-lg"
+															onClick={() => handleIncrement(-1)}
+															disabled={
+																loading || isUnlimited || stockVal <= 0
+															}>
+															-
+														</button>
 
-				<div className="form-control">
-					<label className="label">
-						<span className="label-text font-medium">English Name *</span>
-					</label>
-					<input
-						{...register("name_english")}
-						className="input input-bordered w-full"
-						placeholder="Enter English name"
-						disabled={loading}
-					/>
-					{errors.name_english && (
-						<label className="label">
-							<span className="label-text-alt text-error">
-								{errors.name_english.message}
-							</span>
-						</label>
-					)}
-				</div>
+														<div className="flex-1 text-center">
+															{isUnlimited ? (
+																<span className="text-2xl font-bold text-primary">
+																	∞
+																</span>
+															) : (
+																<input
+																	type="number"
+																	className="input input-bordered input-sm w-full text-center font-bold text-lg"
+																	value={stockVal}
+																	onChange={(e) => {
+																		const val = parseInt(e.target.value, 10);
+																		field.onChange(
+																			isNaN(val) ? 0 : Math.max(0, val)
+																		);
+																	}}
+																	disabled={loading}
+																/>
+															)}
+														</div>
 
-				<div className="form-control">
-					<label className="label">
-						<span className="label-text font-medium">Thai Name</span>
-					</label>
-					<input
-						{...register("name_thai")}
-						className="input input-bordered w-full"
-						placeholder="Enter Thai name"
-						disabled={loading}
-					/>
-				</div>
+														<button
+															type="button"
+															className="btn btn-circle btn-outline btn-sm font-bold text-lg"
+															onClick={() => handleIncrement(1)}
+															disabled={loading}>
+															+
+														</button>
+													</div>
+												</div>
 
-				<div className="form-control">
-					<label className="label">
-						<span className="label-text font-medium">Price (THB) *</span>
-					</label>
-					<input
-						{...register("price", { valueAsNumber: true })}
-						type="number"
-						step="0.01"
-						min="0"
-						className="input input-bordered w-full"
-						placeholder="0.00"
-						disabled={loading}
-					/>
-					{errors.price && (
-						<label className="label">
-							<span className="label-text-alt text-error">
-								{errors.price.message}
-							</span>
-						</label>
-					)}
-				</div>
+												<div className="flex items-center justify-between border-t border-base-200 pt-2">
+													<span className="text-xs font-semibold text-base-content/70">
+														Unlimited Stock (∞)
+													</span>
+													<input
+														type="checkbox"
+														className="toggle toggle-primary toggle-sm"
+														checked={isUnlimited}
+														onChange={handleToggleUnlimited}
+														disabled={loading}
+													/>
+												</div>
+											</div>
+										)}
 
-				<div className="form-control col-span-1 md:col-span-2">
-					<label className="label">
-						<span className="label-text font-medium">
-							Aliases (Comma separated)
-						</span>
-					</label>
-					<input
-						{...register("aliases")}
-						className="input input-bordered w-full"
-						placeholder="e.g., Mohinga, Fish Soup, Noodle Soup"
-						disabled={loading}
-					/>
-					<label className="label">
-						<span className="label-text-alt text-gray-500">
-							Alternative or search keywords for this item.
-						</span>
-					</label>
-				</div>
-
-				<div className="form-control">
-					<label className="label">
-						<span className="label-text font-medium">Category *</span>
-					</label>
-					<select
-						{...register("category")}
-						className="select select-bordered w-full"
-						disabled={loading}>
-						{ALL_CATEGORIES.map((category) => (
-							<option key={category} value={category}>
-								{CATEGORY_DISPLAY_NAMES[category] || category}
-							</option>
-						))}
-					</select>
-					{errors.category && (
-						<label className="label">
-							<span className="label-text-alt text-error">
-								{errors.category.message}
-							</span>
-						</label>
-					)}
-				</div>
-
-				{!isRegularOnly && (
-					<div className="form-control">
-						<label className="label">
-							<span className="label-text font-medium">Menu Type *</span>
-						</label>
-						<div className="flex space-x-2">
-							<button
-								type="button"
-								onClick={() => handleMenuTypeChange(true)}
-								className={`btn flex-1 ${
-									isRegularValue ? "btn-primary" : "btn-outline"
-								}`}>
-								<span className="text-sm">Regular</span>
-							</button>
-							<button
-								type="button"
-								onClick={() => handleMenuTypeChange(false)}
-								className={`btn flex-1 ${
-									!isRegularValue ? "btn-primary" : "btn-outline"
-								}`}>
-								<span className="text-sm">Rotating</span>
-							</button>
-						</div>
-						<input
-							type="hidden"
-							{...register("is_regular")}
-							value={isRegularValue}
+										{!isLinkedStock && (
+											<label className="label py-1">
+												<span className="label-text-alt text-gray-500">
+													{isUnlimited
+														? "Stock is unlimited."
+														: stockVal === 0
+														? "Item will automatically show as Out of Stock."
+														: `Stock will drop by 1 with each order.`}
+												</span>
+											</label>
+										)}
+									</div>
+								);
+							}}
 						/>
 					</div>
-				)}
-			</div>
+				</div>
 
-			{/* Taste Profile */}
-			<div className="form-control">
-				<label className="label">
-					<span className="label-text font-medium">Taste Profile</span>
-				</label>
-				<input
-					{...register("taste_profile")}
-					className="input input-bordered w-full"
-					placeholder="e.g., Spicy, Sweet, Savory"
-					disabled={loading}
-				/>
-			</div>
+				{/* Basic Information Grid */}
+				<div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+					<div className="form-control">
+						<label className="label">
+							<span className="label-text font-medium">Burmese Name *</span>
+						</label>
+						<input
+							{...register("name_burmese")}
+							className="input input-bordered w-full"
+							placeholder="Enter Burmese name"
+							disabled={loading}
+						/>
+						{errors.name_burmese && (
+							<label className="label">
+								<span className="label-text-alt text-error">
+									{errors.name_burmese.message}
+								</span>
+							</label>
+						)}
+					</div>
 
-			{/* Description - Full width */}
-			<div className="form-control">
-				<label className="label">
-					<span className="label-text font-medium">Description</span>
-				</label>
-				<textarea
-					{...register("description")}
-					className="textarea textarea-bordered h-24 w-full"
-					placeholder="Enter description (ingredients, preparation, serving suggestions)"
-					disabled={loading}
-				/>
-			</div>
+					<div className="form-control">
+						<label className="label">
+							<span className="label-text font-medium">English Name *</span>
+						</label>
+						<input
+							{...register("name_english")}
+							className="input input-bordered w-full"
+							placeholder="Enter English name"
+							disabled={loading}
+						/>
+						{errors.name_english && (
+							<label className="label">
+								<span className="label-text-alt text-error">
+									{errors.name_english.message}
+								</span>
+							</label>
+						)}
+					</div>
 
-			{/* Sensitive Ingredients - Full width */}
-			<div className="form-control">
-				<label className="label">
-					<span className="label-text font-medium">Sensitive Ingredients</span>
-				</label>
-				<input
-					{...register("sensitive_ingredients")}
-					className="input input-bordered w-full"
-					placeholder="Peanuts, Dairy, Gluten, Soy, Shellfish (comma separated)"
-					disabled={loading}
-				/>
-			</div>
+					<div className="form-control">
+						<label className="label">
+							<span className="label-text font-medium">Thai Name</span>
+						</label>
+						<input
+							{...register("name_thai")}
+							className="input input-bordered w-full"
+							placeholder="Enter Thai name"
+							disabled={loading}
+						/>
+					</div>
 
-			{/* Quick Note Assignment */}
-			<div className="bg-base-200/30 p-4 rounded-xl border border-base-300">
-				<label className="label pt-0">
-					<span className="label-text font-bold text-sm">
-						Quick Note Assignment
-					</span>
-				</label>
-				<p className="text-[10px] text-gray-500 mb-3 -mt-1 italic">
-					Choose which note templates from the library should appear when
-					ordering this item.
-				</p>
+					<div className="form-control">
+						<label className="label">
+							<span className="label-text font-medium">Price (THB) *</span>
+						</label>
+						<input
+							{...register("price", { valueAsNumber: true })}
+							type="number"
+							step="0.01"
+							min="0"
+							className="input input-bordered w-full"
+							placeholder="0.00"
+							disabled={loading}
+						/>
+						{errors.price && (
+							<label className="label">
+								<span className="label-text-alt text-error">
+									{errors.price.message}
+								</span>
+							</label>
+						)}
+					</div>
 
-				<Controller
-					name="quick_note_ids"
-					control={control}
-					render={({ field }) => (
-						<div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-							{activeNotes.length > 0 ? (
-								activeNotes.map((note) => (
-									<label
-										key={note.id}
-										className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-colors hover:bg-base-200 ${
-											field.value?.includes(note.id)
-												? "border-primary bg-primary/5"
-												: "border-base-300 bg-base-100"
-										}`}>
-										<input
-											type="checkbox"
-											className="checkbox checkbox-xs checkbox-primary"
-											checked={field.value?.includes(note.id)}
-											onChange={() => {
-												const newValue = field.value?.includes(note.id)
-													? field.value.filter((id) => id !== note.id)
-													: [...(field.value || []), note.id];
-												field.onChange(newValue);
-											}}
-										/>
-										<div className="flex flex-col min-w-0">
-											<span className="text-xs font-bold truncate">
-												{note.label}
-											</span>
-											<span className="text-[8px] opacity-60 truncate">
-												{note.type === "radio"
-													? "Single Choice"
-													: "Multi-select"}
-											</span>
-										</div>
-									</label>
-								))
-							) : (
-								<p className="col-span-full text-xs text-center opacity-50 py-4 italic">
-									No active note templates found in library.
-								</p>
-							)}
+					<div className="form-control col-span-1 md:col-span-2">
+						<label className="label">
+							<span className="label-text font-medium">
+								Aliases (Comma separated)
+							</span>
+						</label>
+						<input
+							{...register("aliases")}
+							className="input input-bordered w-full"
+							placeholder="e.g., Mohinga, Fish Soup, Noodle Soup"
+							disabled={loading}
+						/>
+						<label className="label">
+							<span className="label-text-alt text-gray-500">
+								Alternative or search keywords for this item.
+							</span>
+						</label>
+					</div>
+
+					<div className="form-control">
+						<label className="label">
+							<span className="label-text font-medium">Category *</span>
+						</label>
+						<select
+							{...register("category")}
+							className="select select-bordered w-full"
+							disabled={loading}>
+							{ALL_CATEGORIES.map((category) => (
+								<option key={category} value={category}>
+									{CATEGORY_DISPLAY_NAMES[category] || category}
+								</option>
+							))}
+						</select>
+						{errors.category && (
+							<label className="label">
+								<span className="label-text-alt text-error">
+									{errors.category.message}
+								</span>
+							</label>
+						)}
+					</div>
+
+					{!isRegularOnly && (
+						<div className="form-control">
+							<label className="label">
+								<span className="label-text font-medium">Menu Type *</span>
+							</label>
+							<div className="flex space-x-2">
+								<button
+									type="button"
+									onClick={() => handleMenuTypeChange(true)}
+									className={`btn flex-1 ${
+										isRegularValue ? "btn-primary" : "btn-outline"
+									}`}>
+									<span className="text-sm">Regular</span>
+								</button>
+								<button
+									type="button"
+									onClick={() => handleMenuTypeChange(false)}
+									className={`btn flex-1 ${
+										!isRegularValue ? "btn-primary" : "btn-outline"
+									}`}>
+									<span className="text-sm">Rotating</span>
+								</button>
+							</div>
+							<input
+								type="hidden"
+								{...register("is_regular")}
+								value={isRegularValue}
+							/>
 						</div>
 					)}
-				/>
-			</div>
-
-			{/* Status Toggles - Side by side */}
-			<div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 pt-2 border-t border-base-300">
-				<div className="form-control">
-					<label className="label cursor-pointer justify-start gap-3 p-0">
-						<input
-							{...register("is_active")}
-							type="checkbox"
-							className="toggle toggle-primary"
-							disabled={loading}
-						/>
-						<div className="flex flex-col">
-							<span className="label-text font-medium">Active Menu</span>
-						</div>
-					</label>
 				</div>
 
+				{/* Taste Profile */}
 				<div className="form-control">
-					<label className="label cursor-pointer justify-start gap-3 p-0">
-						<input
-							{...register("is_vegan")}
-							type="checkbox"
-							className="toggle toggle-success"
-							disabled={loading}
-						/>
-						<div className="flex flex-col">
-							<span className="label-text font-medium">Vegan</span>
-							<span className="label-text-alt text-gray-500">
-								Mark this item as vegan-friendly
-							</span>
-						</div>
+					<label className="label">
+						<span className="label-text font-medium">Taste Profile</span>
 					</label>
+					<input
+						{...register("taste_profile")}
+						className="input input-bordered w-full"
+						placeholder="e.g., Spicy, Sweet, Savory"
+						disabled={loading}
+					/>
 				</div>
 
+				{/* Description - Full width */}
 				<div className="form-control">
-					<label className="label cursor-pointer justify-start gap-3 p-0">
-						<input
-							{...register("requires_addon")}
-							type="checkbox"
-							className="toggle toggle-accent"
-							disabled={loading}
-						/>
-						<div className="flex flex-col">
-							<span className="label-text font-medium">Must have Add-on</span>
-						</div>
+					<label className="label">
+						<span className="label-text font-medium">Description</span>
 					</label>
+					<textarea
+						{...register("description")}
+						className="textarea textarea-bordered h-24 w-full"
+						placeholder="Enter description (ingredients, preparation, serving suggestions)"
+						disabled={loading}
+					/>
 				</div>
 
-				{isRegularOnly && (
+				{/* Sensitive Ingredients - Full width */}
+				<div className="form-control">
+					<label className="label">
+						<span className="label-text font-medium">
+							Sensitive Ingredients
+						</span>
+					</label>
+					<input
+						{...register("sensitive_ingredients")}
+						className="input input-bordered w-full"
+						placeholder="Peanuts, Dairy, Gluten, Soy, Shellfish (comma separated)"
+						disabled={loading}
+					/>
+				</div>
+
+				{/* Quick Note Assignment */}
+				<div className="bg-base-200/30 p-4 rounded-xl border border-base-300">
+					<label className="label pt-0">
+						<span className="label-text font-bold text-sm">
+							Quick Note Assignment
+						</span>
+					</label>
+					<p className="text-[10px] text-gray-500 mb-3 -mt-1 italic">
+						Choose which note templates from the library should appear when
+						ordering this item.
+					</p>
+
+					<Controller
+						name="quick_note_ids"
+						control={control}
+						render={({ field }) => (
+							<div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+								{activeNotes.length > 0 ? (
+									activeNotes.map((note) => (
+										<label
+											key={note.id}
+											className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-colors hover:bg-base-200 ${
+												field.value?.includes(note.id)
+													? "border-primary bg-primary/5"
+													: "border-base-300 bg-base-100"
+											}`}>
+											<input
+												type="checkbox"
+												className="checkbox checkbox-xs checkbox-primary"
+												checked={field.value?.includes(note.id)}
+												onChange={() => {
+													const newValue = field.value?.includes(note.id)
+														? field.value.filter((id) => id !== note.id)
+														: [...(field.value || []), note.id];
+													field.onChange(newValue);
+												}}
+											/>
+											<div className="flex flex-col min-w-0">
+												<span className="text-xs font-bold truncate">
+													{note.label}
+												</span>
+												<span className="text-[8px] opacity-60 truncate">
+													{note.type === "radio"
+														? "Single Choice"
+														: "Multi-select"}
+												</span>
+											</div>
+										</label>
+									))
+								) : (
+									<p className="col-span-full text-xs text-center opacity-50 py-4 italic">
+										No active note templates found in library.
+									</p>
+								)}
+							</div>
+						)}
+					/>
+				</div>
+
+				{/* Status Toggles - Side by side */}
+				<div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 pt-2 border-t border-base-300">
 					<div className="form-control">
 						<label className="label cursor-pointer justify-start gap-3 p-0">
 							<input
+								{...register("is_active")}
 								type="checkbox"
-								checked={true}
 								className="toggle toggle-primary"
-								disabled
+								disabled={loading}
 							/>
 							<div className="flex flex-col">
-								<span className="label-text font-medium">Menu Type</span>
+								<span className="label-text font-medium">Active Menu</span>
+							</div>
+						</label>
+					</div>
+
+					<div className="form-control">
+						<label className="label cursor-pointer justify-start gap-3 p-0">
+							<input
+								{...register("is_vegan")}
+								type="checkbox"
+								className="toggle toggle-success"
+								disabled={loading}
+							/>
+							<div className="flex flex-col">
+								<span className="label-text font-medium">Vegan</span>
 								<span className="label-text-alt text-gray-500">
-									Regular - Always Available
+									Mark this item as vegan-friendly
 								</span>
 							</div>
 						</label>
 					</div>
-				)}
-			</div>
+
+					<div className="form-control">
+						<label className="label cursor-pointer justify-start gap-3 p-0">
+							<input
+								{...register("requires_addon")}
+								type="checkbox"
+								className="toggle toggle-accent"
+								disabled={loading}
+							/>
+							<div className="flex flex-col">
+								<span className="label-text font-medium">Must have Add-on</span>
+							</div>
+						</label>
+					</div>
+
+					{isRegularOnly && (
+						<div className="form-control">
+							<label className="label cursor-pointer justify-start gap-3 p-0">
+								<input
+									type="checkbox"
+									checked={true}
+									className="toggle toggle-primary"
+									disabled
+								/>
+								<div className="flex flex-col">
+									<span className="label-text font-medium">Menu Type</span>
+									<span className="label-text-alt text-gray-500">
+										Regular - Always Available
+									</span>
+								</div>
+							</label>
+						</div>
+					)}
+				</div>
 			</div>
 
 			{/* Stock Link Tab */}
-			<div className={activeTab === "stock" ? "block space-y-4 md:space-y-6" : "hidden"}>
+			<div
+				className={
+					activeTab === "stock" ? "block space-y-4 md:space-y-6" : "hidden"
+				}>
 				<div className="bg-base-200/50 p-6 rounded-xl border border-base-300">
-					<h3 className="font-bold text-lg mb-4">Stock Linking Configuration</h3>
-					
+					<h3 className="font-bold text-lg mb-4">
+						Stock Linking Configuration
+					</h3>
+
 					{/* Strategy Selector */}
 					<Controller
 						name="stock_link_id"
@@ -652,8 +683,12 @@ const MenuForm = ({
 												}}
 											/>
 											<div>
-												<span className="font-bold block">Standalone Stock</span>
-												<span className="text-sm text-base-content/70">Use this item's own direct stock count</span>
+												<span className="font-bold block">
+													Standalone Stock
+												</span>
+												<span className="text-sm text-base-content/70">
+													Use this item's own direct stock count
+												</span>
 											</div>
 										</label>
 									</div>
@@ -671,7 +706,9 @@ const MenuForm = ({
 											/>
 											<div>
 												<span className="font-bold block">Linked Stock</span>
-												<span className="text-sm text-base-content/70">Derive availability from another master item's stock</span>
+												<span className="text-sm text-base-content/70">
+													Derive from master item's stock
+												</span>
 											</div>
 										</label>
 									</div>
@@ -680,19 +717,35 @@ const MenuForm = ({
 										<div className="mt-4 p-4 bg-base-100 rounded-xl border border-primary/20 space-y-4">
 											<div className="form-control">
 												<label className="label">
-													<span className="label-text font-bold">Select Master Item</span>
+													<span className="label-text font-bold">
+														Select Master Item
+													</span>
 												</label>
 												<select
 													className="select select-bordered w-full"
-													value={field.value === "select_master" ? "" : field.value || ""}
-													onChange={(e) => field.onChange(e.target.value)}
-												>
-													<option value="" disabled>-- Select a master item --</option>
-													{allMenuItems.filter(m => String(m.id) !== String(editingMenu?.id)).map(m => (
-														<option key={m.id} value={m.id}>
-															{m.name_burmese} {m.name_english && `(${m.name_english})`} - Stock: {m.stock_quantity === -1 ? '∞' : m.stock_quantity}
-														</option>
-													))}
+													value={
+														field.value === "select_master"
+															? ""
+															: field.value || ""
+													}
+													onChange={(e) => field.onChange(e.target.value)}>
+													<option value="" disabled>
+														-- Select a master item --
+													</option>
+													{allMenuItems
+														.filter(
+															(m) => String(m.id) !== String(editingMenu?.id)
+														)
+														.map((m) => (
+															<option key={m.id} value={m.id}>
+																{m.name_burmese}{" "}
+																{m.name_english && `(${m.name_english})`} -
+																Stock:{" "}
+																{m.stock_quantity === -1
+																	? "∞"
+																	: m.stock_quantity}
+															</option>
+														))}
 												</select>
 											</div>
 
@@ -701,11 +754,14 @@ const MenuForm = ({
 												control={control}
 												render={({ field: ratioField }) => {
 													const ratio = parseInt(ratioField.value, 10) || 1;
-													const selectedMaster = allMenuItems.find(m => String(m.id) === String(field.value));
-													
-													let previewText = "Please select a master item to see the preview.";
+													const selectedMaster = allMenuItems.find(
+														(m) => String(m.id) === String(field.value)
+													);
+
+													let previewText =
+														"Please select a master item to see the preview.";
 													let previewClass = "bg-base-200/50";
-													
+
 													if (selectedMaster) {
 														if (selectedMaster.stock_quantity === -1) {
 															previewText = `👉 Preview: Master item has unlimited stock. This dish will also be unlimited.`;
@@ -714,9 +770,12 @@ const MenuForm = ({
 															previewText = `🚫 Preview: Master item is out of stock. This dish will show as SOLD OUT on the POS grid.`;
 															previewClass = "bg-error/10 text-error";
 														} else {
-															const yieldAmount = Math.floor(selectedMaster.stock_quantity / ratio);
+															const yieldAmount = Math.floor(
+																selectedMaster.stock_quantity / ratio
+															);
 															previewText = `👉 Preview: With ${selectedMaster.stock_quantity} units in stock, this dish will display as ${yieldAmount} servings available on the POS grid.`;
-															previewClass = "bg-success/10 text-success-content";
+															previewClass =
+																"bg-success/10 text-success-content";
 														}
 													}
 
@@ -724,29 +783,41 @@ const MenuForm = ({
 														<>
 															<div className="form-control">
 																<label className="label">
-																	<span className="label-text font-bold">Consumption Ratio per Portion</span>
-																	<span className="label-text-alt text-base-content/60">How many units of the master item does 1 order consume?</span>
+																	<span className="label-text font-bold">
+																		Consumption Ratio per Portion
+																	</span>
+																	<span className="label-text-alt text-base-content/60">
+																		How many units of the master item does 1
+																		order consume?
+																	</span>
 																</label>
 																<div className="flex items-center gap-3">
 																	<button
 																		type="button"
 																		className="btn btn-circle btn-sm btn-outline"
-																		onClick={() => ratioField.onChange(Math.max(1, ratio - 1))}
-																	>
+																		onClick={() =>
+																			ratioField.onChange(
+																				Math.max(1, ratio - 1)
+																			)
+																		}>
 																		-
 																	</button>
-																	<span className="font-bold text-lg w-8 text-center">{ratio}</span>
+																	<span className="font-bold text-lg w-8 text-center">
+																		{ratio}
+																	</span>
 																	<button
 																		type="button"
 																		className="btn btn-circle btn-sm btn-outline"
-																		onClick={() => ratioField.onChange(ratio + 1)}
-																	>
+																		onClick={() =>
+																			ratioField.onChange(ratio + 1)
+																		}>
 																		+
 																	</button>
 																</div>
 															</div>
-															
-															<div className={`mt-4 p-4 rounded-lg border font-medium text-sm ${previewClass}`}>
+
+															<div
+																className={`mt-4 p-4 rounded-lg border font-medium text-sm ${previewClass}`}>
 																{previewText}
 															</div>
 														</>
