@@ -44,17 +44,19 @@ const Sidebar = ({ children }) => {
 	const allowedPaths = role ? permissions[role] || [] : [];
 
 	const filterItems = (items) => {
-		return items.filter(item => {
-			if (item.type === "divider") return true;
-			return allowedPaths.includes(item.path);
-		}).filter((item, index, self) => {
-			// Remove dividers if they are followed by another divider or are at the end
-			if (item.type === "divider") {
-				const nextItem = self[index + 1];
-				if (!nextItem || nextItem.type === "divider") return false;
-			}
-			return true;
-		});
+		return items
+			.filter((item) => {
+				if (item.type === "divider") return true;
+				return allowedPaths.includes(item.path);
+			})
+			.filter((item, index, self) => {
+				// Remove dividers if they are followed by another divider or are at the end
+				if (item.type === "divider") {
+					const nextItem = self[index + 1];
+					if (!nextItem || nextItem.type === "divider") return false;
+				}
+				return true;
+			});
 	};
 
 	// All possible menu items
@@ -167,7 +169,10 @@ const Sidebar = ({ children }) => {
 	const finalMenu = [...filteredMenu];
 	if (isAdmin) {
 		// Ensure a divider exists before admin settings
-		if (finalMenu.length > 0 && finalMenu[finalMenu.length - 1].type !== "divider") {
+		if (
+			finalMenu.length > 0 &&
+			finalMenu[finalMenu.length - 1].type !== "divider"
+		) {
 			finalMenu.push({ type: "divider", label: "Admin" });
 		}
 		finalMenu.push({
@@ -207,7 +212,7 @@ const Sidebar = ({ children }) => {
 						</div>
 						<span className="text-xl font-bold">Shal Phyoke</span>
 					</div>
-					
+
 					{/* Night Menu Mode Toggle */}
 					<div className="flex-none pr-2">
 						<button
@@ -217,8 +222,7 @@ const Sidebar = ({ children }) => {
 									? "bg-slate-900 text-yellow-300 border-indigo-500 shadow-md shadow-indigo-500/30"
 									: "btn-ghost border border-base-content/10 text-base-content/75 hover:bg-base-200"
 							}`}
-							title="Toggle Night Menu Mode"
-						>
+							title="Toggle Night Menu Mode">
 							{isNightMode ? "🌙" : "☀️"}
 						</button>
 					</div>

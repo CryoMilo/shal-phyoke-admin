@@ -28,6 +28,7 @@ import {
 import { processDashboardData } from "../utils/processData"; // Import the refactored function
 import { showToast } from "../utils/toastUtils";
 import useStaffAccessStore from "../stores/staffAccessStore";
+import ShalPhyokeDatePicker from "../components/common/ShalPhyokeDatePicker";
 
 export const Dashboard = () => {
 	const { openingDays, fetchPermissions: fetchStaffSettings } = useStaffAccessStore();
@@ -63,7 +64,6 @@ export const Dashboard = () => {
 	const [showItemDetails, setShowItemDetails] = useState(false);
 	const [itemDetails, setItemDetails] = useState([]);
 	const [selectedDate, setSelectedDate] = useState(new Date());
-	const [showDatePicker, setShowDatePicker] = useState(false);
 
 	// Constants for navigation logic
 	const today = new Date();
@@ -317,12 +317,6 @@ export const Dashboard = () => {
 					}
 					buttons={[
 						{
-							label: "Calendar",
-							icon: Calendar,
-							onClick: () => setShowDatePicker(true),
-							variant: "outline",
-						},
-						{
 							label: "Refresh",
 							icon: RefreshCw,
 							onClick: () => fetchDashboardData(true),
@@ -346,11 +340,12 @@ export const Dashboard = () => {
 							onClick={() => handleDateChange(-1)}>
 							<ChevronLeft size={16} />
 						</button>
-						<button
-							className="btn btn-ghost btn-sm font-bold"
-							onClick={() => setShowDatePicker(true)}>
-							{formatDisplayDate(selectedDate)}
-						</button>
+						<ShalPhyokeDatePicker
+							value={selectedDate}
+							maxDate={today}
+							onChange={setSelectedDate}
+							className="w-44"
+						/>
 						<button
 							className="btn btn-circle btn-sm"
 							onClick={() => handleDateChange(1)}
@@ -397,36 +392,7 @@ export const Dashboard = () => {
 				<ExpenseBreakdownCard salesData={salesData} />
 			</div>
 
-			{/* Date Picker Modal */}
-			{showDatePicker && (
-				<div className="modal modal-open">
-					<div className="modal-box">
-						<h3 className="font-bold text-lg mb-4">Select Date</h3>
-						<input
-							type="date"
-							className="input input-bordered w-full"
-							value={toBangkokDateString(selectedDate)}
-							max={toBangkokDateString(today)}
-							onChange={(e) => {
-								if (e.target.value) {
-									// Parse as noon Bangkok time (UTC+7) to avoid UTC midnight boundary issues.
-									// Appending T12:00:00+07:00 ensures the Date object represents midday
-									// in Bangkok regardless of the server/browser timezone.
-									setSelectedDate(new Date(e.target.value + "T12:00:00+07:00"));
-									setShowDatePicker(false);
-								}
-							}}
-						/>
-						<div className="modal-action">
-							<button
-								className="btn btn-ghost"
-								onClick={() => setShowDatePicker(false)}>
-								Cancel
-							</button>
-						</div>
-					</div>
-				</div>
-			)}
+			{/* Date picker modal removed as inline datepicker is used */}
 
 			<ItemDetailsModal
 				isOpen={showItemDetails}

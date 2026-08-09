@@ -98,9 +98,8 @@ export const ItemDetailsModal = ({
 					</div>
 				</div>
 
-				<div className="flex-1 overflow-hidden">
-					<div className="overflow-x-auto h-full">
-						<table className="table table-zebra table-pin-rows w-full">
+				<div className="flex-grow overflow-auto max-h-[55vh] my-2 border border-base-300 rounded-xl">
+					<table className="table table-zebra table-pin-rows w-full">
 							<thead className="sticky top-0 bg-base-200">
 								<tr>
 									<th className="w-8">#</th>
@@ -174,7 +173,6 @@ export const ItemDetailsModal = ({
 								</tr>
 							</tfoot>
 						</table>
-					</div>
 				</div>
 
 				<div className="modal-action mt-4">
