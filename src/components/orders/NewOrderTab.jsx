@@ -26,14 +26,11 @@ const getTodayWeekday = () => {
 	return weekday[d.getDay()];
 };
 
-const NewOrderTab = ({
-	processOrder,
-	isProcessing,
-}) => {
+const NewOrderTab = ({ processOrder, isProcessing }) => {
 	const { allMenuItems, fetchAllMenuItems, getActiveFixedCombos } =
 		useMenuStore();
 	const { isAdmin, isStaff } = useAuth();
-	
+
 	const {
 		cart,
 		orderType,
@@ -74,6 +71,13 @@ const NewOrderTab = ({
 
 	const [todaysSpecialRaw, setTodaysSpecialRaw] = useState([]);
 	const [activeCategory, setActiveCategory] = useState("Today's Special");
+	const [isNightMode, setIsNightMode] = useState(() => {
+		return localStorage.getItem("pos_night_mode") === "true";
+	});
+
+	useEffect(() => {
+		localStorage.setItem("pos_night_mode", isNightMode);
+	}, [isNightMode]);
 
 	// Modals State
 	const [showNoteModal, setShowNoteModal] = useState(false);
@@ -93,7 +97,8 @@ const NewOrderTab = ({
 		}
 
 		// Find master item to get available_extras
-		const masterItem = allMenuItems.find((m) => String(m.id) === String(item.id)) || item;
+		const masterItem =
+			allMenuItems.find((m) => String(m.id) === String(item.id)) || item;
 		const availableExtras = masterItem.available_extras || [];
 
 		// If item has linked extras / add-ons attached
@@ -128,6 +133,7 @@ const NewOrderTab = ({
 			);
 			return {
 				...item,
+				tags: masterItem?.tags || item?.tags || [],
 				available_extras: masterItem?.available_extras || [],
 			};
 		});
@@ -177,7 +183,8 @@ const NewOrderTab = ({
             category,
             image_url,
             is_active,
-            quick_note_ids
+            quick_note_ids,
+            tags
           )
         `
 				)
@@ -205,35 +212,61 @@ const NewOrderTab = ({
 
 	// Dynamically get categories from the actual data
 	const categories = React.useMemo(() => {
+		const nightFilteredMenuItems = isNightMode
+			? menuItems.filter(
+					(item) => Array.isArray(item.tags) && item.tags.includes("night")
+			  )
+			: menuItems;
+
+		const nightFilteredCombos = isNightMode
+			? combos.filter(
+					(item) => Array.isArray(item.tags) && item.tags.includes("night")
+			  )
+			: combos;
+
+		const nightFilteredSpecials = isNightMode
+			? todaysSpecialItems.filter(
+					(item) => Array.isArray(item.tags) && item.tags.includes("night")
+			  )
+			: todaysSpecialItems;
+
 		const regularCategories = [
-			...new Set(menuItems.map((item) => item.category)),
+			...new Set(nightFilteredMenuItems.map((item) => item.category)),
 		];
 
 		const allCategories = [];
 
-		if (combos.length > 0) {
+		if (nightFilteredCombos.length > 0) {
 			allCategories.push("Combos");
 		}
 
-		if (todaysSpecialItems.length > 0) {
+		if (nightFilteredSpecials.length > 0) {
 			allCategories.push("Today's Special");
 		}
 
 		return [...allCategories, ...regularCategories];
-	}, [menuItems, todaysSpecialItems, combos]);
+	}, [menuItems, todaysSpecialItems, combos, isNightMode]);
 
 	const filteredItems = React.useMemo(() => {
+		let items = [];
 		if (activeCategory === "Combos") {
-			return combos.map((c) => ({
+			items = combos.map((c) => ({
 				...c,
 				isCombo: true,
 			}));
+		} else if (activeCategory === "Today's Special") {
+			items = todaysSpecialItems;
+		} else {
+			items = menuItems.filter((item) => item.category === activeCategory);
 		}
-		if (activeCategory === "Today's Special") {
-			return todaysSpecialItems;
+
+		if (isNightMode) {
+			return items.filter(
+				(item) => Array.isArray(item.tags) && item.tags.includes("night")
+			);
 		}
-		return menuItems.filter((item) => item.category === activeCategory);
-	}, [menuItems, todaysSpecialItems, activeCategory, combos]);
+		return items;
+	}, [menuItems, todaysSpecialItems, activeCategory, combos, isNightMode]);
 
 	// Set default category to the first available one
 	React.useEffect(() => {
@@ -408,26 +441,53 @@ const NewOrderTab = ({
 					</div>
 				)}
 
-				{/* Menu Categories */}
-				<div className="flex gap-2 mb-4 overflow-x-auto pb-2">
-					{categories.map((category) => (
-						<button
-							key={category}
-							className={`btn btn-sm whitespace-nowrap ${
-								activeCategory === category ? "btn-primary" : "btn-outline"
-							}`}
-							onClick={() => setActiveCategory(category)}>
-							{category}
-						</button>
-					))}
+				{/* Menu Categories & Night Mode Toggle */}
+				<div className="flex justify-between items-center gap-2 mb-4">
+					<div className="flex gap-2 overflow-x-auto pb-2 flex-grow">
+						{categories.map((category) => (
+							<button
+								key={category}
+								className={`btn btn-sm whitespace-nowrap ${
+									activeCategory === category ? "btn-primary" : "btn-outline"
+								}`}
+								onClick={() => setActiveCategory(category)}>
+								{category}
+							</button>
+						))}
+					</div>
+
+					{/* Night Menu Mode Toggle */}
+					<button
+						onClick={() => setIsNightMode(!isNightMode)}
+						className={`btn btn-sm flex-shrink-0 gap-1.5 transition-all duration-300 rounded-full px-4 border ${
+							isNightMode
+								? "bg-slate-900 hover:bg-slate-800 text-yellow-300 border-indigo-500 shadow-md shadow-indigo-500/30"
+								: "btn-outline border-base-300 text-base-content/75 hover:bg-base-200"
+						}`}
+						title="Toggle Night Menu Mode">
+						{isNightMode ? (
+							<>
+								<span className="animate-pulse">🌙</span>
+							</>
+						) : (
+							<>
+								<span>☀️</span>
+							</>
+						)}
+					</button>
 				</div>
 
 				{/* Menu Items Grid */}
 				<div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
 					{filteredItems.length > 0 ? (
 						filteredItems.map((item) => {
-							const masterItem = allMenuItems.find((m) => String(m.id) === String(item.id)) || item;
-							const fullItem = { ...item, available_extras: masterItem.available_extras || [] };
+							const masterItem =
+								allMenuItems.find((m) => String(m.id) === String(item.id)) ||
+								item;
+							const fullItem = {
+								...item,
+								available_extras: masterItem.available_extras || [],
+							};
 							const isAvailable = isBaseItemAvailable(fullItem);
 
 							return (
@@ -437,7 +497,9 @@ const NewOrderTab = ({
 										!isAvailable
 											? "grayscale opacity-50 cursor-not-allowed border-base-300"
 											: "cursor-pointer hover:shadow-md border-base-300 " +
-											  (item.isCombo ? "border-primary/30 ring-1 ring-primary/10" : "")
+											  (item.isCombo
+													? "border-primary/30 ring-1 ring-primary/10"
+													: "")
 									}`}
 									onClick={() => handleItemClick(fullItem)}>
 									{!isAvailable && (
@@ -447,53 +509,63 @@ const NewOrderTab = ({
 											</span>
 										</div>
 									)}
-								{item.isCombo && (
-									<div className="absolute top-0 right-0 bg-primary text-primary-content text-[8px] font-bold px-1.5 py-0.5 rounded-bl-lg uppercase tracking-tighter z-20">
-										Combo
+									{item.isCombo && (
+										<div className="absolute top-0 right-0 bg-primary text-primary-content text-[8px] font-bold px-1.5 py-0.5 rounded-bl-lg uppercase tracking-tighter z-20">
+											Combo
+										</div>
+									)}
+									{item.image_url && (
+										<img
+											src={item.image_url}
+											alt={item.name_english}
+											className="w-full h-20 object-cover rounded mb-2"
+										/>
+									)}
+									<h3 className="font-semibold text-sm line-clamp-2">
+										{item.name_burmese}
+									</h3>
+									{item.name_english && (
+										<p className="text-xs text-base-content/70 truncate">
+											{item.name_english}
+										</p>
+									)}
+									<div className="mt-1 flex items-center justify-between">
+										<p className="text-primary font-bold">฿{item.price}</p>
+										{item.isCombo ? (
+											<span className="badge badge-primary badge-xs">
+												Combo Set
+											</span>
+										) : (
+											(() => {
+												const itemStock =
+													fullItem.effective_available_stock !== undefined
+														? fullItem.effective_available_stock
+														: fullItem.stock_quantity;
+												if (
+													itemStock !== undefined &&
+													itemStock !== null &&
+													itemStock !== -1
+												) {
+													return (
+														<span
+															className={`badge badge-xs font-semibold ${
+																itemStock === 0
+																	? "badge-error"
+																	: itemStock <= 5
+																	? "badge-warning"
+																	: "badge-info"
+															}`}>
+															{itemStock} left
+														</span>
+													);
+												}
+												return null;
+											})()
+										)}
 									</div>
-								)}
-								{item.image_url && (
-									<img
-										src={item.image_url}
-										alt={item.name_english}
-										className="w-full h-20 object-cover rounded mb-2"
-									/>
-								)}
-								<h3 className="font-semibold text-sm line-clamp-2">
-									{item.name_burmese}
-								</h3>
-								{item.name_english && (
-									<p className="text-xs text-base-content/70 truncate">
-										{item.name_english}
-									</p>
-								)}
-								<div className="mt-1 flex items-center justify-between">
-									<p className="text-primary font-bold">฿{item.price}</p>
-									{item.isCombo ? (
-										<span className="badge badge-primary badge-xs">
-											Combo Set
-										</span>
-									) : (() => {
-										const itemStock = fullItem.effective_available_stock !== undefined ? fullItem.effective_available_stock : fullItem.stock_quantity;
-										if (itemStock !== undefined && itemStock !== null && itemStock !== -1) {
-											return (
-												<span className={`badge badge-xs font-semibold ${
-													itemStock === 0
-														? "badge-error"
-														: itemStock <= 5
-														? "badge-warning"
-														: "badge-info"
-												}`}>
-													{itemStock} left
-												</span>
-											);
-										}
-										return null;
-									})()}
 								</div>
-							</div>
-						);
-					})
+							);
+						})
 					) : (
 						<div className="col-span-full text-center py-8 text-base-content/50">
 							No items found in {activeCategory}
@@ -533,7 +605,9 @@ const NewOrderTab = ({
 						<div
 							key={item.cart_id}
 							className={`bg-base-100 p-2 rounded-lg border shadow-sm ${
-								item.isCombo ? "border-primary/20 bg-primary/5" : "border-base-300"
+								item.isCombo
+									? "border-primary/20 bg-primary/5"
+									: "border-base-300"
 							}`}>
 							<div className="flex justify-between items-start mb-1">
 								<div className="flex-1">
@@ -541,7 +615,8 @@ const NewOrderTab = ({
 										{item.name_burmese}
 									</div>
 									<div className="text-[10px] text-base-content/70 mt-1">
-										฿{item.price} × {item.quantity} = ฿{item.price * item.quantity}
+										฿{item.price} × {item.quantity} = ฿
+										{item.price * item.quantity}
 									</div>
 								</div>
 								<div className="flex items-center gap-1 bg-base-200 rounded-full px-1">
@@ -595,7 +670,9 @@ const NewOrderTab = ({
 						</div>
 					))}
 					{cart.length === 0 && (
-						<div className="text-center text-base-content/50 py-8 text-sm">No items added</div>
+						<div className="text-center text-base-content/50 py-8 text-sm">
+							No items added
+						</div>
 					)}
 				</div>
 
@@ -662,7 +739,9 @@ const NewOrderTab = ({
 				{/* Payment Method */}
 				<div className="mt-4">
 					<label className="label py-1">
-						<span className="label-text font-semibold text-xs">Payment Method</span>
+						<span className="label-text font-semibold text-xs">
+							Payment Method
+						</span>
 					</label>
 					<div className="flex gap-1">
 						{["unpaid", "cash", "qr"].map((method) => (
@@ -672,7 +751,11 @@ const NewOrderTab = ({
 									paymentMethod === method ? "btn-primary" : "btn-outline"
 								}`}
 								onClick={() => handlePaymentMethodClick(method)}>
-								{method === "unpaid" ? "Unpaid" : method === "cash" ? "Cash" : "QR"}
+								{method === "unpaid"
+									? "Unpaid"
+									: method === "cash"
+									? "Cash"
+									: "QR"}
 							</button>
 						))}
 					</div>
@@ -775,7 +858,8 @@ const NewOrderTab = ({
 					<div className="modal-box max-w-4xl p-0 overflow-hidden bg-base-100">
 						<div className="p-4 bg-base-200 border-b border-base-300 flex justify-between items-center">
 							<h3 className="font-bold text-lg flex items-center gap-2">
-								<FolderOpen className="w-5 h-5 text-secondary" /> Local Drafts / Parked Orders
+								<FolderOpen className="w-5 h-5 text-secondary" /> Local Drafts /
+								Parked Orders
 							</h3>
 							<button
 								className="btn btn-sm btn-circle btn-ghost"
@@ -788,12 +872,13 @@ const NewOrderTab = ({
 							{drafts.length > 0 ? (
 								<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
 									{drafts.map((draft) => {
-										const timeElapsed = Math.floor((new Date() - new Date(draft.created_at)) / 60000);
+										const timeElapsed = Math.floor(
+											(new Date() - new Date(draft.created_at)) / 60000
+										);
 										return (
 											<div
 												key={draft.id}
 												className="card border-2 border-secondary/20 bg-base-100 hover:border-secondary transition-all cursor-pointer shadow-sm hover:scale-[1.02] active:scale-95 group relative">
-												
 												{/* Delete Button */}
 												<button
 													className="absolute top-2 right-2 btn btn-circle btn-xs btn-error z-10 text-white"
@@ -813,7 +898,6 @@ const NewOrderTab = ({
 														setShowDraftsModal(false);
 														showToast.success("Loaded draft into POS");
 													}}>
-													
 													<div className="text-[10px] opacity-40 font-mono mb-1">
 														{timeElapsed}m ago
 													</div>
@@ -829,7 +913,9 @@ const NewOrderTab = ({
 																	: "bg-secondary text-secondary-content"
 															}`}>
 															{draft.tableNumber ||
-																draft.customerInfo?.name?.substring(0, 2).toUpperCase() ||
+																draft.customerInfo?.name
+																	?.substring(0, 2)
+																	.toUpperCase() ||
 																"?"}
 														</div>
 														<div className="flex-1 min-w-0">
@@ -847,7 +933,12 @@ const NewOrderTab = ({
 
 													<div className="text-xs space-y-1 mb-3 flex-1">
 														<div className="opacity-70 font-semibold line-clamp-2">
-															{draft.cart.map(item => `${item.quantity}x ${item.name_burmese}`).join(", ")}
+															{draft.cart
+																.map(
+																	(item) =>
+																		`${item.quantity}x ${item.name_burmese}`
+																)
+																.join(", ")}
 														</div>
 														{draft.notes && (
 															<div className="text-[10px] text-accent truncate italic">
@@ -858,7 +949,11 @@ const NewOrderTab = ({
 
 													<div className="flex justify-between items-center mt-auto pt-2 border-t border-base-200">
 														<span className="font-bold text-primary text-sm">
-															฿{draft.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0)}
+															฿
+															{draft.cart.reduce(
+																(sum, item) => sum + item.price * item.quantity,
+																0
+															)}
 														</span>
 														<span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold bg-secondary/20 text-secondary">
 															DRAFT
@@ -877,7 +972,9 @@ const NewOrderTab = ({
 							)}
 						</div>
 					</div>
-					<div className="modal-backdrop bg-black/50" onClick={() => setShowDraftsModal(false)}></div>
+					<div
+						className="modal-backdrop bg-black/50"
+						onClick={() => setShowDraftsModal(false)}></div>
 				</div>
 			)}
 			{/* Add-on Selection Modal */}

@@ -2,7 +2,7 @@ import React, { useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { menuSchema } from "../../validations/menuSchema";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ALL_CATEGORIES, CATEGORY_DISPLAY_NAMES } from "../../constants";
+import { ALL_CATEGORIES, CATEGORY_DISPLAY_NAMES, MENU_TAGS } from "../../constants";
 import ImageUploadField from "./ImageUploadField";
 import useQuickNoteStore from "../../stores/quickNoteStore";
 import useMenuStore from "../../stores/menuStore";
@@ -41,6 +41,7 @@ const MenuForm = ({
 					requires_addon: editingMenu?.requires_addon ?? false,
 					is_vegan: editingMenu?.is_vegan ?? false,
 					quick_note_ids: editingMenu?.quick_note_ids ?? [],
+					tags: editingMenu?.tags ?? [],
 					stock_link_id: editingMenu?.stock_link_id ?? null,
 					stock_consumption_ratio: editingMenu?.stock_consumption_ratio ?? 1,
 					sensitive_ingredients: Array.isArray(
@@ -66,6 +67,7 @@ const MenuForm = ({
 					is_vegan: false,
 					requires_addon: false,
 					quick_note_ids: [],
+					tags: [],
 					stock_link_id: null,
 					stock_consumption_ratio: 1,
 			  },
@@ -98,6 +100,7 @@ const MenuForm = ({
 				requires_addon: editingMenu?.requires_addon ?? false,
 				is_vegan: editingMenu?.is_vegan ?? false,
 				quick_note_ids: editingMenu?.quick_note_ids ?? [],
+				tags: editingMenu?.tags ?? [],
 				stock_link_id: editingMenu?.stock_link_id ?? null,
 				stock_consumption_ratio: editingMenu?.stock_consumption_ratio ?? 1,
 				sensitive_ingredients: Array.isArray(editingMenu.sensitive_ingredients)
@@ -122,6 +125,7 @@ const MenuForm = ({
 				is_vegan: false,
 				requires_addon: false,
 				quick_note_ids: [],
+				tags: [],
 				stock_link_id: null,
 				stock_consumption_ratio: 1,
 			});
@@ -161,6 +165,7 @@ const MenuForm = ({
 			sensitive_ingredients: data.sensitive_ingredients
 				? data.sensitive_ingredients.split(",").map((item) => item.trim())
 				: [],
+			tags: Array.isArray(data.tags) ? data.tags : [],
 		};
 		onSubmit(processedData);
 	};
@@ -576,6 +581,55 @@ const MenuForm = ({
 										No active note templates found in library.
 									</p>
 								)}
+							</div>
+						)}
+					/>
+				</div>
+
+				{/* Tag Assignment */}
+				<div className="bg-base-200/30 p-4 rounded-xl border border-base-300">
+					<label className="label pt-0">
+						<span className="label-text font-bold text-sm">
+							Tag Assignment
+						</span>
+					</label>
+					<p className="text-[10px] text-gray-500 mb-3 -mt-1 italic">
+						Select tags to categorize this item for special behaviors (e.g., Night menu).
+					</p>
+
+					<Controller
+						name="tags"
+						control={control}
+						render={({ field }) => (
+							<div className="flex flex-wrap gap-3">
+								{MENU_TAGS.map((tag) => {
+									const isSelected = field.value?.includes(tag);
+									return (
+										<label
+											key={tag}
+											className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-all hover:bg-base-200 ${
+												isSelected
+													? "border-primary bg-primary/5 text-primary"
+													: "border-base-300 bg-base-100 text-base-content/85"
+											}`}>
+											<input
+												type="checkbox"
+												className="checkbox checkbox-xs checkbox-primary"
+												checked={isSelected || false}
+												onChange={() => {
+													const currentVal = field.value || [];
+													const newValue = isSelected
+														? currentVal.filter((t) => t !== tag)
+														: [...currentVal, tag];
+													field.onChange(newValue);
+												}}
+											/>
+											<span className="text-xs font-bold capitalize">
+												{tag}
+											</span>
+										</label>
+									);
+								})}
 							</div>
 						)}
 					/>

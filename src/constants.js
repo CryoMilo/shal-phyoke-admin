@@ -25,6 +25,8 @@ export const ALL_CATEGORIES = [
 	"Discontinued",
 ];
 
+export const MENU_TAGS = ["night"];
+
 export const vendorColors = [
 	{
 		bg: "bg-blue-50",
