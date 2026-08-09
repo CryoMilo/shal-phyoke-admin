@@ -1,6 +1,6 @@
 @import "tailwindcss";
 @plugin "daisyui" {
-	themes: bumblebee --default;
+	themes: bumblebee --default, dim;
 }
 
 :root {
@@ -35,7 +35,8 @@ body {
 }
 
 body {
-	padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+	padding: env(safe-area-inset-top) env(safe-area-inset-right)
+		env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
 /* Hide scrollbars */

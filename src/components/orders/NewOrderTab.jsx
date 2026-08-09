@@ -77,6 +77,8 @@ const NewOrderTab = ({ processOrder, isProcessing }) => {
 
 	useEffect(() => {
 		localStorage.setItem("pos_night_mode", isNightMode);
+		const theme = isNightMode ? "dim" : "bumblebee";
+		document.documentElement.setAttribute("data-theme", theme);
 	}, [isNightMode]);
 
 	// Modals State
