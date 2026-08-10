@@ -105,6 +105,7 @@ export const Orders = () => {
 
 			let returnedOrderId;
 			let dbError;
+			let finalOrder = null;
 
 			if (editingOrderId) {
 				const { data, error } = await supabase
@@ -114,6 +115,7 @@ export const Orders = () => {
 					.select()
 					.single();
 				returnedOrderId = data?.id;
+				finalOrder = data;
 				dbError = error;
 			} else {
 				// Aggregate cart items and their selected extras (add-ons) to pass all items to the stock deduction RPC
@@ -162,10 +164,14 @@ export const Orders = () => {
 
 				// Since RPC might only set basic fields, update it with the rest of the POS data
 				if (!dbError && returnedOrderId) {
-					await supabase
+					const { data: updatedOrder, error: updateError } = await supabase
 						.from("orders")
 						.update(orderData)
-						.eq("id", returnedOrderId);
+						.eq("id", returnedOrderId)
+						.select()
+						.single();
+					dbError = updateError;
+					finalOrder = updatedOrder;
 				}
 			}
 
@@ -189,8 +195,8 @@ export const Orders = () => {
 			}
 
 			// Trigger auto-print if enabled
-			if (autoPrintKitchenTicket) {
-				sendToKitchenPrinter({ id: returnedOrderId }).catch((err) => {
+			if (autoPrintKitchenTicket && finalOrder) {
+				sendToKitchenPrinter(finalOrder).catch((err) => {
 					console.error("Auto-print failed:", err);
 				});
 			}
