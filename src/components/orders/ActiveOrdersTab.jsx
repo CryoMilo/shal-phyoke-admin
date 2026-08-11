@@ -30,10 +30,18 @@ const ActiveOrdersTab = () => {
 		fetchActiveOrders();
 
 		const channel = supabase
-			.channel("orders:changes", { config: { private: false } })
-			.on("broadcast", { event: "INSERT" }, () => fetchActiveOrders())
-			.on("broadcast", { event: "UPDATE" }, () => fetchActiveOrders())
-			.on("broadcast", { event: "DELETE" }, () => fetchActiveOrders())
+			.channel("orders-active-realtime")
+			.on(
+				"postgres_changes",
+				{
+					event: "*",
+					schema: "public",
+					table: "orders",
+				},
+				() => {
+					fetchActiveOrders();
+				}
+			)
 			.subscribe((status) => {
 				console.log("Active Orders Realtime status:", status);
 			});

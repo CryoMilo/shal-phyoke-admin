@@ -43,10 +43,18 @@ const OrderHistoryTab = () => {
 		fetchHistory();
 
 		const channel = supabase
-			.channel("orders:changes", { config: { private: false } })
-			.on("broadcast", { event: "UPDATE" }, () => fetchHistory())
-			.on("broadcast", { event: "INSERT" }, () => fetchHistory())
-			.on("broadcast", { event: "DELETE" }, () => fetchHistory())
+			.channel("orders-history-realtime")
+			.on(
+				"postgres_changes",
+				{
+					event: "*",
+					schema: "public",
+					table: "orders",
+				},
+				() => {
+					fetchHistory();
+				}
+			)
 			.subscribe();
 
 		return () => {
