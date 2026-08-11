@@ -15,11 +15,7 @@ const AddonSelectionModal = ({ isOpen, onClose, onConfirm, item }) => {
 		.getState()
 		.cart.filter((c) => c.id === item?.id)
 		.reduce((sum, c) => sum + c.quantity, 0);
-	const stock = item?.effective_available_stock;
-	const maxAllowedNewQty =
-		stock !== undefined && stock !== -1 && stock !== null
-			? Math.max(0, stock - alreadyInCartQty)
-			: 999;
+	const maxAllowedNewQty = 999;
 
 	const [quantity, setQuantity] = useState(1);
 
@@ -27,10 +23,7 @@ const AddonSelectionModal = ({ isOpen, onClose, onConfirm, item }) => {
 	const checkAddonAvailability = (extra) => {
 		if (!extra) return false;
 		if (extra.extra_item && extra.extra_item.is_active === false) return false;
-		const extraStock = extra.effective_available_stock !== undefined
-			? extra.effective_available_stock
-			: (extra.extra_item?.stock_quantity ?? -1);
-		return extraStock === -1 || extraStock > 0;
+		return true;
 	};
 
 	useEffect(() => {
@@ -125,14 +118,7 @@ const AddonSelectionModal = ({ isOpen, onClose, onConfirm, item }) => {
 
 					{/* Options Body */}
 					<div className="p-5 space-y-4 max-h-[60vh] overflow-y-auto">
-						{maxAllowedNewQty === 0 && (
-							<div className="alert alert-warning text-xs p-3 rounded-xl mb-4">
-								<AlertTriangle className="w-4 h-4 shrink-0" />
-								<span>
-									⚠️ All available stock for this item is already in your cart.
-								</span>
-							</div>
-						)}
+
 						<p className="text-xs font-semibold text-base-content/60 uppercase tracking-wider">
 							{allowNoAddon
 								? "Choose an add-on or plain dish:"
@@ -168,12 +154,7 @@ const AddonSelectionModal = ({ isOpen, onClose, onConfirm, item }) => {
 
 							{/* Linked Add-on Options */}
 							{availableExtras.map((extra) => {
-								// Respect effective_available_stock if available, otherwise fallback
-								const extraStock =
-									extra.effective_available_stock !== undefined
-										? extra.effective_available_stock
-										: extra.extra_item?.stock_quantity ?? -1;
-								const inStock = extraStock === -1 || extraStock > 0;
+								const inStock = extra.extra_item ? extra.extra_item.is_active !== false : true;
 								const isSelected = selectedExtras.some(e => e.id === extra.id);
 								const toppingName =
 									extra.name_burmese ||
@@ -214,15 +195,11 @@ const AddonSelectionModal = ({ isOpen, onClose, onConfirm, item }) => {
 												<span className="text-xs font-bold text-primary">
 													+{extra.additional_price || 0}฿
 												</span>
-												{!inStock ? (
+												{!inStock && (
 													<span className="badge badge-error badge-xs font-bold text-[9px]">
 														Out of Stock
 													</span>
-												) : extraStock !== -1 ? (
-													<span className="text-[10px] text-base-content/60">
-														({extraStock} left)
-													</span>
-												) : null}
+												)}
 											</div>
 										</div>
 
@@ -237,13 +214,7 @@ const AddonSelectionModal = ({ isOpen, onClose, onConfirm, item }) => {
 						</div>
 
 						{!allowNoAddon &&
-							availableExtras.every((e) => {
-								const stock =
-									e.effective_available_stock !== undefined
-										? e.effective_available_stock
-										: e.extra_item?.stock_quantity ?? -1;
-								return stock !== -1 && stock <= 0;
-							}) && (
+							availableExtras.every((e) => e.extra_item && e.extra_item.is_active === false) && (
 								<div className="alert alert-error text-xs p-3 rounded-xl">
 									<AlertTriangle className="w-4 h-4 shrink-0" />
 									<span>All add-on choices are currently out of stock.</span>

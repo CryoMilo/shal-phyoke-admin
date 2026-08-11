@@ -71,11 +71,6 @@ const Sidebar = ({ children }) => {
 			label: "Operations",
 		},
 		{
-			name: "Weekly Menu",
-			path: "/weekly-menu",
-			icon: Calendar,
-		},
-		{
 			name: "Orders",
 			path: "/orders",
 			icon: ShoppingBasket,
@@ -90,19 +85,9 @@ const Sidebar = ({ children }) => {
 			label: "Menu",
 		},
 		{
-			name: "Menu Manager",
-			path: "/all-menu",
-			icon: UtensilsCrossed,
-		},
-		{
 			name: "Regular Menu Items",
 			path: "/regular-menu",
 			icon: Menu,
-		},
-		{
-			name: "Menu Status",
-			path: "/menu-status",
-			icon: Settings2,
 		},
 		{
 			type: "divider",

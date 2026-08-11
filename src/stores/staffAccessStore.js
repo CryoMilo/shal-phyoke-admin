@@ -6,12 +6,9 @@ import { showToast } from "../utils/toastUtils";
 export const DEFAULT_PERMISSIONS = {
 	admin: [
 		"/dashboard",
-		"/weekly-menu",
 		"/orders",
 		"/combo-manager",
-		"/all-menu",
 		"/regular-menu",
-		"/menu-status",
 		"/procurement",
 		"/inventory-items",
 		"/daily-cash",
@@ -22,12 +19,9 @@ export const DEFAULT_PERMISSIONS = {
 		"/quick-note-settings",
 	],
 	staff: [
-		"/weekly-menu",
 		"/orders",
 		"/combo-manager",
-		"/all-menu",
 		"/regular-menu",
-		"/menu-status",
 		"/procurement",
 		"/inventory-items",
 		"/daily-cash",

@@ -260,18 +260,6 @@ const useMenuStore = create(
 
 					if (extrasError) throw extrasError;
 
-					// Fetch stock data from view
-					const { data: stockData, error: stockError } = await supabase
-						.from("v_menu_items_with_stock")
-						.select("id, effective_available_stock");
-					
-					if (stockError) throw stockError;
-
-					const stockMap = (stockData || []).reduce((acc, row) => {
-						acc[row.id] = row.effective_available_stock;
-						return acc;
-					}, {});
-
 					// Group extras by menu_item_id, filtering out extras where the item itself is inactive
 					const extrasByMenuItem = (extras || []).reduce((acc, extra) => {
 						if (extra.extra_item && extra.extra_item.is_active) {
@@ -283,7 +271,7 @@ const useMenuStore = create(
 								// Flatten for easier access in UI if needed, but keeping original structure too
 								name_burmese: extra.extra_item.name_burmese,
 								name_english: extra.extra_item.name_english,
-								effective_available_stock: stockMap[extra.extra_item.id] !== undefined ? stockMap[extra.extra_item.id] : -1,
+								effective_available_stock: -1,
 							});
 						}
 						return acc;
@@ -292,14 +280,9 @@ const useMenuStore = create(
 					// Attach extras to menu items
 					const menuItemsWithExtras = (menuItems || []).map((item) => ({
 						...item,
-						effective_available_stock: stockMap[item.id] !== undefined ? stockMap[item.id] : -1,
+						effective_available_stock: -1,
 						available_extras: extrasByMenuItem[item.id] || [],
 					}));
-
-					// Clamp cart quantities based on latest stock
-					import("./orderStore").then((mod) => {
-						mod.default.getState().clampCartQuantities(menuItemsWithExtras);
-					});
 
 					set({
 						allMenuItems: menuItemsWithExtras,

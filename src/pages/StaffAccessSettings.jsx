@@ -26,12 +26,9 @@ import useStaffAccessStore, { DEFAULT_PERMISSIONS } from "../stores/staffAccessS
 
 const ALL_TABS = [
 	{ name: "Dashboard", path: "/dashboard", icon: Home, category: "Operations" },
-	{ name: "Weekly Menu", path: "/weekly-menu", icon: Calendar, category: "Operations" },
 	{ name: "Orders", path: "/orders", icon: ShoppingBasket, category: "Operations" },
 	{ name: "Combo Manager", path: "/combo-manager", icon: Layers2, category: "Operations" },
-	{ name: "Menu Manager", path: "/all-menu", icon: UtensilsCrossed, category: "Menu" },
 	{ name: "Regular Menu Items", path: "/regular-menu", icon: Menu, category: "Menu" },
-	{ name: "Menu Status", path: "/menu-status", icon: Settings2, category: "Menu" },
 	{ name: "Procurement", path: "/procurement", icon: ShoppingCart, category: "Inventory" },
 	{ name: "Inventory Items", path: "/inventory-items", icon: Box, category: "Inventory" },
 	{ name: "Daily Cash", path: "/daily-cash", icon: DollarSign, category: "Finance" },

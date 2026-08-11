@@ -71,8 +71,7 @@ const NewOrderTab = ({ processOrder, isProcessing }) => {
 		setOrderType("dine_in");
 	}, []);
 
-	const [todaysSpecialRaw, setTodaysSpecialRaw] = useState([]);
-	const [activeCategory, setActiveCategory] = useState("Today's Special");
+	const [activeCategory, setActiveCategory] = useState("");
 
 	// Modals State
 	const [showNoteModal, setShowNoteModal] = useState(false);
@@ -120,19 +119,7 @@ const NewOrderTab = ({ processOrder, isProcessing }) => {
 	const [pendingPaymentMethod, setPendingPaymentMethod] = useState(null);
 	const [isCopied, setIsCopied] = useState(false);
 
-	// Derived Today's Specials with extras from master list
-	const todaysSpecialItems = useMemo(() => {
-		return todaysSpecialRaw.map((item) => {
-			const masterItem = allMenuItems.find(
-				(m) => String(m.id) === String(item.id)
-			);
-			return {
-				...item,
-				tags: masterItem?.tags || item?.tags || [],
-				available_extras: masterItem?.available_extras || [],
-			};
-		});
-	}, [todaysSpecialRaw, allMenuItems]);
+
 
 	const combos = useMemo(() => getActiveFixedCombos(), [allMenuItems]);
 
@@ -144,65 +131,9 @@ const NewOrderTab = ({ processOrder, isProcessing }) => {
 		[allMenuItems]
 	);
 
-	const fetchTodaysSpecialItems = async () => {
-		const today = getTodayWeekday();
-		try {
-			// 1. Find the latest published weekly menu
-			const { data: weeklyMenu, error: menuError } = await supabase
-				.from("weekly_menu")
-				.select("id")
-				.eq("status", "Published")
-				.order("created_at", { ascending: false })
-				.limit(1)
-				.maybeSingle();
-
-			if (menuError || !weeklyMenu) {
-				if (menuError && menuError.code !== "PGRST116") {
-					// PGRST116: no rows found, which is fine
-					console.error("Error fetching weekly menu:", menuError);
-				}
-				return;
-			}
-
-			// 2. Fetch today's items from that menu using the correct join name
-			const { data: items, error: itemsError } = await supabase
-				.from("weekly_menu_items")
-				.select(
-					`
-          menu_items:menu_item_id (
-            id,
-            name_burmese,
-            name_english,
-            name_thai,
-            price,
-            category,
-            image_url,
-            is_active,
-            quick_note_ids,
-            tags
-          )
-        `
-				)
-				.eq("weekly_menu_id", weeklyMenu.id)
-				.eq("weekday", today);
-
-			if (itemsError) throw itemsError;
-
-			// Flatten the data to get an array of menu_items
-			const specialItems = items
-				.map((item) => item.menu_items)
-				.filter((i) => i && i.category !== "Discontinued");
-
-			setTodaysSpecialRaw(specialItems);
-		} catch (error) {
-			console.error("Error fetching today's special items:", error);
-		}
-	};
-
 	useEffect(() => {
 		// Always fetch to ensure we have the latest data and extras
 		fetchAllMenuItems();
-		fetchTodaysSpecialItems();
 	}, [fetchAllMenuItems]);
 
 	// Dynamically get categories from the actual data
@@ -219,12 +150,6 @@ const NewOrderTab = ({ processOrder, isProcessing }) => {
 			  )
 			: combos;
 
-		const nightFilteredSpecials = isNightMode
-			? todaysSpecialItems.filter(
-					(item) => Array.isArray(item.tags) && item.tags.includes("night")
-			  )
-			: todaysSpecialItems;
-
 		const regularCategories = [
 			...new Set(nightFilteredMenuItems.map((item) => item.category)),
 		];
@@ -235,12 +160,8 @@ const NewOrderTab = ({ processOrder, isProcessing }) => {
 			allCategories.push("Combos");
 		}
 
-		if (nightFilteredSpecials.length > 0) {
-			allCategories.push("Today's Special");
-		}
-
 		return [...allCategories, ...regularCategories];
-	}, [menuItems, todaysSpecialItems, combos, isNightMode]);
+	}, [menuItems, combos, isNightMode]);
 
 	const filteredItems = React.useMemo(() => {
 		let items = [];
@@ -249,8 +170,6 @@ const NewOrderTab = ({ processOrder, isProcessing }) => {
 				...c,
 				isCombo: true,
 			}));
-		} else if (activeCategory === "Today's Special") {
-			items = todaysSpecialItems;
 		} else {
 			items = menuItems.filter((item) => item.category === activeCategory);
 		}
@@ -261,7 +180,7 @@ const NewOrderTab = ({ processOrder, isProcessing }) => {
 			);
 		}
 		return items;
-	}, [menuItems, todaysSpecialItems, activeCategory, combos, isNightMode]);
+	}, [menuItems, activeCategory, combos, isNightMode]);
 
 	// Set default category to the first available one
 	React.useEffect(() => {
@@ -522,36 +441,10 @@ const NewOrderTab = ({ processOrder, isProcessing }) => {
 									)}
 									<div className="mt-1 flex items-center justify-between">
 										<p className="text-primary font-bold">฿{item.price}</p>
-										{item.isCombo ? (
+										{item.isCombo && (
 											<span className="badge badge-primary badge-xs">
 												Combo Set
 											</span>
-										) : (
-											(() => {
-												const itemStock =
-													fullItem.effective_available_stock !== undefined
-														? fullItem.effective_available_stock
-														: fullItem.stock_quantity;
-												if (
-													itemStock !== undefined &&
-													itemStock !== null &&
-													itemStock !== -1
-												) {
-													return (
-														<span
-															className={`badge badge-xs font-semibold ${
-																itemStock === 0
-																	? "badge-error"
-																	: itemStock <= 5
-																	? "badge-warning"
-																	: "badge-info"
-															}`}>
-															{itemStock} left
-														</span>
-													);
-												}
-												return null;
-											})()
 										)}
 									</div>
 								</div>

@@ -58,15 +58,6 @@ const MenuFormModal = ({
 								Basic Information
 							</button>
 							<button
-								onClick={() => setActiveTab("stock")}
-								className={`px-4 py-2 font-medium text-sm rounded-t-lg transition-colors whitespace-nowrap ${
-									activeTab === "stock"
-										? "bg-primary text-white"
-										: "hover:bg-base-200"
-								}`}>
-								Stock Link
-							</button>
-							<button
 								onClick={() => setActiveTab("extras")}
 								className={`px-4 py-2 font-medium text-sm rounded-t-lg transition-colors whitespace-nowrap ${
 									activeTab === "extras"
@@ -82,7 +73,7 @@ const MenuFormModal = ({
 					<div className="p-6 pt-4">
 						<div
 							className={
-								activeTab === "basic" || activeTab === "stock"
+								activeTab === "basic"
 									? "block"
 									: "hidden"
 							}>

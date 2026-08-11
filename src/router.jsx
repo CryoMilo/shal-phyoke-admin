@@ -8,9 +8,6 @@ import App from "./App";
 import Login from "./pages/Login";
 import RootIndex from "./pages/RootIndex";
 import Dashboard from "./pages/Dashboard";
-import AllMenu from "./pages/AllMenu";
-import WeeklyMenu from "./pages/WeeklyMenu";
-import { MenuStatusManagement } from "./pages/MenuStatusManagement";
 import RegularMenu from "./pages/RegularMenu";
 import Orders from "./pages/Orders";
 import QuickNoteSettings from "./pages/QuickNoteSettings";
@@ -94,42 +91,12 @@ const bonusTrackerRoute = createRoute({
 });
 
 // Staff + Admin accessible routes
-const allMenuRoute = createRoute({
-	path: "/all-menu",
-	getParentRoute: () => rootRoute,
-	component: () => (
-		<ProtectedRoute>
-			<AllMenu />
-		</ProtectedRoute>
-	),
-});
-
 const regularMenuRoute = createRoute({
 	path: "/regular-menu",
 	getParentRoute: () => rootRoute,
 	component: () => (
 		<ProtectedRoute>
 			<RegularMenu />
-		</ProtectedRoute>
-	),
-});
-
-const weeklyMenuRoute = createRoute({
-	path: "/weekly-menu",
-	getParentRoute: () => rootRoute,
-	component: () => (
-		<ProtectedRoute>
-			<WeeklyMenu />
-		</ProtectedRoute>
-	),
-});
-
-const menuStatusRoute = createRoute({
-	path: "/menu-status",
-	getParentRoute: () => rootRoute,
-	component: () => (
-		<ProtectedRoute>
-			<MenuStatusManagement />
 		</ProtectedRoute>
 	),
 });
@@ -208,9 +175,6 @@ const routeTree = rootRoute.addChildren([
 	loginRoute,
 	rootIndexRoute,
 	dashboardRoute,
-	allMenuRoute,
-	weeklyMenuRoute,
-	menuStatusRoute,
 	regularMenuRoute,
 	comboManagerRoute,
 	ordersRoute,
