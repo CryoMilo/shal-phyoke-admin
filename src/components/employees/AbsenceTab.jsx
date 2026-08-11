@@ -6,8 +6,15 @@ import useEmployeeAbsenceStore from "../../stores/employeeAbsenceStore";
 import useStaffAccessStore from "../../stores/staffAccessStore";
 import DeleteConfirmationModal from "../common/DeleteConfirmationModal";
 import { showToast } from "../../utils/toastUtils";
-import { sumAbsencePoints } from "../../utils/bonusUtils";
 import ShalPhyokeDatePicker from "../common/ShalPhyokeDatePicker";
+
+const sumAbsencePoints = (absences = [], openingDays = [1, 2, 3, 4, 5, 6]) => {
+	return absences.reduce((total, absence) => {
+		const d = new Date(`${absence.absence_date}T12:00:00`);
+		if (!openingDays.includes(d.getDay())) return total; // Closed day - free pass
+		return total + (parseFloat(absence.points) || 0);
+	}, 0);
+};
 
 const AbsenceTab = () => {
 	const { employees, fetchEmployees } = useEmployeeStore();

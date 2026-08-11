@@ -1,5 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Users, CalendarDays } from "lucide-react";
+import { format } from "date-fns";
 import { PageHeader } from "../../components/common/PageHeader";
 import { Loading } from "../../components/common/Loading";
 import useBonusStore from "../../stores/bonusStore";
@@ -7,14 +8,16 @@ import PiggyBank from "./PiggyBank";
 import EmployeeBonusCard from "./EmployeeBonusCard";
 
 const BonusTracker = () => {
-	const { loading, totalPool, monthLabel, employeeBonuses, fetchBonusTracker } =
-		useBonusStore();
+	const { loading, bonuses, summary, fetchMonthlyBonuses } = useBonusStore();
+	const [selectedDate] = useState(new Date());
 
 	useEffect(() => {
-		fetchBonusTracker();
-	}, [fetchBonusTracker]);
+		fetchMonthlyBonuses(selectedDate);
+	}, [selectedDate, fetchMonthlyBonuses]);
 
-	if (loading && employeeBonuses.length === 0) {
+	const monthLabel = format(selectedDate, "MMMM yyyy");
+
+	if (loading && bonuses.length === 0) {
 		return <Loading message="Counting the coins..." />;
 	}
 
@@ -32,14 +35,14 @@ const BonusTracker = () => {
 
 			{/* Piggy Bank Hero */}
 			<div className="flex flex-col items-center mb-6">
-				<PiggyBank poolAmount={totalPool} caption="Growing every day! 🌱" />
+				<PiggyBank poolAmount={summary.totalPool} caption="Growing every day! 🌱" />
 			</div>
 
-			{totalPool === 0 && (
+			{summary.isAtLoss && (
 				<div className="alert alert-warning text-sm p-4 rounded-xl mb-6 shadow-sm border border-warning/20 flex items-start gap-3">
 					<span className="text-xl">⚠️</span>
 					<p>
-						Month currently operating at a net loss — estimated bonus pool resumes once profitable.
+						Month currently operating at a net loss — bonus pool will accumulate once revenue exceeds prorated overheads.
 					</p>
 				</div>
 			)}
@@ -50,17 +53,17 @@ const BonusTracker = () => {
 				<h2 className="text-lg font-bold">Your team's shares</h2>
 			</div>
 
-			{employeeBonuses.length > 0 ? (
+			{bonuses.length > 0 ? (
 				<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-					{employeeBonuses.map((emp) => (
+					{bonuses.map((log) => (
 						<EmployeeBonusCard
-							key={emp.employeeId}
-							name={emp.name}
-							position={emp.position}
-							absencePoints={emp.absencePoints}
-							penaltyPercentage={emp.penaltyPercentage}
-							baseShareAmount={emp.baseShareAmount}
-							estimatedBonus={emp.estimatedBonus}
+							key={log.id}
+							name={log.employee?.name || "Unknown"}
+							position={log.employee?.position || ""}
+							absencePoints={log.absence_points}
+							penaltyPercentage={log.penalty_percentage}
+							baseShareAmount={log.base_bonus_amount}
+							estimatedBonus={log.final_bonus_amount}
 						/>
 					))}
 				</div>
