@@ -7,7 +7,6 @@ import OrderHistoryTab from "../components/orders/OrderHistoryTab";
 import { showToast } from "../utils/toastUtils";
 import useQuickNoteStore from "../stores/quickNoteStore";
 import useOrderStore from "../stores/orderStore";
-import useMenuStore from "../stores/menuStore";
 import useStaffAccessStore from "../stores/staffAccessStore";
 import { sendToKitchenPrinter } from "../services/printerService";
 import { playDeliveryNotificationSound } from "../utils/soundUtils";
@@ -86,23 +85,6 @@ export const Orders = () => {
 				item_extra_prices: itemExtraPrices,
 			};
 
-			// Validate stock limits before proceeding
-			for (const item of cart) {
-				const stock = item.effective_available_stock;
-				if (stock !== undefined && stock !== -1 && stock !== null) {
-					const totalQty = cart
-						.filter((c) => c.id === item.id)
-						.reduce((sum, c) => sum + c.quantity, 0);
-					if (totalQty > stock) {
-						throw new Error(
-							`Cannot order ${totalQty} of ${
-								item.name_english || item.name_burmese
-							}. Only ${stock} available.`
-						);
-					}
-				}
-			}
-
 			let returnedOrderId;
 			let dbError;
 			let finalOrder = null;
@@ -118,70 +100,17 @@ export const Orders = () => {
 				finalOrder = data;
 				dbError = error;
 			} else {
-				// Aggregate cart items and their selected extras (add-ons) to pass all items to the stock deduction RPC
-				const rawItemsToDeduct = [];
-				cart.forEach((item) => {
-					const qty = item.quantity || 1;
-					rawItemsToDeduct.push({ id: item.id, qty });
-
-					const note = itemNotes[item.cart_id];
-					if (note && item.available_extras && item.available_extras.length > 0) {
-						const noteParts = note.split(",").map((s) => s.trim());
-						item.available_extras.forEach((extra) => {
-							const toppingName = extra.name_burmese || extra.name_english;
-							if (toppingName && noteParts.includes(toppingName)) {
-								const extraItemId = extra.extra_item_id || extra.extra_item?.id;
-								if (extraItemId) {
-									rawItemsToDeduct.push({ id: extraItemId, qty });
-								}
-							}
-						});
-					}
-				});
-
-				// Group by menu_item_id to sum quantities for duplicates
-				const groupedDeductions = {};
-				rawItemsToDeduct.forEach(({ id, qty }) => {
-					groupedDeductions[id] = (groupedDeductions[id] || 0) + qty;
-				});
-
-				const orderItemsPayload = Object.entries(groupedDeductions).map(([id, qty]) => ({
-					menu_item_id: id,
-					quantity: qty,
-				}));
-
-				// Use the RPC to place new order and deduct stock
-				const { data, error } = await supabase.rpc(
-					"place_order_with_stock_deduction",
-					{
-						p_customer_name: customerInfo?.name || null,
-						p_total_amount: totalAmount,
-						p_order_items: orderItemsPayload,
-					}
-				);
-				returnedOrderId = data;
+				const { data, error } = await supabase
+					.from("orders")
+					.insert(orderData)
+					.select()
+					.single();
+				returnedOrderId = data?.id;
+				finalOrder = data;
 				dbError = error;
-
-				// Since RPC might only set basic fields, update it with the rest of the POS data
-				if (!dbError && returnedOrderId) {
-					const { data: updatedOrder, error: updateError } = await supabase
-						.from("orders")
-						.update(orderData)
-						.eq("id", returnedOrderId)
-						.select()
-						.single();
-					dbError = updateError;
-					finalOrder = updatedOrder;
-				}
 			}
 
 			if (dbError) throw dbError;
-
-			// Deduct stock for ordered items and add-ons if creating a new order
-			if (!editingOrderId) {
-				// Refresh menu items in menuStore so stock count updates immediately across POS/Menu
-				useMenuStore.getState().fetchAllMenuItems();
-			}
 
 			// If we successfully processed a draft, delete it from our drafts list
 			if (editingDraftId) {
