@@ -45,7 +45,7 @@ export const ExpenseBreakdownCard = ({ salesData }) => {
 									฿{salesData.totalDailyExpenses.toFixed(2)}
 								</span>
 							</h4>
-							<span className="text-sm text-gray-500">
+							<span className="text-sm text-base-content/50">
 								{salesData.dailyExpenses?.length || 0} items
 							</span>
 						</div>
@@ -72,7 +72,7 @@ export const ExpenseBreakdownCard = ({ salesData }) => {
 									))}
 							</div>
 						) : (
-							<p className="text-sm text-gray-500 text-center py-2">
+							<p className="text-sm text-base-content/50 text-center py-2">
 								No daily expenses recorded
 							</p>
 						)}
@@ -88,7 +88,7 @@ export const ExpenseBreakdownCard = ({ salesData }) => {
 									฿{todayOverheadCost.toFixed(2)}
 								</span>
 							</h4>
-							<span className="text-sm text-gray-500">
+							<span className="text-sm text-base-content/50">
 								{salesData.pendingOverheads > 0 ? "Pending" : "All paid"}
 							</span>
 						</div>
@@ -126,7 +126,7 @@ export const ExpenseBreakdownCard = ({ salesData }) => {
 								)}
 							</div>
 						) : (
-							<p className="text-sm text-gray-500 text-center py-2">
+							<p className="text-sm text-base-content/50 text-center py-2">
 								All monthly overheads are paid
 							</p>
 						)}

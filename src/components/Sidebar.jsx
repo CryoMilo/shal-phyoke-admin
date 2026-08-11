@@ -273,7 +273,7 @@ const Sidebar = ({ children }) => {
 								if (isCollapsed) return null;
 								return (
 									<div key={`divider-${index}`} className="py-2">
-										<div className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-3">
+										<div className="text-xs font-semibold text-base-content/50 uppercase tracking-wider px-3">
 											{item.label}
 										</div>
 										<div className="divider my-1"></div>

@@ -194,7 +194,7 @@ const ItemNoteModal = ({ show, onClose, onSave, item }) => {
 					<button
 						type="button"
 						className={`btn btn-sm gap-2 normal-case ${
-							isTakeaway ? "btn-primary" : "btn-outline border-gray-200"
+							isTakeaway ? "btn-primary" : "btn-outline border-base-300"
 						}`}
 						onClick={() => setIsTakeaway(!isTakeaway)}>
 						<Package className="w-4 h-4" />
@@ -205,8 +205,8 @@ const ItemNoteModal = ({ show, onClose, onSave, item }) => {
 				<button
 					type="button"
 					onClick={onClose}
-					className="absolute top-5 right-4 p-2 hover:bg-gray-100 rounded-full transition-colors">
-					<X className="w-5 h-5 text-gray-500" />
+					className="absolute top-5 right-4 p-2 hover:bg-base-200 rounded-full transition-colors">
+					<X className="w-5 h-5 text-base-content/60" />
 				</button>
 
 				<div className="p-6 pb-2">
@@ -214,20 +214,20 @@ const ItemNoteModal = ({ show, onClose, onSave, item }) => {
 						{item?.name_burmese || "Notes"}
 					</h3>
 					{item?.name_english && (
-						<p className="text-sm text-gray-500 mt-1">{item.name_english}</p>
+						<p className="text-sm text-base-content/60 mt-1">{item.name_english}</p>
 					)}
 				</div>
 
 				<div className="px-6 py-4 space-y-6 max-h-[70vh] overflow-y-auto pb-24">
 					{isCombo && hasNoQuickNotes && hasNoExtras ? (
-						<div className="px-6 py-4 text-center text-sm text-gray-500">
+						<div className="px-6 py-4 text-center text-sm text-base-content/60">
 							Add any special instructions below
 						</div>
 					) : (
 						<>
 							{availableExtras.length > 0 && (
 								<div>
-									<div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
+									<div className="text-xs font-bold text-base-content/40 uppercase tracking-wider mb-3">
 										Toppings / Sides
 									</div>
 									<div className="flex flex-wrap gap-2">
@@ -241,8 +241,8 @@ const ItemNoteModal = ({ show, onClose, onSave, item }) => {
 													onClick={() => toggleTopping(toppingName)}
 													className={`px-4 py-2 rounded-full border text-sm font-medium transition-all ${
 														selectedToppings.includes(toppingName)
-															? "bg-primary text-white border-primary"
-															: "border-gray-200 text-gray-600 hover:border-primary"
+															? "bg-primary text-primary-content border-primary"
+															: "border-base-300 text-base-content/70 hover:border-primary"
 													}`}>
 													{toppingName}
 													{extra.additional_price > 0 && (
@@ -259,16 +259,16 @@ const ItemNoteModal = ({ show, onClose, onSave, item }) => {
 
 							{tasteCategories.length > 0 && (
 								<div>
-									<div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
+									<div className="text-xs font-bold text-base-content/40 uppercase tracking-wider mb-3">
 										Taste Profile
 									</div>
 									<div className="space-y-4">
 										{tasteCategories.map((cat) => (
 											<div key={cat.id} className="flex items-center gap-4">
-												<div className="w-20 text-sm font-semibold text-gray-700">
+												<div className="w-20 text-sm font-semibold text-base-content/80">
 													{cat.label}
 												</div>
-												<div className="flex flex-1 bg-gray-100 rounded-lg p-1">
+												<div className="flex flex-1 bg-base-200 rounded-lg p-1">
 													{(cat.options || []).map(
 														(level) => (
 															<button
@@ -282,8 +282,8 @@ const ItemNoteModal = ({ show, onClose, onSave, item }) => {
 																}
 																className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${
 																	tasteProfiles[cat.id] === level
-																		? "bg-white shadow-sm text-primary"
-																		: "text-gray-500 hover:text-gray-700"
+																		? "bg-base-100 shadow-sm text-primary"
+																		: "text-base-content/50 hover:text-base-content"
 																}`}>
 																{level}
 															</button>
@@ -300,7 +300,7 @@ const ItemNoteModal = ({ show, onClose, onSave, item }) => {
 								<div className="space-y-6">
 									{frequentNotes.map((note) => (
 										<div key={note.id}>
-											<div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
+											<div className="text-xs font-bold text-base-content/40 uppercase tracking-wider mb-3">
 												{note.label}
 											</div>
 											<div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -313,7 +313,7 @@ const ItemNoteModal = ({ show, onClose, onSave, item }) => {
 															className={`flex items-center justify-center p-3 rounded-xl border transition-all ${
 																isSelected
 																	? "bg-primary/10 text-primary border-primary"
-																	: "border-gray-100 hover:border-gray-200 text-gray-600"
+																	: "border-base-200 hover:border-base-300 text-base-content/70"
 															}`}
 															onClick={() => toggleCommonNote(option)}>
 															<span className="text-xs font-bold text-center">
@@ -331,13 +331,13 @@ const ItemNoteModal = ({ show, onClose, onSave, item }) => {
 					)}
 				</div>
 
-				<div className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
+				<div className="absolute bottom-0 left-0 right-0 p-4 bg-base-100 border-t border-base-200 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
 					<div className="flex items-center gap-2">
 						<div className="flex-1 relative">
 							<input
 								type="text"
 								placeholder="Custom Field..."
-								className="w-full input input-bordered bg-gray-50 border-none focus:ring-0 text-base h-12 pr-8"
+								className="w-full input input-bordered bg-base-200 border-none focus:ring-0 text-base h-12 pr-8"
 								value={customNote}
 								onChange={(e) => setCustomNote(e.target.value)}
 							/>

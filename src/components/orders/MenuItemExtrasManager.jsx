@@ -124,7 +124,7 @@ const MenuItemExtrasManager = ({ menuItemId }) => {
 			<div className="flex justify-between items-center">
 				<div>
 					<h3 className="font-semibold text-lg">Available Extras / Toppings</h3>
-					<p className="text-sm text-gray-500">
+					<p className="text-sm text-base-content/60">
 						Select which extras customers can add to this item
 					</p>
 				</div>
@@ -143,8 +143,8 @@ const MenuItemExtrasManager = ({ menuItemId }) => {
 				</div>
 			) : !Array.isArray(localExtras) || localExtras.length === 0 ? (
 				<div className="text-center py-8 bg-base-200 rounded-lg border border-dashed">
-					<p className="text-gray-500">No extras added yet</p>
-					<p className="text-xs text-gray-400 mt-1">
+					<p className="text-base-content/60">No extras added yet</p>
+					<p className="text-xs text-base-content/40 mt-1">
 						First, create items with category "Extra" in All Menu
 					</p>
 					<button
@@ -196,7 +196,7 @@ const MenuItemExtrasManager = ({ menuItemId }) => {
 										</span>
 									)}
 								</div>
-								<div className="flex items-center gap-4 text-sm text-gray-500 mt-1">
+								<div className="flex items-center gap-4 text-sm text-base-content/60 mt-1">
 									<span>+{extra?.additional_price || 0} THB</span>
 									<span>Max: {extra?.max_quantity || 1}</span>
 									{extra?.extra_item?.name_english && (
@@ -348,7 +348,7 @@ const ExtraFormModal = ({
 								required
 							/>
 							<label className="label">
-								<span className="label-text-alt text-gray-500">
+								<span className="label-text-alt text-base-content/60">
 									Extra cost for this topping (0 if included in base price)
 								</span>
 							</label>
@@ -388,7 +388,7 @@ const ExtraFormModal = ({
 								</span>
 							</label>
 							<label className="label">
-								<span className="label-text-alt text-gray-500">
+								<span className="label-text-alt text-base-content/60">
 									If checked, this extra will be automatically included unless
 									removed
 								</span>

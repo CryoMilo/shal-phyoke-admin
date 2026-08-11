@@ -22,7 +22,7 @@ export const SummaryCards = ({ salesData }) => {
 							<p className="text-3xl font-bold">
 								฿{salesData.totalIncome.toFixed(2)}
 							</p>
-							<span className="text-xs text-gray-500">
+							<span className="text-xs text-base-content/50">
 								{salesData.totalItems} items sold
 							</span>
 						</div>
@@ -50,7 +50,7 @@ export const SummaryCards = ({ salesData }) => {
 								<span className="badge badge-xs">
 									{salesData.dailyExpenses?.length || 0} items
 								</span>
-								<span className="text-xs text-gray-500">
+								<span className="text-xs text-base-content/50">
 									{salesData.totalIncome > 0
 										? (
 												(salesData.totalDailyExpenses / salesData.totalIncome) *

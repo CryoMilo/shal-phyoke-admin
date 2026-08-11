@@ -234,16 +234,13 @@ const DailyExpenses = () => {
 
 	const getCategoryColor = (categoryValue) => {
 		const colors = [
-			"bg-green-500",
-			"bg-blue-500",
-			"bg-yellow-500",
-			"bg-pink-500",
-			"bg-indigo-500",
-			"bg-teal-500",
-			"bg-orange-500",
-			"bg-purple-500",
-			"bg-cyan-500",
-			"bg-rose-500"
+			"badge-success",
+			"badge-info",
+			"badge-warning",
+			"badge-primary",
+			"badge-secondary",
+			"badge-accent",
+			"badge-neutral",
 		];
 		const index = mostUsedCategories.indexOf(categoryValue);
 		if (index !== -1 && index < colors.length) {
@@ -553,12 +550,12 @@ const DailyExpenses = () => {
 												<span
 													className={`badge ${getCategoryColor(
 														expense.category
-													)} text-white`}>
+													)}`}>
 													{getCategoryLabel(expense.category)}
 												</span>
 											</td>
 											<td>
-												<span className="text-sm text-gray-500">
+												<span className="text-sm text-base-content/60">
 													{expense.notes || "-"}
 												</span>
 											</td>

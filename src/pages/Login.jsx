@@ -44,7 +44,7 @@ const Login = () => {
 				<div className="card-body p-8">
 					<div className="flex flex-col items-center">
 						<div className="avatar mb-4">
-							<div className="w-24 rounded-full shadow-lg bg-white p-2">
+							<div className="w-24 rounded-full shadow-lg bg-base-200 p-2">
 								<img src={logo} alt="Shal Phyoke Logo" />
 							</div>
 						</div>

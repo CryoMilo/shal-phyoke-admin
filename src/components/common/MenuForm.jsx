@@ -272,7 +272,7 @@ const MenuForm = ({
 							disabled={loading}
 						/>
 						<label className="label">
-							<span className="label-text-alt text-gray-500">
+							<span className="label-text-alt text-base-content/60">
 								Alternative or search keywords for this item.
 							</span>
 						</label>
@@ -381,7 +381,7 @@ const MenuForm = ({
 							Quick Note Assignment
 						</span>
 					</label>
-					<p className="text-[10px] text-gray-500 mb-3 -mt-1 italic">
+					<p className="text-[10px] text-base-content/60 mb-3 -mt-1 italic">
 						Choose which note templates from the library should appear when
 						ordering this item.
 					</p>
@@ -440,7 +440,7 @@ const MenuForm = ({
 							Tag Assignment
 						</span>
 					</label>
-					<p className="text-[10px] text-gray-500 mb-3 -mt-1 italic">
+					<p className="text-[10px] text-base-content/60 mb-3 -mt-1 italic">
 						Select tags to categorize this item for special behaviors (e.g., Night menu).
 					</p>
 
@@ -508,7 +508,7 @@ const MenuForm = ({
 							/>
 							<div className="flex flex-col">
 								<span className="label-text font-medium">Vegan</span>
-								<span className="label-text-alt text-gray-500">
+								<span className="label-text-alt text-base-content/60">
 									Mark this item as vegan-friendly
 								</span>
 							</div>
@@ -540,7 +540,7 @@ const MenuForm = ({
 								/>
 								<div className="flex flex-col">
 									<span className="label-text font-medium">Menu Type</span>
-									<span className="label-text-alt text-gray-500">
+									<span className="label-text-alt text-base-content/60">
 										Regular - Always Available
 									</span>
 								</div>

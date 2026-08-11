@@ -350,7 +350,7 @@ const DailyCash = () => {
 										).toLocaleString()}
 									</h3>
 								</div>
-								<div className="p-2 bg-white/20 rounded-lg text-white">
+								<div className="p-2 bg-primary-content/20 rounded-lg text-primary-content">
 									<Banknote className="w-5 h-5" />
 								</div>
 							</div>

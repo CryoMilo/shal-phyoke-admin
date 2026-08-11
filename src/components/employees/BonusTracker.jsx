@@ -66,9 +66,9 @@ const BonusTracker = () => {
 				</div>
 			) : (
 				<div className="text-center py-12 bg-base-100 rounded-lg border border-base-200">
-					<Users className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-					<p className="text-gray-500 text-lg mb-2">No active employees</p>
-					<p className="text-sm text-gray-400">
+					<Users className="w-12 h-12 text-base-content/30 mx-auto mb-3" />
+					<p className="text-base-content/60 text-lg mb-2">No active employees</p>
+					<p className="text-sm text-base-content/40">
 						Bonus shares will appear here once employees are added
 					</p>
 				</div>

@@ -41,7 +41,7 @@ const MenuFormModal = ({
 							</button>
 						</div>
 						{editingMenu && (
-							<p className="text-sm text-gray-500 mt-1">
+							<p className="text-sm text-base-content/60 mt-1">
 								Editing: {editingMenu.name_english || editingMenu.name_burmese}
 							</p>
 						)}
@@ -52,7 +52,7 @@ const MenuFormModal = ({
 								onClick={() => setActiveTab("basic")}
 								className={`px-4 py-2 font-medium text-sm rounded-t-lg transition-colors whitespace-nowrap ${
 									activeTab === "basic"
-										? "bg-primary text-white"
+										? "bg-primary text-primary-content"
 										: "hover:bg-base-200"
 								}`}>
 								Basic Information
@@ -61,7 +61,7 @@ const MenuFormModal = ({
 								onClick={() => setActiveTab("extras")}
 								className={`px-4 py-2 font-medium text-sm rounded-t-lg transition-colors whitespace-nowrap ${
 									activeTab === "extras"
-										? "bg-primary text-white"
+										? "bg-primary text-primary-content"
 										: "hover:bg-base-200"
 								}`}>
 								Extras / Toppings
@@ -108,7 +108,7 @@ const MenuFormModal = ({
 											<h4 className="font-bold text-lg mb-2">
 												Item Not Created Yet
 											</h4>
-											<p className="text-sm text-gray-500 mb-6">
+											<p className="text-sm text-base-content/60 mb-6">
 												You need to save this menu item first before you can
 												manage its extras and toppings.
 											</p>

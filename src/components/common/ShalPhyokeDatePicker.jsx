@@ -215,7 +215,7 @@ const ShalPhyokeDatePicker = ({
 											onClick={() => handleDateSelect(date)}
 											className={`h-8 w-8 flex items-center justify-center rounded-lg text-xs font-semibold transition-all ${
 												isSelected
-													? "bg-primary text-white scale-110 shadow-md"
+													? "bg-primary text-primary-content scale-110 shadow-md"
 													: isDisabled
 													? "opacity-25 cursor-not-allowed"
 													: isCurrentMonthDay
@@ -264,7 +264,7 @@ const ShalPhyokeDatePicker = ({
 											onClick={() => handleMonthSelect(idx)}
 											className={`py-2 rounded-xl text-xs font-bold transition-all text-center ${
 												isSelected
-													? "bg-primary text-white shadow-md"
+													? "bg-primary text-primary-content shadow-md"
 													: isDisabled
 													? "opacity-25 cursor-not-allowed"
 													: "text-base-content hover:bg-primary/10 hover:text-primary"
