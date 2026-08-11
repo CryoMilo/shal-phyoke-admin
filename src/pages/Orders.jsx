@@ -130,15 +130,21 @@ export const Orders = () => {
 					id: returnedOrderId,
 					created_at: new Date().toISOString(),
 				};
-				sendToKitchenPrinter(orderToPrint).then(({ success, error }) => {
-					if (!success) {
-						console.error("Auto-print failed:", error);
-						showToast.warning("Order placed, but auto-print failed. Please print the kitchen ticket manually.");
-					}
-				}).catch((err) => {
-					console.error("Auto-print failed:", err);
-					showToast.warning("Order placed, but auto-print failed. Please print the kitchen ticket manually.");
-				});
+				sendToKitchenPrinter(orderToPrint)
+					.then(({ success, error }) => {
+						if (!success) {
+							console.error("Auto-print failed:", error);
+							showToast.warning(
+								"Order placed, but auto-print failed. Please print the kitchen ticket manually."
+							);
+						}
+					})
+					.catch((err) => {
+						console.error("Auto-print failed:", err);
+						showToast.warning(
+							"Order placed, but auto-print failed. Please print the kitchen ticket manually."
+						);
+					});
 			}
 
 			showToast.success("Order processed successfully!");
@@ -161,21 +167,21 @@ export const Orders = () => {
 						activeTab === "new-order" ? "tab-active font-bold" : ""
 					}`}
 					onClick={() => setActiveTab("new-order")}>
-					New Order
+					New
 				</button>
 				<button
 					className={`tab tab-lg ${
 						activeTab === "active-orders" ? "tab-active font-bold" : ""
 					}`}
 					onClick={() => setActiveTab("active-orders")}>
-					Active Orders
+					Active
 				</button>
 				<button
 					className={`tab tab-lg ${
 						activeTab === "order-history" ? "tab-active font-bold" : ""
 					}`}
 					onClick={() => setActiveTab("order-history")}>
-					Order History
+					History
 				</button>
 			</div>
 

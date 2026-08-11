@@ -1,6 +1,5 @@
 // components/NewOrderTab.jsx
 import React, { useState, useEffect, useMemo } from "react";
-import { supabase } from "../../services/supabase";
 import { Split, Copy, Check, FolderOpen } from "lucide-react";
 import ItemNoteModal from "./ItemNoteModal";
 import AddonSelectionModal from "./AddonSelectionModal";
@@ -12,19 +11,7 @@ import PaymentModal from "../common/PaymentModal";
 import { showToast } from "../../utils/toastUtils";
 import { generateOrderDetailsText } from "../../utils/orderUtils";
 import { isBaseItemAvailable } from "../../utils/stockUtils";
-
-const getTodayWeekday = () => {
-	const d = new Date();
-	const weekday = new Array(7);
-	weekday[0] = "Sunday";
-	weekday[1] = "Monday";
-	weekday[2] = "Tuesday";
-	weekday[3] = "Wednesday";
-	weekday[4] = "Thursday";
-	weekday[5] = "Friday";
-	weekday[6] = "Saturday";
-	return weekday[d.getDay()];
-};
+import MenuItemCard from "./MenuItemCard";
 
 const NewOrderTab = ({ processOrder, isProcessing }) => {
 	const { allMenuItems, fetchAllMenuItems, getActiveFixedCombos } =
@@ -118,8 +105,6 @@ const NewOrderTab = ({ processOrder, isProcessing }) => {
 	const [showPaymentModal, setShowPaymentModal] = useState(false);
 	const [pendingPaymentMethod, setPendingPaymentMethod] = useState(null);
 	const [isCopied, setIsCopied] = useState(false);
-
-
 
 	const combos = useMemo(() => getActiveFixedCombos(), [allMenuItems]);
 
@@ -390,66 +375,14 @@ const NewOrderTab = ({ processOrder, isProcessing }) => {
 				{/* Menu Items Grid */}
 				<div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
 					{filteredItems.length > 0 ? (
-						filteredItems.map((item) => {
-							const masterItem =
-								allMenuItems.find((m) => String(m.id) === String(item.id)) ||
-								item;
-							const fullItem = {
-								...item,
-								available_extras: masterItem.available_extras || [],
-							};
-							const isAvailable = isBaseItemAvailable(fullItem);
-
-							return (
-								<div
-									key={item.id}
-									className={`bg-base-100 border rounded-lg p-3 relative overflow-hidden transition-all ${
-										!isAvailable
-											? "grayscale opacity-50 cursor-not-allowed border-base-300"
-											: "cursor-pointer hover:shadow-md border-base-300 " +
-											  (item.isCombo
-													? "border-primary/30 ring-1 ring-primary/10"
-													: "")
-									}`}
-									onClick={() => handleItemClick(fullItem)}>
-									{!isAvailable && (
-										<div className="absolute inset-0 bg-base-200/20 z-10 flex items-center justify-center">
-											<span className="bg-error text-error-content text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-widest shadow-lg rotate-[-12deg]">
-												Out of Stock
-											</span>
-										</div>
-									)}
-									{item.isCombo && (
-										<div className="absolute top-0 right-0 bg-primary text-primary-content text-[8px] font-bold px-1.5 py-0.5 rounded-bl-lg uppercase tracking-tighter z-20">
-											Combo
-										</div>
-									)}
-									{item.image_url && (
-										<img
-											src={item.image_url}
-											alt={item.name_english}
-											className="w-full h-20 object-cover rounded mb-2"
-										/>
-									)}
-									<h3 className="font-semibold text-sm line-clamp-2">
-										{item.name_burmese}
-									</h3>
-									{item.name_english && (
-										<p className="text-xs text-base-content/70 truncate">
-											{item.name_english}
-										</p>
-									)}
-									<div className="mt-1 flex items-center justify-between">
-										<p className="text-primary font-bold">฿{item.price}</p>
-										{item.isCombo && (
-											<span className="badge badge-primary badge-xs">
-												Combo Set
-											</span>
-										)}
-									</div>
-								</div>
-							);
-						})
+						filteredItems.map((item) => (
+							<MenuItemCard
+								key={item.id}
+								item={item}
+								allMenuItems={allMenuItems}
+								onClick={handleItemClick}
+							/>
+						))
 					) : (
 						<div className="col-span-full text-center py-8 text-base-content/50">
 							No items found in {activeCategory}
