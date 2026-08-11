@@ -3,9 +3,9 @@ import { HeartCrack, ChevronDown, Sparkles } from "lucide-react";
 
 const formatCurrency = (amount) =>
 	new Intl.NumberFormat("en-US", {
-		minimumFractionDigits: 0,
-		maximumFractionDigits: 0,
-	}).format(Math.floor(amount) || 0);
+		minimumFractionDigits: 2,
+		maximumFractionDigits: 2,
+	}).format(amount || 0);
 
 /**
  * EmployeeBonusCard

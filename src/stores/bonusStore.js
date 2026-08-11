@@ -1,13 +1,7 @@
 import { create } from "zustand";
-import { format, startOfMonth, endOfMonth } from "date-fns";
+import { format, startOfMonth } from "date-fns";
 import { supabase } from "../services/supabase";
 import { showToast } from "../utils/toastUtils";
-import { toBangkokDateString, getBangkokDayRange } from "../utils/dateUtils";
-import {
-	computeMonthToDateProfit,
-	calculateEmployeeBonuses,
-} from "../utils/bonusUtils";
-import useStaffAccessStore from "./staffAccessStore";
 
 const useBonusStore = create((set, get) => ({
 	loading: false,
@@ -22,210 +16,84 @@ const useBonusStore = create((set, get) => ({
 	employeeBonuses: [], // [{ employeeId, name, position, absencePoints, penaltyPercentage, estimatedBonus, ... }]
 	lastUpdated: null,
 
-	/**
-	 * Fetches one day's worth of raw data (orders, aggregated sales, daily
-	 * expenses, daily cash, monthly overheads) in the exact shape that
-	 * processDashboardData (utils/processData.js) expects. Mirrors the
-	 * fetch logic already used in pages/Dashboard.jsx so figures match
-	 * exactly what's shown there.
-	 */
-	_fetchDayData: async (day, dateStr) => {
-		const { start, end } = getBangkokDayRange(day);
+	// New MTD states
+	bonuses: [],
+	summary: { totalPool: 0, MTDProfit: 0, isAtLoss: false, configSnapshot: null },
 
-		const [
-			{ data: orders, error: ordersError },
-			{ data: aggregatedSales, error: salesError },
-			{ data: dailyExpenses, error: expensesError },
-			{ data: dailyCash, error: cashError },
-			{ data: monthlyOverheads, error: overheadsError },
-		] = await Promise.all([
-			supabase
-				.from("orders")
-				.select(
-					"id, created_at, total_amount, delivery_fee, payment_method, order_items"
-				)
-				.eq("pos_order_status", "completed")
-				.eq("payment_status", "paid")
-				.gte("created_at", start)
-				.lte("created_at", end),
-			supabase
-				.from("monthly_sales")
-				.select(
-					`
-						menu_item_id,
-						menu_item_name_burmese,
-						menu_item_name_english,
-						menu_item_category,
-						menu_item_price,
-						quantity_sold,
-						total_revenue,
-						order_id,
-						payment_method
-					`
-				)
-				.eq("sale_date", dateStr),
-			supabase
-				.from("daily_expenses")
-				.select("id, amount, category, paid_by, description, notes")
-				.eq("date", dateStr),
-			supabase
-				.from("daily_cash")
-				.select("opening_balance, cash_collected, cash_deposited, notes")
-				.eq("date", dateStr)
-				.maybeSingle(),
-			supabase
-				.from("monthly_overheads")
-				.select(
-					"id, amount, category, description, due_date, paid_date, is_recurring, notes"
-				)
-				.eq("month", format(startOfMonth(day), "yyyy-MM-dd")),
-		]);
-
-		if (ordersError) console.error("Bonus: error fetching orders", ordersError);
-		if (salesError) console.error("Bonus: error fetching sales", salesError);
-		if (expensesError)
-			console.error("Bonus: error fetching daily expenses", expensesError);
-		if (cashError) console.error("Bonus: error fetching daily cash", cashError);
-		if (overheadsError)
-			console.error("Bonus: error fetching overheads", overheadsError);
-
-		return {
-			orders: orders || [],
-			aggregatedSales: aggregatedSales || [],
-			dailyExpenses: dailyExpenses || [],
-			dailyCash: dailyCash || {},
-			monthlyOverheads: monthlyOverheads || [],
-		};
-	},
-
-	/**
-	/**
-	 * Fetch the active bonus_config row covering "referenceDate" (effective_from <= referenceDate
-	 * and effective_to is null or >= referenceDate). Falls back to sane defaults if
-	 * none has been configured yet.
-	 */
-	_fetchActiveBonusConfig: async (referenceDate = new Date()) => {
-		const targetDateStr = toBangkokDateString(referenceDate);
-		try {
-			const { data, error } = await supabase
-				.from("bonus_config")
-				.select("*")
-				.lte("effective_from", targetDateStr)
-				.or(`effective_to.is.null,effective_to.gte.${targetDateStr}`)
-				.order("effective_from", { ascending: false })
-				.limit(1)
-				.maybeSingle();
-
-			if (error) throw error;
-
-			return (
-				data || {
-					pool_percentage: 10,
-					allowed_absences: 1,
-					penalty_tiers: { 2: 50, 3: 75, 4: 100 },
-				}
-			);
-		} catch (error) {
-			console.error("Error fetching bonus config, using defaults:", error);
-			return {
-				pool_percentage: 10,
-				allowed_absences: 1,
-				penalty_tiers: { 2: 50, 3: 75, 4: 100 },
-			};
-		}
-	},
-
-	/**
-	 * Fetch all absences for the current month, grouped by employee_id.
-	 */
-	_fetchCurrentMonthAbsencesByEmployee: async (referenceDate) => {
-		const monthStart = format(startOfMonth(referenceDate), "yyyy-MM-dd");
-		const monthEnd = format(endOfMonth(referenceDate), "yyyy-MM-dd");
-
-		const { data, error } = await supabase
-			.from("employee_absences")
-			.select("employee_id, absence_date, points")
-			.gte("absence_date", monthStart)
-			.lte("absence_date", monthEnd);
-
-		if (error) {
-			console.error("Error fetching absences for bonus calc:", error);
-			return {};
-		}
-
-		return (data || []).reduce((acc, absence) => {
-			if (!acc[absence.employee_id]) acc[absence.employee_id] = [];
-			acc[absence.employee_id].push(absence);
-			return acc;
-		}, {});
-	},
-
-	/**
-	 * Main entry point: computes the live month-to-date bonus pool and each
-	 * active employee's real-time estimated bonus share.
-	 */
-	fetchBonusTracker: async (referenceDate = new Date()) => {
+	fetchMonthlyBonuses: async (selectedDate = new Date()) => {
 		set({ loading: true, error: null });
 		try {
-			const { _fetchDayData, _fetchActiveBonusConfig, _fetchCurrentMonthAbsencesByEmployee } =
-				get();
+			const bonusMonth = format(startOfMonth(selectedDate), "yyyy-MM-01");
 
-			// 1. Active employees (only those currently active share the pool)
-			const { data: employees, error: employeesError } = await supabase
-				.from("employees")
-				.select("id, name, position, is_active")
-				.eq("is_active", true)
-				.order("name");
+			// Step 1: Trigger server-side recalculation
+			const { error: rpcError } = await supabase.rpc("calculate_monthly_employee_bonuses", {
+				p_bonus_month: bonusMonth,
+			});
+			if (rpcError) throw rpcError;
 
-			if (employeesError) throw employeesError;
+			// Step 2: Fetch stable records from log
+			const { data: logs, error: fetchError } = await supabase
+				.from("employee_bonus_log")
+				.select(`
+					*,
+					employee:employees (
+						id,
+						name,
+						position,
+						is_active
+					)
+				`)
+				.eq("bonus_month", bonusMonth)
+				.order("created_at", { ascending: true });
 
-			// 2. Retrieve openingDays from staffAccessStore
-			let openingDays = useStaffAccessStore.getState().openingDays;
-			if (!openingDays || openingDays.length === 0) {
-				await useStaffAccessStore.getState().fetchPermissions();
-				openingDays = useStaffAccessStore.getState().openingDays || [1, 2, 3, 4, 5, 6];
-			}
+			if (fetchError) throw fetchError;
 
-			// 3. Month-to-date accumulated profit, reusing processData.js per day
-			const monthToDate = await computeMonthToDateProfit(
-				_fetchDayData,
-				referenceDate,
-				openingDays
-			);
+			const totalPool = logs && logs.length > 0 ? parseFloat(logs[0].total_bonus_pool) : 0;
+			const configSnapshot = logs && logs.length > 0 ? logs[0].config_snapshot : null;
+			const poolPercentage = configSnapshot?.pool_percentage || 10;
+			const MTDProfit = poolPercentage > 0 ? (totalPool * 100) / poolPercentage : 0;
+			const isAtLoss = totalPool === 0;
 
-			// 4. Bonus configuration (pool %, absence allowance, penalty tiers)
-			const config = await _fetchActiveBonusConfig(referenceDate);
+			const summary = {
+				totalPool,
+				MTDProfit,
+				isAtLoss,
+				configSnapshot,
+			};
 
-			// 5. This month's absences per employee
-			const absencesByEmployee = await _fetchCurrentMonthAbsencesByEmployee(
-				referenceDate
-			);
-
-			// 6. Crunch the numbers
-			const { totalPool, poolPercentage, employeeBonuses } =
-				calculateEmployeeBonuses(
-					monthToDate.netProfit,
-					employees || [],
-					absencesByEmployee,
-					config,
-					openingDays
-				);
+			// Map logs to legacy employeeBonuses format for compatibility
+			const legacyEmployeeBonuses = (logs || []).map((log) => ({
+				employeeId: log.employee_id,
+				name: log.employee?.name || "Unknown",
+				position: log.employee?.position || "",
+				absencePoints: log.absence_points,
+				penaltyPercentage: log.penalty_percentage,
+				baseShareAmount: log.base_bonus_amount,
+				estimatedBonus: log.final_bonus_amount,
+			}));
 
 			set({
+				bonuses: logs || [],
+				summary,
 				totalPool,
+				monthToDateProfit: MTDProfit,
+				monthLabel: format(selectedDate, "MMMM yyyy"),
+				employeeBonuses: legacyEmployeeBonuses,
 				poolPercentage,
-				allowedAbsences: config?.allowed_absences ?? 1,
-				monthLabel: monthToDate.monthLabel,
-				monthToDateProfit: monthToDate.netProfit,
-				employeeBonuses,
+				allowedAbsences: configSnapshot?.allowed_absences ?? 1,
 				lastUpdated: new Date().toISOString(),
 				loading: false,
+				error: null,
 			});
 		} catch (error) {
-			console.error("Error computing bonus tracker:", error);
-			showToast.error("Failed to load bonus tracker");
+			console.error("Error fetching monthly bonuses:", error);
+			showToast.error("Failed to load bonus tracker: " + error.message);
 			set({ loading: false, error: error.message });
 		}
+	},
+
+	fetchBonusTracker: async (referenceDate = new Date()) => {
+		await get().fetchMonthlyBonuses(referenceDate);
 	},
 
 	bonusConfigs: [],

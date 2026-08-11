@@ -6,6 +6,11 @@
  * progress. The real pool amount is the headline number below the image.
  */
 const PiggyBank = ({ poolAmount = 0, caption = "" }) => {
+	const formattedAmount = new Intl.NumberFormat("en-US", {
+		minimumFractionDigits: 2,
+		maximumFractionDigits: 2,
+	}).format(poolAmount);
+
 	return (
 		<div className="flex flex-col items-center">
 			<img
@@ -17,7 +22,7 @@ const PiggyBank = ({ poolAmount = 0, caption = "" }) => {
 
 			<div className="text-center">
 				<div className="text-2xl sm:text-3xl font-extrabold text-primary tabular-nums">
-					฿{Math.floor(poolAmount).toLocaleString()}
+					฿{formattedAmount}
 				</div>
 				{caption && (
 					<p className="text-xs text-base-content/60 mt-0.5 font-medium">
