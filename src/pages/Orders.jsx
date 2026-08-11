@@ -124,9 +124,20 @@ export const Orders = () => {
 			}
 
 			// Trigger auto-print if enabled
-			if (autoPrintKitchenTicket && finalOrder) {
-				sendToKitchenPrinter(finalOrder).catch((err) => {
+			if (autoPrintKitchenTicket) {
+				const orderToPrint = finalOrder || {
+					...orderData,
+					id: returnedOrderId,
+					created_at: new Date().toISOString(),
+				};
+				sendToKitchenPrinter(orderToPrint).then(({ success, error }) => {
+					if (!success) {
+						console.error("Auto-print failed:", error);
+						showToast.warning("Order placed, but auto-print failed. Please print the kitchen ticket manually.");
+					}
+				}).catch((err) => {
 					console.error("Auto-print failed:", err);
+					showToast.warning("Order placed, but auto-print failed. Please print the kitchen ticket manually.");
 				});
 			}
 

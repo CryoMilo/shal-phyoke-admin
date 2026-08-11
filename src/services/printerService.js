@@ -7,10 +7,15 @@ import { supabase } from "./supabase";
  */
 export const sendToKitchenPrinter = async (order) => {
 	try {
-		const items = order.order_items.map((item) => ({
-			name: item.name_burmese || item.name_english,
-			qty: item.quantity,
-			price: item.price,
+		if (!order) {
+			throw new Error("Order data is missing");
+		}
+
+		const orderItems = Array.isArray(order.order_items) ? order.order_items : [];
+		const items = orderItems.map((item) => ({
+			name: item.name_burmese || item.name_english || "Unknown Item",
+			qty: item.quantity || item.qty || 1,
+			price: item.price || 0,
 			note: order.item_notes?.[item.cart_id] ?? null,
 		}));
 
