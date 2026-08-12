@@ -1,6 +1,6 @@
-// src/components/inventory/InventoryCard.jsx
 import React from "react";
 import { ShoppingCart, Minus, Plus, Package, Edit2 } from "lucide-react";
+import { getSafeImageUrl } from "../../utils/imageUtils";
 
 const InventoryCard = ({ item, onAddToMarketList, onUpdateStock, onClick }) => {
 	const stockStatus = () => {
@@ -39,9 +39,9 @@ const InventoryCard = ({ item, onAddToMarketList, onUpdateStock, onClick }) => {
 				<div
 					onClick={onClick}
 					className="cursor-pointer w-12 h-12 rounded-xl bg-base-200 flex items-center justify-center overflow-hidden flex-shrink-0 border border-base-300">
-					{item.image_url ? (
+					{getSafeImageUrl(item.image_url) ? (
 						<img
-							src={item.image_url}
+							src={getSafeImageUrl(item.image_url)}
 							alt={item.name}
 							className="w-full h-full object-cover"
 						/>

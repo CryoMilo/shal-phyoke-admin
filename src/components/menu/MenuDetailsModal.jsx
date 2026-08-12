@@ -1,7 +1,10 @@
 import React from "react";
 import { X } from "lucide-react";
+import { getSafeImageUrl } from "../../utils/imageUtils";
 
 const MenuDetailsModal = ({ selectedMenu, setShowDetailsModal }) => {
+	const safeImageUrl = getSafeImageUrl(selectedMenu.image_url);
+
 	return (
 		<div className="modal modal-open">
 			<div className="modal-box w-11/12 max-w-lg">
@@ -14,10 +17,10 @@ const MenuDetailsModal = ({ selectedMenu, setShowDetailsModal }) => {
 					</button>
 				</div>
 
-				{selectedMenu.image_url && (
+				{safeImageUrl && (
 					<div className="mb-4">
 						<img
-							src={selectedMenu.image_url}
+							src={safeImageUrl}
 							alt={selectedMenu.name_english}
 							className="w-full h-48 object-cover rounded-lg"
 						/>

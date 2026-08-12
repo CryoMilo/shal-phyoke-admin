@@ -7,6 +7,7 @@ import MenuFormModal from "../components/menu/MenuFormModal";
 import { CATEGORY_DISPLAY_NAMES } from "../constants";
 import { showToast } from "../utils/toastUtils";
 import DeleteConfirmationModal from "../components/common/DeleteConfirmationModal";
+import { getSafeImageUrl } from "../utils/imageUtils";
 
 const RegularMenuPage = () => {
 	const {
@@ -243,9 +244,9 @@ const RegularMenuPage = () => {
 										className="flex items-center justify-between p-3 bg-base-200 rounded-lg border border-base-300"
 									>
 										<div className="flex items-center gap-3">
-											{item.image_url && (
+											{getSafeImageUrl(item.image_url) && (
 												<img 
-													src={item.image_url} 
+													src={getSafeImageUrl(item.image_url)} 
 													alt={item.name_burmese} 
 													className="w-12 h-12 rounded object-cover"
 												/>

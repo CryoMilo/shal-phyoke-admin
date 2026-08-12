@@ -1,9 +1,11 @@
 import React from "react";
 import { Edit, Trash2 } from "lucide-react";
 import { isBaseItemAvailable } from "../../utils/menuAvailabilityUtils";
+import { getSafeImageUrl } from "../../utils/imageUtils";
 
 const RegularMenuCard = ({ menu, onEdit, onDelete, onToggleStatus }) => {
 	const isAvailable = isBaseItemAvailable(menu);
+	const safeImageUrl = getSafeImageUrl(menu.image_url);
 	const getCategoryBadgeColor = (category) => {
 		switch (category) {
 			case "Regular":
@@ -30,9 +32,9 @@ const RegularMenuCard = ({ menu, onEdit, onDelete, onToggleStatus }) => {
 		<div className="card bg-base-100 shadow-md hover:shadow-xl transition-shadow">
 			{/* Image */}
 			<figure className="relative h-48 bg-gray-200">
-				{menu.image_url ? (
+				{safeImageUrl ? (
 					<img
-						src={menu.image_url}
+						src={safeImageUrl}
 						alt={menu.name_english || menu.name_burmese}
 						className="w-full h-full object-cover"
 						onError={(e) => {

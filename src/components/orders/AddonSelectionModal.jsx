@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { X, Check, Utensils, AlertTriangle } from "lucide-react";
 import useOrderStore from "../../stores/orderStore";
+import { getSafeImageUrl } from "../../utils/imageUtils";
 
 const AddonSelectionModal = ({ isOpen, onClose, onConfirm, item }) => {
 	const [selectedExtras, setSelectedExtras] = useState([]);
@@ -161,7 +162,7 @@ const AddonSelectionModal = ({ isOpen, onClose, onConfirm, item }) => {
 									extra.name_english ||
 									extra.extra_item?.name_burmese ||
 									extra.extra_item?.name_english;
-								const imgUrl = extra.extra_item?.image_url;
+								const imgUrl = getSafeImageUrl(extra.extra_item?.image_url);
 
 								return (
 									<div

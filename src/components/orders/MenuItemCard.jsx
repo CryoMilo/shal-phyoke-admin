@@ -1,6 +1,6 @@
-// src/components/orders/MenuItemCard.jsx
 import React from "react";
 import { isBaseItemAvailable } from "../../utils/menuAvailabilityUtils";
+import { getSafeImageUrl } from "../../utils/imageUtils";
 
 const MenuItemCard = ({ item, allMenuItems, onClick }) => {
 	const masterItem =
@@ -10,6 +10,7 @@ const MenuItemCard = ({ item, allMenuItems, onClick }) => {
 		available_extras: masterItem?.available_extras || [],
 	};
 	const isAvailable = isBaseItemAvailable(fullItem);
+	const safeImageUrl = getSafeImageUrl(item.image_url);
 
 	return (
 		<div
@@ -34,7 +35,7 @@ const MenuItemCard = ({ item, allMenuItems, onClick }) => {
 			)}
 			<img
 				src={
-					item.image_url ||
+					safeImageUrl ||
 					"https://theme-assets.getbento.com/sensei/dbc3b64.sensei/assets/images/catering-item-placeholder-704x520.png"
 				}
 				alt={item.name_english}
