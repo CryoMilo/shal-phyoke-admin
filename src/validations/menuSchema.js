@@ -26,7 +26,6 @@ export const menuSchema = z.object({
 	is_vegan: z.boolean().default(false),
 	quick_note_ids: z.array(z.string()).default([]),
 	tags: z.array(z.string()).nullable().optional().default([]),
-	stock_quantity: z.number().int().nullable().default(-1),
 	aliases: z.any().optional().default([]),
 	requires_addon: z.boolean().default(false),
 	// Combo fields (optional/nullable since most items are not combos)
@@ -35,8 +34,6 @@ export const menuSchema = z.object({
 	combo_members: z.any().nullable().optional(),
 	combo_slots: z.any().nullable().optional(),
 	combo_note_summary: z.string().nullable().optional(),
-	stock_link_id: z.string().nullable().optional(),
-	stock_consumption_ratio: z.number().int().min(1).default(1),
 });
 
 // For regular menu page

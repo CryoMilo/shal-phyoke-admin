@@ -1,6 +1,6 @@
 import React from "react";
 import { Edit, Trash2 } from "lucide-react";
-import { isBaseItemAvailable } from "../../utils/stockUtils";
+import { isBaseItemAvailable } from "../../utils/menuAvailabilityUtils";
 
 const RegularMenuCard = ({ menu, onEdit, onDelete, onToggleStatus }) => {
 	const isAvailable = isBaseItemAvailable(menu);
@@ -57,7 +57,7 @@ const RegularMenuCard = ({ menu, onEdit, onDelete, onToggleStatus }) => {
 						className={`badge ${
 							isAvailable ? "badge-success" : "badge-error"
 						}`}>
-						{isAvailable ? "Available" : "Out of Stock"}
+						{isAvailable ? "Available" : "Unavailable"}
 					</span>
 				</div>
 			</figure>
@@ -93,9 +93,9 @@ const RegularMenuCard = ({ menu, onEdit, onDelete, onToggleStatus }) => {
 						}`}
 						onClick={handleToggleStatus}
 						title={
-							menu.is_active ? "Mark as Out of Stock" : "Mark as Available"
+							menu.is_active ? "Mark as Unavailable" : "Mark as Available"
 						}>
-						{menu.is_active ? "Out of Stock" : "Mark Available"}
+						{menu.is_active ? "Unavailable" : "Mark Available"}
 					</button>
 
 					{/* Action Buttons */}

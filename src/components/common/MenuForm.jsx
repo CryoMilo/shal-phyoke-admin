@@ -32,7 +32,6 @@ const MenuForm = ({
 		defaultValues: editingMenu
 			? {
 					...editingMenu,
-					stock_quantity: editingMenu?.stock_quantity ?? -1,
 					aliases: Array.isArray(editingMenu?.aliases)
 						? editingMenu.aliases.join(", ")
 						: typeof editingMenu?.aliases === "string"
@@ -42,8 +41,6 @@ const MenuForm = ({
 					is_vegan: editingMenu?.is_vegan ?? false,
 					quick_note_ids: editingMenu?.quick_note_ids ?? [],
 					tags: editingMenu?.tags ?? [],
-					stock_link_id: editingMenu?.stock_link_id ?? null,
-					stock_consumption_ratio: editingMenu?.stock_consumption_ratio ?? 1,
 					sensitive_ingredients: Array.isArray(
 						editingMenu.sensitive_ingredients
 					)
@@ -55,7 +52,6 @@ const MenuForm = ({
 					name_english: "",
 					name_thai: "",
 					price: 0,
-					stock_quantity: -1,
 					aliases: "",
 					category: "Rice",
 					taste_profile: "",
@@ -68,8 +64,6 @@ const MenuForm = ({
 					requires_addon: false,
 					quick_note_ids: [],
 					tags: [],
-					stock_link_id: null,
-					stock_consumption_ratio: 1,
 			  },
 	});
 
@@ -83,7 +77,6 @@ const MenuForm = ({
 		if (editingMenu) {
 			reset({
 				...editingMenu,
-				stock_quantity: editingMenu?.stock_quantity ?? -1,
 				aliases: Array.isArray(editingMenu?.aliases)
 					? editingMenu.aliases.join(", ")
 					: typeof editingMenu?.aliases === "string"
@@ -93,8 +86,6 @@ const MenuForm = ({
 				is_vegan: editingMenu?.is_vegan ?? false,
 				quick_note_ids: editingMenu?.quick_note_ids ?? [],
 				tags: editingMenu?.tags ?? [],
-				stock_link_id: editingMenu?.stock_link_id ?? null,
-				stock_consumption_ratio: editingMenu?.stock_consumption_ratio ?? 1,
 				sensitive_ingredients: Array.isArray(editingMenu.sensitive_ingredients)
 					? editingMenu.sensitive_ingredients.join(", ")
 					: editingMenu.sensitive_ingredients || "",
@@ -105,7 +96,6 @@ const MenuForm = ({
 				name_english: "",
 				name_thai: "",
 				price: 0,
-				stock_quantity: -1,
 				aliases: "",
 				category: "Rice",
 				taste_profile: "",
@@ -118,8 +108,6 @@ const MenuForm = ({
 				requires_addon: false,
 				quick_note_ids: [],
 				tags: [],
-				stock_link_id: null,
-				stock_consumption_ratio: 1,
 			});
 		}
 	}, [editingMenu, reset, isRegularOnly]);
@@ -137,9 +125,6 @@ const MenuForm = ({
 
 		const processedData = {
 			...data,
-			stock_quantity: -1,
-			stock_link_id: null,
-			stock_consumption_ratio: 1,
 			aliases: rawAliases,
 			sensitive_ingredients: data.sensitive_ingredients
 				? data.sensitive_ingredients.split(",").map((item) => item.trim())

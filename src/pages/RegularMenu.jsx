@@ -27,7 +27,7 @@ const RegularMenuPage = () => {
 	const [formLoading, setFormLoading] = useState(false);
 	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 	const [deleteTargetId, setDeleteTargetId] = useState(null);
-	const [showOutOfStockModal, setShowOutOfStockModal] = useState(false);
+	const [showUnavailableModal, setShowUnavailableModal] = useState(false);
 
 	useEffect(() => {
 		fetchRegularMenuItems();
@@ -35,7 +35,7 @@ const RegularMenuPage = () => {
 
 	// Get regular items only
 	const regularItems = allMenuItems.filter((item) => item.is_regular);
-	const outOfStockItems = regularItems.filter((item) => !item.is_active);
+	const unavailableItems = regularItems.filter((item) => !item.is_active);
 
 	// Filter menus based on active category
 	const filteredMenus =
@@ -132,10 +132,10 @@ const RegularMenuPage = () => {
 				buttons={[
 					{
 						type: "button",
-						label: `Out of Stock (${outOfStockItems.length})`,
-						shortlabel: `OOS (${outOfStockItems.length})`,
+						label: `Unavailable (${unavailableItems.length})`,
+						shortlabel: `Unavailable (${unavailableItems.length})`,
 						icon: Box,
-						onClick: () => setShowOutOfStockModal(true),
+						onClick: () => setShowUnavailableModal(true),
 						variant: "secondary",
 					},
 					{
@@ -220,24 +220,24 @@ const RegularMenuPage = () => {
 				isRegularOnly={true}
 			/>
 
-			{/* Out of Stock Items Modal */}
-			{showOutOfStockModal && (
+			{/* Unavailable Items Modal */}
+			{showUnavailableModal && (
 				<div className="modal modal-open">
 					<div className="modal-box max-w-2xl bg-base-100">
 						<div className="flex justify-between items-center mb-6">
 							<h3 className="font-bold text-xl flex items-center gap-2">
 								<Box className="w-6 h-6 text-error" />
-								Out of Stock Items
+								Unavailable Items
 							</h3>
 							<button 
 								className="btn btn-sm btn-circle btn-ghost"
-								onClick={() => setShowOutOfStockModal(false)}
+								onClick={() => setShowUnavailableModal(false)}
 							>✕</button>
 						</div>
 
-						{outOfStockItems.length > 0 ? (
+						{unavailableItems.length > 0 ? (
 							<div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
-								{outOfStockItems.map((item) => (
+								{unavailableItems.map((item) => (
 									<div 
 										key={item.id} 
 										className="flex items-center justify-between p-3 bg-base-200 rounded-lg border border-base-300"
@@ -269,18 +269,18 @@ const RegularMenuPage = () => {
 						) : (
 							<div className="text-center py-12 opacity-50">
 								<Box className="w-16 h-16 mx-auto mb-4 opacity-20" />
-								<p>No items are currently out of stock</p>
+								<p>No items are currently unavailable</p>
 							</div>
 						)}
 
 						<div className="modal-action">
 							<button 
 								className="btn btn-ghost"
-								onClick={() => setShowOutOfStockModal(false)}
+								onClick={() => setShowUnavailableModal(false)}
 							>Close</button>
 						</div>
 					</div>
-					<div className="modal-backdrop bg-black/50" onClick={() => setShowOutOfStockModal(false)}></div>
+					<div className="modal-backdrop bg-black/50" onClick={() => setShowUnavailableModal(false)}></div>
 				</div>
 			)}
 

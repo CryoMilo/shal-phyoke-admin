@@ -10,7 +10,7 @@ import useOrderStore from "../../stores/orderStore";
 import PaymentModal from "../common/PaymentModal";
 import { showToast } from "../../utils/toastUtils";
 import { generateOrderDetailsText } from "../../utils/orderUtils";
-import { isBaseItemAvailable } from "../../utils/stockUtils";
+import { isBaseItemAvailable } from "../../utils/menuAvailabilityUtils";
 import MenuItemCard from "./MenuItemCard";
 
 const NewOrderTab = ({ processOrder, isProcessing }) => {
@@ -264,7 +264,7 @@ const NewOrderTab = ({ processOrder, isProcessing }) => {
 						{visibleOrderTypes.map((type) => (
 							<button
 								key={type}
-								className={`btn btn-sm ${
+								className={`btn btn-sm active:scale-95 transition-transform duration-100 ease-out ${
 									orderType === type ? "btn-primary" : "btn-outline"
 								}`}
 								onClick={() => handleOrderTypeToggle(type)}>
@@ -272,7 +272,7 @@ const NewOrderTab = ({ processOrder, isProcessing }) => {
 							</button>
 						))}
 						<button
-							className="btn btn-sm btn-outline btn-secondary gap-1"
+							className="btn btn-sm btn-outline btn-secondary gap-1 active:scale-95 transition-transform duration-100 ease-out"
 							onClick={() => setShowDraftsModal(true)}>
 							<FolderOpen className="w-4 h-4" />
 							Drafts
@@ -346,7 +346,7 @@ const NewOrderTab = ({ processOrder, isProcessing }) => {
 						{categories.map((category) => (
 							<button
 								key={category}
-								className={`btn btn-sm whitespace-nowrap ${
+								className={`btn btn-sm whitespace-nowrap active:scale-95 transition-transform duration-100 ease-out ${
 									activeCategory === category ? "btn-primary" : "btn-outline"
 								}`}
 								onClick={() => setActiveCategory(category)}>
@@ -438,7 +438,7 @@ const NewOrderTab = ({ processOrder, isProcessing }) => {
 								</div>
 								<div className="flex items-center gap-1 bg-base-200 rounded-full px-1">
 									<button
-										className="btn btn-xs btn-circle btn-ghost"
+										className="btn btn-xs btn-circle btn-ghost active:scale-90 transition-transform duration-100 ease-out"
 										onClick={() => updateQuantity(item.cart_id, -1)}>
 										-
 									</button>
@@ -446,7 +446,7 @@ const NewOrderTab = ({ processOrder, isProcessing }) => {
 										{item.quantity}
 									</span>
 									<button
-										className="btn btn-xs btn-circle btn-ghost"
+										className="btn btn-xs btn-circle btn-ghost active:scale-90 transition-transform duration-100 ease-out"
 										onClick={() => updateQuantity(item.cart_id, 1)}>
 										+
 									</button>
@@ -546,7 +546,7 @@ const NewOrderTab = ({ processOrder, isProcessing }) => {
 				{(orderType === "dine_in" || orderType === "takeaway") && (
 					<div className="mt-3">
 						<button
-							className="btn btn-secondary btn-sm w-full text-white"
+							className="btn btn-secondary btn-sm w-full text-white active:scale-95 transition-transform duration-100 ease-out"
 							onClick={() => setShowTableModal(true)}>
 							{tableNumber ? `Table ${tableNumber}` : "Select Table"}
 						</button>
@@ -564,7 +564,7 @@ const NewOrderTab = ({ processOrder, isProcessing }) => {
 						{["unpaid", "cash", "qr"].map((method) => (
 							<button
 								key={method}
-								className={`btn btn-sm flex-1 ${
+								className={`btn btn-sm flex-1 active:scale-95 transition-transform duration-100 ease-out ${
 									paymentMethod === method ? "btn-primary" : "btn-outline"
 								}`}
 								onClick={() => handlePaymentMethodClick(method)}>
@@ -587,7 +587,7 @@ const NewOrderTab = ({ processOrder, isProcessing }) => {
 						{visibleOrderTypes.map((type) => (
 							<button
 								key={type}
-								className={`btn btn-sm flex-1 ${
+								className={`btn btn-sm flex-1 active:scale-95 transition-transform duration-100 ease-out ${
 									orderType === type ? "btn-primary" : "btn-outline"
 								}`}
 								onClick={() => handleOrderTypeToggle(type)}>
@@ -614,7 +614,7 @@ const NewOrderTab = ({ processOrder, isProcessing }) => {
 				{/* Action Buttons */}
 				<div className="mt-6 space-y-2">
 					<button
-						className="btn btn-primary w-full"
+						className="btn btn-primary w-full active:scale-95 transition-transform duration-100 ease-out"
 						disabled={cart.length === 0 || isProcessing}
 						onClick={processOrder}>
 						{isProcessing ? (
@@ -627,13 +627,13 @@ const NewOrderTab = ({ processOrder, isProcessing }) => {
 						)}
 					</button>
 					<button
-						className="btn btn-outline btn-xs w-full"
+						className="btn btn-outline btn-xs w-full active:scale-95 transition-transform duration-100 ease-out"
 						onClick={clearCart}
 						disabled={isProcessing}>
 						Clear Order
 					</button>
 					<button
-						className="btn btn-secondary btn-outline btn-xs w-full mt-2"
+						className="btn btn-secondary btn-outline btn-xs w-full mt-2 active:scale-95 transition-transform duration-100 ease-out"
 						onClick={saveCurrentToDraft}
 						disabled={cart.length === 0 || isProcessing}>
 						Save to Draft

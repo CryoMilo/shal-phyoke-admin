@@ -271,16 +271,13 @@ const useMenuStore = create(
 								// Flatten for easier access in UI if needed, but keeping original structure too
 								name_burmese: extra.extra_item.name_burmese,
 								name_english: extra.extra_item.name_english,
-								effective_available_stock: -1,
 							});
 						}
 						return acc;
 					}, {});
 
-					// Attach extras to menu items
 					const menuItemsWithExtras = (menuItems || []).map((item) => ({
 						...item,
-						effective_available_stock: -1,
 						available_extras: extrasByMenuItem[item.id] || [],
 					}));
 

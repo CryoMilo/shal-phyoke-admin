@@ -1,6 +1,6 @@
 // src/components/orders/MenuItemCard.jsx
 import React from "react";
-import { isBaseItemAvailable } from "../../utils/stockUtils";
+import { isBaseItemAvailable } from "../../utils/menuAvailabilityUtils";
 
 const MenuItemCard = ({ item, allMenuItems, onClick }) => {
 	const masterItem =
@@ -13,17 +13,17 @@ const MenuItemCard = ({ item, allMenuItems, onClick }) => {
 
 	return (
 		<div
-			className={`bg-base-100 border rounded-lg p-3 relative overflow-hidden transition-all ${
+			className={`bg-base-100 border rounded-lg p-3 relative overflow-hidden transition-all duration-100 ease-out ${
 				!isAvailable
 					? "grayscale opacity-50 cursor-not-allowed border-base-300"
-					: "cursor-pointer hover:shadow-md border-base-300 " +
+					: "cursor-pointer hover:shadow-md border-base-300 active:scale-95 active:shadow-inner " +
 					  (item.isCombo ? "border-primary/30 ring-1 ring-primary/10" : "")
 			}`}
-			onClick={() => onClick(fullItem)}>
+			onClick={() => isAvailable && onClick(fullItem)}>
 			{!isAvailable && (
 				<div className="absolute inset-0 bg-base-200/20 z-10 flex items-center justify-center">
 					<span className="bg-error text-error-content text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-widest shadow-lg rotate-[-12deg]">
-						Out of Stock
+						Unavailable
 					</span>
 				</div>
 			)}

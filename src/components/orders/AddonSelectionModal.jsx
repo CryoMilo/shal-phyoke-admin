@@ -19,7 +19,7 @@ const AddonSelectionModal = ({ isOpen, onClose, onConfirm, item }) => {
 
 	const [quantity, setQuantity] = useState(1);
 
-	// Local helper to check if addon is available based on live stock
+	// Local helper to check if addon is available based on active status
 	const checkAddonAvailability = (extra) => {
 		if (!extra) return false;
 		if (extra.extra_item && extra.extra_item.is_active === false) return false;
@@ -29,9 +29,9 @@ const AddonSelectionModal = ({ isOpen, onClose, onConfirm, item }) => {
 	useEffect(() => {
 		if (isOpen) {
 			setQuantity(1);
-			const firstInStock = availableExtras.find((e) => checkAddonAvailability(e));
-			if (firstInStock && !allowNoAddon) {
-				setSelectedExtras([firstInStock]);
+			const firstActiveAddon = availableExtras.find((e) => checkAddonAvailability(e));
+			if (firstActiveAddon && !allowNoAddon) {
+				setSelectedExtras([firstActiveAddon]);
 			} else {
 				setSelectedExtras([]);
 			}
@@ -154,7 +154,7 @@ const AddonSelectionModal = ({ isOpen, onClose, onConfirm, item }) => {
 
 							{/* Linked Add-on Options */}
 							{availableExtras.map((extra) => {
-								const inStock = extra.extra_item ? extra.extra_item.is_active !== false : true;
+								const isAvailable = extra.extra_item ? extra.extra_item.is_active !== false : true;
 								const isSelected = selectedExtras.some(e => e.id === extra.id);
 								const toppingName =
 									extra.name_burmese ||
@@ -166,9 +166,9 @@ const AddonSelectionModal = ({ isOpen, onClose, onConfirm, item }) => {
 								return (
 									<div
 										key={extra.id}
-										onClick={() => inStock && toggleExtra(extra)}
+										onClick={() => isAvailable && toggleExtra(extra)}
 										className={`relative flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${
-											!inStock
+											!isAvailable
 												? "border-base-200 bg-base-200/40 opacity-50 cursor-not-allowed"
 												: isSelected
 												? "border-primary bg-primary/5 ring-1 ring-primary/20 cursor-pointer shadow-xs"
@@ -195,9 +195,9 @@ const AddonSelectionModal = ({ isOpen, onClose, onConfirm, item }) => {
 												<span className="text-xs font-bold text-primary">
 													+{extra.additional_price || 0}฿
 												</span>
-												{!inStock && (
+												{!isAvailable && (
 													<span className="badge badge-error badge-xs font-bold text-[9px]">
-														Out of Stock
+														Unavailable
 													</span>
 												)}
 											</div>
@@ -217,7 +217,7 @@ const AddonSelectionModal = ({ isOpen, onClose, onConfirm, item }) => {
 							availableExtras.every((e) => e.extra_item && e.extra_item.is_active === false) && (
 								<div className="alert alert-error text-xs p-3 rounded-xl">
 									<AlertTriangle className="w-4 h-4 shrink-0" />
-									<span>All add-on choices are currently out of stock.</span>
+									<span>All add-on choices are currently unavailable.</span>
 								</div>
 							)}
 					</div>
