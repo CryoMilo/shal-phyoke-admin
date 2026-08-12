@@ -1,6 +1,6 @@
 import React from "react";
 import { isBaseItemAvailable } from "../../utils/menuAvailabilityUtils";
-import { getSafeImageUrl } from "../../utils/imageUtils";
+// import { getSafeImageUrl } from "../../utils/imageUtils";
 
 const MenuItemCard = ({ item, allMenuItems, onClick }) => {
 	const masterItem =
@@ -10,11 +10,11 @@ const MenuItemCard = ({ item, allMenuItems, onClick }) => {
 		available_extras: masterItem?.available_extras || [],
 	};
 	const isAvailable = isBaseItemAvailable(fullItem);
-	const safeImageUrl = getSafeImageUrl(item.image_url);
+	// const safeImageUrl = getSafeImageUrl(item.image_url);
 
 	return (
 		<div
-			className={`bg-base-100 border rounded-lg p-3 relative overflow-hidden transition-all duration-100 ease-out ${
+			className={`bg-base-100 border rounded-lg p-5 relative overflow-hidden transition-all duration-100 ease-out ${
 				!isAvailable
 					? "grayscale opacity-50 cursor-not-allowed border-base-300"
 					: "cursor-pointer hover:shadow-md border-base-300 active:scale-95 active:shadow-inner " +
@@ -33,15 +33,15 @@ const MenuItemCard = ({ item, allMenuItems, onClick }) => {
 					Combo
 				</div>
 			)}
-			<img
+			{/* <img
 				src={
 					safeImageUrl ||
 					"https://theme-assets.getbento.com/sensei/dbc3b64.sensei/assets/images/catering-item-placeholder-704x520.png"
 				}
 				alt={item.name_english}
 				className="w-full h-20 object-cover rounded mb-2"
-			/>
-			<h3 className="font-semibold text-sm line-clamp-2">
+			/> */}
+			<h3 className="font-semibold text-lg line-clamp-4">
 				{item.name_burmese}
 			</h3>
 			{item.name_english && (
