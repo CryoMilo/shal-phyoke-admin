@@ -1,7 +1,17 @@
 // src/components/orders/DeliveryPagerModal.jsx
 import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { X, Printer, Phone, MapPin, Truck, DollarSign, MessageSquare, Clipboard, Home } from "lucide-react";
+import {
+	X,
+	Printer,
+	Phone,
+	MapPin,
+	Truck,
+	DollarSign,
+	MessageSquare,
+	Clipboard,
+	Home,
+} from "lucide-react";
 import { supabase } from "../../services/supabase";
 import { showToast } from "../../utils/toastUtils";
 
@@ -13,22 +23,15 @@ const BASE_INSTRUCTIONS = [
 	{
 		id: "building",
 		th: (building) => `ส่งที่ตึก ${building || "..."} / ชั้น...`,
-		en: (building) => `Deliver to Building ${building || "..."}...`
-	}
+		en: (building) => `Deliver to Building ${building || "..."}...`,
+	},
 ];
 
 const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
 	const [selectedInstructions, setSelectedInstructions] = useState(["call"]); // Contains IDs e.g. ["call", "building"]
 	const [isSubmitting, setIsSubmitting] = useState(false);
 
-	const {
-		register,
-		handleSubmit,
-		setValue,
-		watch,
-		reset,
-		formState: { errors }
-	} = useForm({
+	const { register, handleSubmit, setValue, watch, reset } = useForm({
 		defaultValues: {
 			dispatchText: "",
 			customerPhone: "",
@@ -37,14 +40,12 @@ const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
 			riderPlate: "",
 			isPrepaid: true,
 			amountToPay: 0,
-			customNote: ""
-		}
+			customNote: "",
+		},
 	});
 
 	const isPrepaid = watch("isPrepaid");
 	const buildingInfo = watch("buildingInfo");
-	const customerPhone = watch("customerPhone");
-	const customerAddress = watch("customerAddress");
 
 	// Sync with order props on open/change
 	useEffect(() => {
@@ -58,7 +59,7 @@ const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
 				riderPlate: "",
 				isPrepaid: defaultPrepaid,
 				amountToPay: defaultPrepaid ? 0 : Number(order.total_amount || 0),
-				customNote: ""
+				customNote: "",
 			});
 			setSelectedInstructions(["call"]);
 		}
@@ -96,6 +97,22 @@ const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
 		}
 	};
 
+	// Paste text from clipboard using browser API
+	const handlePasteFromClipboard = async () => {
+		try {
+			const text = await navigator.clipboard.readText();
+			if (text) {
+				handleDispatchTextChange(text);
+				showToast.success("Dispatch message pasted from clipboard!");
+			} else {
+				showToast.error("Clipboard is empty.");
+			}
+		} catch (error) {
+			console.error("Failed to read clipboard:", error);
+			showToast.error("Clipboard access denied. Please paste manually.");
+		}
+	};
+
 	const toggleInstruction = (id) => {
 		setSelectedInstructions((prev) =>
 			prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
@@ -108,8 +125,8 @@ const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
 		setIsSubmitting(true);
 		try {
 			// Map selected instruction IDs to evaluated Thai strings
-			const instructionsToSave = selectedInstructions.map(id => {
-				const inst = BASE_INSTRUCTIONS.find(i => i.id === id);
+			const instructionsToSave = selectedInstructions.map((id) => {
+				const inst = BASE_INSTRUCTIONS.find((i) => i.id === id);
 				if (id === "building") {
 					return `ส่งที่ตึก ${data.buildingInfo || "..."} / ชั้น...`;
 				}
@@ -119,15 +136,15 @@ const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
 			const jobData = {
 				order_id: order.id,
 				customer_name: order.customer_name || "Unknown",
-				customer_phone: data.customerPhone,
-				customer_address: data.customerAddress,
+				customer_phone: data.customerPhone || null,
+				customer_address: data.customerAddress || null,
 				building_info: data.buildingInfo.trim() || null,
-				rider_plate: data.riderPlate,
+				rider_plate: data.riderPlate || null,
 				amount_to_pay: Number(data.amountToPay),
 				is_prepaid: data.isPrepaid, // bool in database
 				instructions: instructionsToSave,
 				custom_note: data.customNote.trim() || null,
-				status: "pending"
+				status: "pending",
 			};
 
 			const { error } = await supabase
@@ -168,22 +185,31 @@ const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
 					<button
 						type="button"
 						className="btn btn-sm btn-circle btn-ghost active:scale-90 transition-transform duration-100 ease-out"
-						onClick={onClose}
-					>
+						onClick={onClose}>
 						<X className="w-4 h-4" />
 					</button>
 				</div>
 
 				{/* Scrollable Form Body */}
-				<form onSubmit={handleSubmit(onSubmit)} className="flex-1 overflow-y-auto p-5 space-y-5">
+				<form
+					onSubmit={handleSubmit(onSubmit)}
+					className="flex-1 overflow-y-auto p-5 space-y-5">
 					{/* Smart Paste Area */}
 					<div className="bg-base-200/50 p-4 rounded-xl border border-base-300">
-						<label className="label py-0 mb-1.5 flex items-center gap-1.5">
-							<Clipboard className="w-4 h-4 text-secondary" />
-							<span className="label-text font-bold text-base-content/85 text-xs uppercase tracking-wider">
-								Paste Dispatch Message / Link (Bolt Send)
-							</span>
-						</label>
+						<div className="flex justify-between items-center mb-1.5">
+							<label className="label py-0 flex items-center gap-1.5">
+								<Clipboard className="w-4 h-4 text-secondary" />
+								<span className="label-text font-bold text-base-content/85 text-xs uppercase tracking-wider">
+									Tracking Link
+								</span>
+							</label>
+							<button
+								type="button"
+								onClick={handlePasteFromClipboard}
+								className="btn btn-xs btn-outline btn-secondary gap-1 active:scale-95 transition-all">
+								Paste
+							</button>
+						</div>
 						<textarea
 							placeholder="Paste the full delivery dispatch message here. We will auto-fill the address and vehicle plate details."
 							className="textarea textarea-bordered textarea-sm w-full bg-base-100 h-20 text-xs focus:textarea-primary"
@@ -199,14 +225,17 @@ const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
 							<label className="label py-0 mb-1">
 								<span className="label-text font-semibold flex items-center gap-1 text-xs text-base-content/80">
 									<Phone className="w-3.5 h-3.5 text-base-content/50" />
-									Customer Phone
+									Customer Phone{" "}
+									<span className="text-[10px] opacity-40 font-normal ml-1">
+										(Optional)
+									</span>
 								</span>
 							</label>
 							<input
 								type="tel"
 								placeholder="e.g. 091-234-5678"
-								className={`input input-bordered input-sm w-full text-sm focus:input-primary ${errors.customerPhone ? "input-error" : ""}`}
-								{...register("customerPhone", { required: true })}
+								className="input input-bordered input-sm w-full text-sm focus:input-primary"
+								{...register("customerPhone")}
 							/>
 						</div>
 
@@ -215,13 +244,16 @@ const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
 							<label className="label py-0 mb-1">
 								<span className="label-text font-semibold flex items-center gap-1 text-xs text-base-content/80">
 									<MapPin className="w-3.5 h-3.5 text-base-content/50" />
-									Customer Address
+									Customer Address{" "}
+									<span className="text-[10px] opacity-40 font-normal ml-1">
+										(Optional)
+									</span>
 								</span>
 							</label>
 							<textarea
 								placeholder="Delivery location / Address detail"
-								className={`textarea textarea-bordered textarea-sm w-full text-sm h-16 focus:textarea-primary ${errors.customerAddress ? "textarea-error" : ""}`}
-								{...register("customerAddress", { required: true })}
+								className="textarea textarea-bordered textarea-sm w-full text-sm h-16 focus:textarea-primary"
+								{...register("customerAddress")}
 							/>
 						</div>
 
@@ -230,15 +262,51 @@ const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
 							<label className="label py-0 mb-1">
 								<span className="label-text font-semibold flex items-center gap-1 text-xs text-base-content/80">
 									<Home className="w-3.5 h-3.5 text-base-content/50" />
-									Building Info
+									Building Info{" "}
+									<span className="text-[10px] opacity-40 font-normal ml-1">
+										(Optional)
+									</span>
 								</span>
 							</label>
 							<input
 								type="text"
 								placeholder="e.g. Tower A, Fl. 12, Room 1204"
-								className="input input-bordered input-sm w-full text-sm focus:input-primary"
+								className="input input-bordered input-sm w-full text-sm focus:input-primary mb-2"
 								{...register("buildingInfo")}
 							/>
+							{/* Quick Buttons */}
+							<div className="flex flex-wrap gap-1.5 items-center">
+								<span className="text-[10px] uppercase opacity-55 font-bold mr-1">
+									Quick Select:
+								</span>
+								{[
+									"A",
+									"B",
+									"C",
+									"D",
+									"E",
+									"F",
+									"G",
+									"H",
+									"1",
+									"2",
+									"3",
+									"4",
+									"5",
+								].map((val) => (
+									<button
+										key={val}
+										type="button"
+										onClick={() => setValue("buildingInfo", val)}
+										className={`btn btn-xs ${
+											watch("buildingInfo") === val
+												? "btn-primary"
+												: "btn-outline border-base-300"
+										} rounded`}>
+										{val}
+									</button>
+								))}
+							</div>
 						</div>
 
 						{/* Rider Vehicle & Plate */}
@@ -246,7 +314,10 @@ const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
 							<label className="label py-0 mb-1">
 								<span className="label-text font-semibold flex items-center gap-1 text-xs text-base-content/80">
 									<Truck className="w-3.5 h-3.5 text-base-content/50" />
-									Rider Vehicle / Plate
+									Rider Vehicle / Plate{" "}
+									<span className="text-[10px] opacity-40 font-normal ml-1">
+										(Optional)
+									</span>
 								</span>
 							</label>
 							<input
@@ -289,7 +360,10 @@ const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
 								step="0.01"
 								disabled={!isPrepaid}
 								className="input input-bordered input-sm w-full text-sm focus:input-primary text-right"
-								{...register("amountToPay", { required: true, valueAsNumber: true })}
+								{...register("amountToPay", {
+									required: true,
+									valueAsNumber: true,
+								})}
 							/>
 						</div>
 					</div>
@@ -304,8 +378,10 @@ const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
 						<div className="flex flex-col gap-2">
 							{BASE_INSTRUCTIONS.map((inst) => {
 								const isSelected = selectedInstructions.includes(inst.id);
-								const thText = inst.id === "building" ? inst.th(buildingInfo) : inst.th;
-								const enText = inst.id === "building" ? inst.en(buildingInfo) : inst.en;
+								const thText =
+									inst.id === "building" ? inst.th(buildingInfo) : inst.th;
+								const enText =
+									inst.id === "building" ? inst.en(buildingInfo) : inst.en;
 								return (
 									<button
 										key={inst.id}
@@ -315,10 +391,11 @@ const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
 											isSelected
 												? "btn-primary text-primary-content"
 												: "btn-outline border-base-300 text-base-content/80 hover:bg-base-200"
-										}`}
-									>
+										}`}>
 										<span className="font-bold">{thText}</span>
-										<span className="text-xs opacity-60 ml-2 font-normal">({enText})</span>
+										<span className="text-xs opacity-60 ml-2 font-normal">
+											({enText})
+										</span>
 									</button>
 								);
 							})}
@@ -347,20 +424,18 @@ const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
 						type="button"
 						className="btn btn-sm btn-ghost active:scale-95 transition-transform duration-100 ease-out"
 						onClick={onClose}
-						disabled={isSubmitting}
-					>
+						disabled={isSubmitting}>
 						Cancel
 					</button>
 					<button
 						type="submit"
 						onClick={handleSubmit(onSubmit)}
-						disabled={isSubmitting || !customerPhone || !customerAddress}
-						className="btn btn-sm btn-primary active:scale-95 transition-transform duration-100 ease-out min-w-[100px]"
-					>
+						disabled={isSubmitting}
+						className="btn btn-sm btn-primary active:scale-95 transition-transform duration-100 ease-out min-w-[100px]">
 						{isSubmitting ? (
 							<span className="loading loading-spinner loading-xs"></span>
 						) : (
-							"Create Job"
+							"Notify"
 						)}
 					</button>
 				</div>

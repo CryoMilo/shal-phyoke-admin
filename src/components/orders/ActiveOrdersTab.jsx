@@ -471,12 +471,12 @@ const SingularOrderModal = ({ order, onClose, onUpdate, onOpenPager }) => {
 								<PrintKitchenTicketButton order={order} size="xs" />
 								{order.order_type === "delivery" && (
 									<button
-										className="btn btn-xs btn-outline btn-primary gap-1 active:scale-95 transition-transform duration-100 ease-out"
+										className="btn btn-xs btn-primary gap-1 active:scale-95 transition-transform duration-100 ease-out"
 										onClick={(e) => {
 											e.stopPropagation();
 											onOpenPager(order);
 										}}>
-										<Truck className="w-3.5 h-3.5" /> Dispatch Pager
+										<Truck className="w-3.5 h-3.5" /> Dispatch
 									</button>
 								)}
 							</div>

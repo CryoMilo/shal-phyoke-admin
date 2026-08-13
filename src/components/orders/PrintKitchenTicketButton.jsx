@@ -39,7 +39,7 @@ const PrintKitchenTicketButton = ({ order, size = "sm" }) => {
 			) : (
 				<Printer className="w-4 h-4" />
 			)}
-			{status === "idle" && "Print Ticket"}
+			{status === "idle" && "Print"}
 			{status === "sending" && "Sending..."}
 			{status === "sent" && "Sent!"}
 			{status === "error" && "Failed"}
