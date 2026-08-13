@@ -8,15 +8,16 @@ import {
 	Banknote,
 	Phone,
 	MapPin,
+	Truck,
 } from "lucide-react";
 import PrintKitchenTicketButton from "./PrintKitchenTicketButton";
+import DeliveryPagerModal from "./DeliveryPagerModal";
 import { showToast } from "../../utils/toastUtils";
 import {
 	getBangkokISOString,
 	toBangkokDateString,
 } from "../../utils/dateUtils";
 import PaymentModal from "../common/PaymentModal";
-import useMenuStore from "../../stores/menuStore";
 
 // Synchronous guard to prevent duplicate order completions across re-renders
 const inProgressOrders = new Set();
@@ -24,6 +25,8 @@ const inProgressOrders = new Set();
 const ActiveOrdersTab = () => {
 	const [activeOrders, setActiveOrders] = useState([]);
 	const [selectedTableId, setSelectedTableId] = useState(null);
+	const [pagerOrder, setPagerOrder] = useState(null);
+	const [isPagerOpen, setIsPagerOpen] = useState(false);
 
 	useEffect(() => {
 		fetchActiveOrders();
@@ -283,6 +286,10 @@ const ActiveOrdersTab = () => {
 						)}
 						onClose={() => setSelectedTableId(null)}
 						onUpdate={fetchActiveOrders}
+						onOpenPager={(ord) => {
+							setPagerOrder(ord);
+							setIsPagerOpen(true);
+						}}
 					/>
 				) : currentTableData ? (
 					<TableBillsModal
@@ -291,11 +298,20 @@ const ActiveOrdersTab = () => {
 						onUpdate={fetchActiveOrders}
 					/>
 				) : null)}
+
+			<DeliveryPagerModal
+				isOpen={isPagerOpen}
+				onClose={() => {
+					setIsPagerOpen(false);
+					setPagerOrder(null);
+				}}
+				order={pagerOrder}
+			/>
 		</div>
 	);
 };
 
-const SingularOrderModal = ({ order, onClose, onUpdate }) => {
+const SingularOrderModal = ({ order, onClose, onUpdate, onOpenPager }) => {
 	const [isProcessing, setIsProcessing] = useState(false);
 	const [showPaymentModal, setShowPaymentModal] = useState(false);
 	const [pendingPaymentData, setPendingPaymentData] = useState(null);
@@ -453,6 +469,16 @@ const SingularOrderModal = ({ order, onClose, onUpdate }) => {
 									{order.order_number?.slice(-4) || order.id.slice(0, 4)}
 								</span>
 								<PrintKitchenTicketButton order={order} size="xs" />
+								{order.order_type === "delivery" && (
+									<button
+										className="btn btn-xs btn-outline btn-primary gap-1 active:scale-95 transition-transform duration-100 ease-out"
+										onClick={(e) => {
+											e.stopPropagation();
+											onOpenPager(order);
+										}}>
+										<Truck className="w-3.5 h-3.5" /> Dispatch Pager
+									</button>
+								)}
 							</div>
 						</div>
 						<div className="text-right">
