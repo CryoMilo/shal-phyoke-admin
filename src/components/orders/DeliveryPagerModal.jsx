@@ -58,7 +58,7 @@ const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
 				buildingInfo: "",
 				riderPlate: "",
 				isPrepaid: defaultPrepaid,
-				amountToPay: defaultPrepaid ? 0 : Number(order.total_amount || 0),
+				amountToPay: defaultPrepaid ? Number(order.delivery_fee || 0) : "",
 				customNote: "",
 			});
 			setSelectedInstructions(["call"]);
@@ -68,13 +68,7 @@ const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
 	// Toggle handler for prepaid checkbox
 	const handlePrepaidToggle = (checked) => {
 		setValue("isPrepaid", checked);
-		if (!checked) {
-			// If not checked (postpaid/COD), amount field is enabled, auto-populate with total
-			setValue("amountToPay", Number(order?.total_amount || 0));
-		} else {
-			// If checked (prepaid), amount field is disabled, default to 0
-			setValue("amountToPay", 0);
-		}
+		setValue("amountToPay", checked ? Number(order?.delivery_fee || 0) : "");
 	};
 
 	// Parse pasted dispatch string
@@ -140,7 +134,7 @@ const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
 				customer_address: data.customerAddress || null,
 				building_info: data.buildingInfo.trim() || null,
 				rider_plate: data.riderPlate || null,
-				amount_to_pay: Number(data.amountToPay),
+				amount_to_pay: data.amountToPay === "" || isNaN(Number(data.amountToPay)) ? null : Number(data.amountToPay),
 				is_prepaid: data.isPrepaid, // bool in database
 				instructions: instructionsToSave,
 				custom_note: data.customNote.trim() || null,
