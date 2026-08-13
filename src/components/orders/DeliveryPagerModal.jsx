@@ -1,16 +1,7 @@
 // src/components/orders/DeliveryPagerModal.jsx
 import React, { useState, useEffect } from "react";
-import {
-	X,
-	Printer,
-	Phone,
-	MapPin,
-	Truck,
-	DollarSign,
-	MessageSquare,
-	Clipboard,
-	Home,
-} from "lucide-react";
+import { useForm } from "react-hook-form";
+import { X, Printer, Phone, MapPin, Truck, DollarSign, MessageSquare, Clipboard, Home } from "lucide-react";
 import { supabase } from "../../services/supabase";
 import { showToast } from "../../utils/toastUtils";
 
@@ -22,55 +13,72 @@ const BASE_INSTRUCTIONS = [
 	{
 		id: "building",
 		th: (building) => `ส่งที่ตึก ${building || "..."} / ชั้น...`,
-		en: (building) => `Deliver to Building ${building || "..."}...`,
-	},
+		en: (building) => `Deliver to Building ${building || "..."}...`
+	}
 ];
 
 const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
-	const [dispatchText, setDispatchText] = useState("");
-	const [customerPhone, setCustomerPhone] = useState("");
-	const [customerAddress, setCustomerAddress] = useState("");
-	const [buildingInfo, setBuildingInfo] = useState("");
-	const [riderPlate, setRiderPlate] = useState("");
-
-	const [isPrepaid, setIsPrepaid] = useState(true);
-	const [amountToPay, setAmountToPay] = useState(0);
-	const [selectedInstructions, setSelectedInstructions] = useState(["guard"]); // Contains IDs e.g. ["call", "building"]
-	const [customNote, setCustomNote] = useState("");
+	const [selectedInstructions, setSelectedInstructions] = useState(["call"]); // Contains IDs e.g. ["call", "building"]
 	const [isSubmitting, setIsSubmitting] = useState(false);
+
+	const {
+		register,
+		handleSubmit,
+		setValue,
+		watch,
+		reset,
+		formState: { errors }
+	} = useForm({
+		defaultValues: {
+			dispatchText: "",
+			customerPhone: "",
+			customerAddress: "",
+			buildingInfo: "",
+			riderPlate: "",
+			isPrepaid: true,
+			amountToPay: 0,
+			customNote: ""
+		}
+	});
+
+	const isPrepaid = watch("isPrepaid");
+	const buildingInfo = watch("buildingInfo");
+	const customerPhone = watch("customerPhone");
+	const customerAddress = watch("customerAddress");
 
 	// Sync with order props on open/change
 	useEffect(() => {
 		if (order && isOpen) {
-			setCustomerPhone(order.customer_phone || "");
-			setDispatchText("");
-			setCustomerAddress("");
-			setBuildingInfo("");
-			setRiderPlate("");
-			setCustomNote("");
-			setSelectedInstructions(["guard"]);
-
 			const defaultPrepaid = order.payment_status === "paid";
-			setIsPrepaid(defaultPrepaid);
-			setAmountToPay(defaultPrepaid ? 0 : Number(order.total_amount || 0));
+			reset({
+				dispatchText: "",
+				customerPhone: order.customer_phone || "",
+				customerAddress: "",
+				buildingInfo: "",
+				riderPlate: "",
+				isPrepaid: defaultPrepaid,
+				amountToPay: defaultPrepaid ? 0 : Number(order.total_amount || 0),
+				customNote: ""
+			});
+			setSelectedInstructions(["call"]);
 		}
-	}, [order, isOpen]);
+	}, [order, isOpen, reset]);
 
 	// Toggle handler for prepaid checkbox
 	const handlePrepaidToggle = (checked) => {
-		setIsPrepaid(checked);
+		setValue("isPrepaid", checked);
 		if (!checked) {
 			// If not checked (postpaid/COD), amount field is enabled, auto-populate with total
-			setAmountToPay(Number(order?.total_amount || 0));
+			setValue("amountToPay", Number(order?.total_amount || 0));
 		} else {
 			// If checked (prepaid), amount field is disabled, default to 0
-			setAmountToPay(0);
+			setValue("amountToPay", 0);
 		}
 	};
 
 	// Parse pasted dispatch string
 	const handleDispatchTextChange = (text) => {
-		setDispatchText(text);
+		setValue("dispatchText", text);
 		if (!text) return;
 
 		// Split and parse lines
@@ -79,11 +87,11 @@ const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
 			line = line.trim();
 			const deliveryMatch = line.match(/^delivery:\s*(.*)$/i);
 			if (deliveryMatch) {
-				setCustomerAddress(deliveryMatch[1].trim());
+				setValue("customerAddress", deliveryMatch[1].trim());
 			}
 			const vehicleMatch = line.match(/^vehicle:\s*(.*)$/i);
 			if (vehicleMatch) {
-				setRiderPlate(vehicleMatch[1].trim());
+				setValue("riderPlate", vehicleMatch[1].trim());
 			}
 		}
 	};
@@ -94,17 +102,16 @@ const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
 		);
 	};
 
-	const handleSubmit = async (e) => {
-		e.preventDefault();
+	const onSubmit = async (data) => {
 		if (!order) return;
 
 		setIsSubmitting(true);
 		try {
 			// Map selected instruction IDs to evaluated Thai strings
-			const instructionsToSave = selectedInstructions.map((id) => {
-				const inst = BASE_INSTRUCTIONS.find((i) => i.id === id);
+			const instructionsToSave = selectedInstructions.map(id => {
+				const inst = BASE_INSTRUCTIONS.find(i => i.id === id);
 				if (id === "building") {
-					return `ส่งที่ตึก ${buildingInfo || "..."} / ชั้น...`;
+					return `ส่งที่ตึก ${data.buildingInfo || "..."} / ชั้น...`;
 				}
 				return inst.th;
 			});
@@ -112,15 +119,15 @@ const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
 			const jobData = {
 				order_id: order.id,
 				customer_name: order.customer_name || "Unknown",
-				customer_phone: customerPhone,
-				customer_address: customerAddress,
-				building_info: buildingInfo.trim() || null,
-				rider_plate: riderPlate,
-				amount_to_pay: Number(amountToPay),
-				is_prepaid: isPrepaid, // bool in database
+				customer_phone: data.customerPhone,
+				customer_address: data.customerAddress,
+				building_info: data.buildingInfo.trim() || null,
+				rider_plate: data.riderPlate,
+				amount_to_pay: Number(data.amountToPay),
+				is_prepaid: data.isPrepaid, // bool in database
 				instructions: instructionsToSave,
-				custom_note: customNote.trim() || null,
-				status: "pending",
+				custom_note: data.customNote.trim() || null,
+				status: "pending"
 			};
 
 			const { error } = await supabase
@@ -161,15 +168,14 @@ const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
 					<button
 						type="button"
 						className="btn btn-sm btn-circle btn-ghost active:scale-90 transition-transform duration-100 ease-out"
-						onClick={onClose}>
+						onClick={onClose}
+					>
 						<X className="w-4 h-4" />
 					</button>
 				</div>
 
 				{/* Scrollable Form Body */}
-				<form
-					onSubmit={handleSubmit}
-					className="flex-1 overflow-y-auto p-5 space-y-5">
+				<form onSubmit={handleSubmit(onSubmit)} className="flex-1 overflow-y-auto p-5 space-y-5">
 					{/* Smart Paste Area */}
 					<div className="bg-base-200/50 p-4 rounded-xl border border-base-300">
 						<label className="label py-0 mb-1.5 flex items-center gap-1.5">
@@ -181,7 +187,7 @@ const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
 						<textarea
 							placeholder="Paste the full delivery dispatch message here. We will auto-fill the address and vehicle plate details."
 							className="textarea textarea-bordered textarea-sm w-full bg-base-100 h-20 text-xs focus:textarea-primary"
-							value={dispatchText}
+							value={watch("dispatchText")}
 							onChange={(e) => handleDispatchTextChange(e.target.value)}
 						/>
 					</div>
@@ -198,11 +204,9 @@ const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
 							</label>
 							<input
 								type="tel"
-								required
 								placeholder="e.g. 091-234-5678"
-								className="input input-bordered input-sm w-full text-sm focus:input-primary"
-								value={customerPhone}
-								onChange={(e) => setCustomerPhone(e.target.value)}
+								className={`input input-bordered input-sm w-full text-sm focus:input-primary ${errors.customerPhone ? "input-error" : ""}`}
+								{...register("customerPhone", { required: true })}
 							/>
 						</div>
 
@@ -215,11 +219,9 @@ const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
 								</span>
 							</label>
 							<textarea
-								required
 								placeholder="Delivery location / Address detail"
-								className="textarea textarea-bordered textarea-sm w-full text-sm h-16 focus:textarea-primary"
-								value={customerAddress}
-								onChange={(e) => setCustomerAddress(e.target.value)}
+								className={`textarea textarea-bordered textarea-sm w-full text-sm h-16 focus:textarea-primary ${errors.customerAddress ? "textarea-error" : ""}`}
+								{...register("customerAddress", { required: true })}
 							/>
 						</div>
 
@@ -235,8 +237,7 @@ const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
 								type="text"
 								placeholder="e.g. Tower A, Fl. 12, Room 1204"
 								className="input input-bordered input-sm w-full text-sm focus:input-primary"
-								value={buildingInfo}
-								onChange={(e) => setBuildingInfo(e.target.value)}
+								{...register("buildingInfo")}
 							/>
 						</div>
 
@@ -252,8 +253,7 @@ const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
 								type="text"
 								placeholder="e.g. Honda Click - 9ขฐ6717"
 								className="input input-bordered input-sm w-full text-sm focus:input-primary"
-								value={riderPlate}
-								onChange={(e) => setRiderPlate(e.target.value)}
+								{...register("riderPlate")}
 							/>
 						</div>
 					</div>
@@ -287,11 +287,9 @@ const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
 								type="number"
 								min="0"
 								step="0.01"
-								required
 								disabled={!isPrepaid}
 								className="input input-bordered input-sm w-full text-sm focus:input-primary text-right"
-								value={amountToPay}
-								onChange={(e) => setAmountToPay(Number(e.target.value))}
+								{...register("amountToPay", { required: true, valueAsNumber: true })}
 							/>
 						</div>
 					</div>
@@ -306,10 +304,8 @@ const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
 						<div className="flex flex-col gap-2">
 							{BASE_INSTRUCTIONS.map((inst) => {
 								const isSelected = selectedInstructions.includes(inst.id);
-								const thText =
-									inst.id === "building" ? inst.th(buildingInfo) : inst.th;
-								const enText =
-									inst.id === "building" ? inst.en(buildingInfo) : inst.en;
+								const thText = inst.id === "building" ? inst.th(buildingInfo) : inst.th;
+								const enText = inst.id === "building" ? inst.en(buildingInfo) : inst.en;
 								return (
 									<button
 										key={inst.id}
@@ -319,11 +315,10 @@ const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
 											isSelected
 												? "btn-primary text-primary-content"
 												: "btn-outline border-base-300 text-base-content/80 hover:bg-base-200"
-										}`}>
+										}`}
+									>
 										<span className="font-bold">{thText}</span>
-										<span className="text-xs opacity-60 ml-2 font-normal">
-											({enText})
-										</span>
+										<span className="text-xs opacity-60 ml-2 font-normal">({enText})</span>
 									</button>
 								);
 							})}
@@ -341,8 +336,7 @@ const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
 						<textarea
 							placeholder="Enter any additional delivery details or specific notes for the rider."
 							className="textarea textarea-bordered textarea-sm w-full text-sm h-16 focus:textarea-primary"
-							value={customNote}
-							onChange={(e) => setCustomNote(e.target.value)}
+							{...register("customNote")}
 						/>
 					</div>
 				</form>
@@ -353,14 +347,16 @@ const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
 						type="button"
 						className="btn btn-sm btn-ghost active:scale-95 transition-transform duration-100 ease-out"
 						onClick={onClose}
-						disabled={isSubmitting}>
+						disabled={isSubmitting}
+					>
 						Cancel
 					</button>
 					<button
 						type="submit"
-						onClick={handleSubmit}
+						onClick={handleSubmit(onSubmit)}
 						disabled={isSubmitting || !customerPhone || !customerAddress}
-						className="btn btn-sm btn-primary active:scale-95 transition-transform duration-100 ease-out min-w-[100px]">
+						className="btn btn-sm btn-primary active:scale-95 transition-transform duration-100 ease-out min-w-[100px]"
+					>
 						{isSubmitting ? (
 							<span className="loading loading-spinner loading-xs"></span>
 						) : (
