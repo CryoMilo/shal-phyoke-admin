@@ -7,7 +7,6 @@ import {
 	Phone,
 	MapPin,
 	Truck,
-	DollarSign,
 	MessageSquare,
 	Clipboard,
 	Home,
@@ -56,6 +55,13 @@ const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
 		}
 	}, [order, isOpen, reset]);
 
+	// Auto-switch to drop mode if phone number is cleared and current mode is call
+	useEffect(() => {
+		if (!customerPhone?.trim() && instructionMode === "call") {
+			setInstructionMode("drop");
+		}
+	}, [customerPhone, instructionMode]);
+
 	// Toggle handler for prepaid checkbox
 	const handlePrepaidToggle = (checked) => {
 		setValue("isPrepaid", checked);
@@ -103,12 +109,16 @@ const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
 		const bldg = buildingInfo?.trim()
 			? `ตึก ${buildingInfo.trim()}`
 			: "ตึก ...";
-		const phone = customerPhone?.trim() || "ลูกค้า";
+		const phone = customerPhone?.trim() || "";
 
 		if (instructionMode === "drop") {
-			return `วางไว้ที่จุดรับส่งอาหาร ${bldg}`;
+			const base = `วางไว้ที่จุดรับส่งอาหาร ${bldg}`;
+			if (!phone) {
+				return `${base} • ไม่ต้องติดต่อลูกค้า • หากเป็นไปได้ รบกวนส่งหมายเลขตะกร้าเข้ามาในแชท`;
+			}
+			return `${base} • หากเป็นไปได้ รบกวนส่งหมายเลขตะกร้าเข้ามาในแชท`;
 		}
-		return `ถึงแล้วโทรหา ${phone} ${bldg}`;
+		return `ถึงแล้วโทรหา ${phone || "ลูกค้า"} ${bldg}`;
 	};
 
 	const onSubmit = async (data) => {
@@ -121,15 +131,21 @@ const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
 				: "";
 			const phone = data.customerPhone?.trim() || "";
 
-			let craftedInstruction = "";
+			let instructionsArray = [];
 			if (instructionMode === "drop") {
-				craftedInstruction = bldg
-					? `วางไว้ที่จุดรับส่งอาหาร ${bldg}`
-					: "วางไว้ที่จุดรับส่งอาหาร";
+				instructionsArray = [
+					bldg ? `วางไว้ที่จุดรับส่งอาหาร ${bldg}` : "วางไว้ที่จุดรับส่งอาหาร"
+				];
+				if (!phone) {
+					instructionsArray.push("ไม่ต้องติดต่อลูกค้า");
+				}
+				instructionsArray.push("หากเป็นไปได้ รบกวนส่งหมายเลขตะกร้าเข้ามาในแชท");
 			} else {
-				craftedInstruction = phone
-					? `ถึงแล้วโทรหา ${phone} ${bldg}`.trim()
-					: `ถึงแล้วโทรหาลูกค้า ${bldg}`.trim();
+				instructionsArray = [
+					phone
+						? `ถึงแล้วโทรหา ${phone} ${bldg}`.trim()
+						: `ถึงแล้วโทรหาลูกค้า ${bldg}`.trim()
+				];
 			}
 
 			const jobData = {
@@ -144,7 +160,7 @@ const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
 						? null
 						: Number(data.amountToPay),
 				is_prepaid: data.isPrepaid,
-				instructions: [craftedInstruction],
+				instructions: instructionsArray,
 				custom_note: data.customNote.trim() || null,
 				status: "pending",
 			};
@@ -350,7 +366,6 @@ const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
 						<div className="flex-1 max-w-[200px]">
 							<label className="label py-0 mb-1 justify-end">
 								<span className="label-text font-semibold flex items-center gap-1 text-xs text-base-content/80">
-									<DollarSign className="w-3.5 h-3.5 text-base-content/50" />
 									Amount
 								</span>
 							</label>
@@ -403,10 +418,12 @@ const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
 
 							{/* Call Option */}
 							<label
-								className={`flex flex-col p-3 rounded-xl border-2 cursor-pointer transition-all ${
-									instructionMode === "call"
-										? "border-primary bg-primary/10"
-										: "border-base-300 bg-base-100 hover:bg-base-200/50"
+								className={`flex flex-col p-3 rounded-xl border-2 transition-all ${
+									!customerPhone?.trim()
+										? "opacity-40 cursor-not-allowed border-base-200 bg-base-200/20"
+										: instructionMode === "call"
+										? "border-primary bg-primary/10 cursor-pointer"
+										: "border-base-300 bg-base-100 hover:bg-base-200/50 cursor-pointer"
 								}`}>
 								<div className="flex items-center justify-between mb-1">
 									<div className="flex items-center gap-2 font-bold text-sm">
@@ -417,6 +434,7 @@ const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
 										type="radio"
 										name="instruction_mode"
 										className="radio radio-primary radio-sm"
+										disabled={!customerPhone?.trim()}
 										checked={instructionMode === "call"}
 										onChange={() => setInstructionMode("call")}
 									/>
