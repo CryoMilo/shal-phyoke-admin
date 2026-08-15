@@ -11,24 +11,14 @@ import {
 	MessageSquare,
 	Clipboard,
 	Home,
+	PhoneCall,
+	PackageCheck,
 } from "lucide-react";
 import { supabase } from "../../services/supabase";
 import { showToast } from "../../utils/toastUtils";
 
-const BASE_INSTRUCTIONS = [
-	{ id: "call", th: "ถึงแล้วโทรหาลูกค้า", en: "Call customer on arrival" },
-	{ id: "guard", th: "ฝากไว้ที่ป้อม รปภ.", en: "Leave at security guard" },
-	{ id: "door", th: "วางไว้ที่หน้าประตู", en: "Leave at the door" },
-	{ id: "bell", th: "ไม่ต้องกดกริ่ง", en: "Do not ring doorbell" },
-	{
-		id: "building",
-		th: (building) => `ส่งที่ตึก ${building || "..."} / ชั้น...`,
-		en: (building) => `Deliver to Building ${building || "..."}...`,
-	},
-];
-
 const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
-	const [selectedInstructions, setSelectedInstructions] = useState(["call"]); // Contains IDs e.g. ["call", "building"]
+	const [instructionMode, setInstructionMode] = useState("drop"); // "call" | "drop"
 	const [isSubmitting, setIsSubmitting] = useState(false);
 
 	const { register, handleSubmit, setValue, watch, reset } = useForm({
@@ -46,6 +36,7 @@ const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
 
 	const isPrepaid = watch("isPrepaid");
 	const buildingInfo = watch("buildingInfo");
+	const customerPhone = watch("customerPhone");
 
 	// Sync with order props on open/change
 	useEffect(() => {
@@ -61,7 +52,7 @@ const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
 				amountToPay: defaultPrepaid ? Number(order.delivery_fee || 0) : "",
 				customNote: "",
 			});
-			setSelectedInstructions(["call"]);
+			setInstructionMode("drop");
 		}
 	}, [order, isOpen, reset]);
 
@@ -107,10 +98,17 @@ const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
 		}
 	};
 
-	const toggleInstruction = (id) => {
-		setSelectedInstructions((prev) =>
-			prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
-		);
+	// Dynamic preview helper
+	const getCraftedInstruction = () => {
+		const bldg = buildingInfo?.trim()
+			? `ตึก ${buildingInfo.trim()}`
+			: "ตึก ...";
+		const phone = customerPhone?.trim() || "ลูกค้า";
+
+		if (instructionMode === "drop") {
+			return `วางไว้ที่จุดรับส่งอาหาร ${bldg}`;
+		}
+		return `ถึงแล้วโทรหา ${phone} ${bldg}`;
 	};
 
 	const onSubmit = async (data) => {
@@ -118,14 +116,21 @@ const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
 
 		setIsSubmitting(true);
 		try {
-			// Map selected instruction IDs to evaluated Thai strings
-			const instructionsToSave = selectedInstructions.map((id) => {
-				const inst = BASE_INSTRUCTIONS.find((i) => i.id === id);
-				if (id === "building") {
-					return `ส่งที่ตึก ${data.buildingInfo || "..."} / ชั้น...`;
-				}
-				return inst.th;
-			});
+			const bldg = data.buildingInfo?.trim()
+				? `ตึก ${data.buildingInfo.trim()}`
+				: "";
+			const phone = data.customerPhone?.trim() || "";
+
+			let craftedInstruction = "";
+			if (instructionMode === "drop") {
+				craftedInstruction = bldg
+					? `วางไว้ที่จุดรับส่งอาหาร ${bldg}`
+					: "วางไว้ที่จุดรับส่งอาหาร";
+			} else {
+				craftedInstruction = phone
+					? `ถึงแล้วโทรหา ${phone} ${bldg}`.trim()
+					: `ถึงแล้วโทรหาลูกค้า ${bldg}`.trim();
+			}
 
 			const jobData = {
 				order_id: order.id,
@@ -134,9 +139,12 @@ const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
 				customer_address: data.customerAddress || null,
 				building_info: data.buildingInfo.trim() || null,
 				rider_plate: data.riderPlate || null,
-				amount_to_pay: data.amountToPay === "" || isNaN(Number(data.amountToPay)) ? null : Number(data.amountToPay),
-				is_prepaid: data.isPrepaid, // bool in database
-				instructions: instructionsToSave,
+				amount_to_pay:
+					data.amountToPay === "" || isNaN(Number(data.amountToPay))
+						? null
+						: Number(data.amountToPay),
+				is_prepaid: data.isPrepaid,
+				instructions: [craftedInstruction],
 				custom_note: data.customNote.trim() || null,
 				status: "pending",
 			};
@@ -194,7 +202,7 @@ const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
 							<label className="label py-0 flex items-center gap-1.5">
 								<Clipboard className="w-4 h-4 text-secondary" />
 								<span className="label-text font-bold text-base-content/85 text-xs uppercase tracking-wider">
-									Tracking Link
+									Tracking Link / Dispatch Text
 								</span>
 							</label>
 							<button
@@ -264,11 +272,11 @@ const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
 							</label>
 							<input
 								type="text"
-								placeholder="e.g. Tower A, Fl. 12, Room 1204"
+								placeholder="e.g. A, 12, Tower B"
 								className="input input-bordered input-sm w-full text-sm focus:input-primary mb-2"
 								{...register("buildingInfo")}
 							/>
-							{/* Quick Buttons */}
+							{/* Quick Select Buttons */}
 							<div className="flex flex-wrap gap-1.5 items-center">
 								<span className="text-[10px] uppercase opacity-55 font-bold mr-1">
 									Quick Select:
@@ -325,7 +333,6 @@ const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
 
 					{/* Payment Config */}
 					<div className="bg-base-200/50 p-4 rounded-xl border border-base-300 flex items-center justify-between gap-4">
-						{/* Checkbox */}
 						<div className="form-control">
 							<label className="label cursor-pointer flex items-center gap-2">
 								<input
@@ -340,7 +347,6 @@ const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
 							</label>
 						</div>
 
-						{/* Amount Input */}
 						<div className="flex-1 max-w-[200px]">
 							<label className="label py-0 mb-1 justify-end">
 								<span className="label-text font-semibold flex items-center gap-1 text-xs text-base-content/80">
@@ -362,41 +368,77 @@ const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
 						</div>
 					</div>
 
-					{/* Thai Instructions Chips */}
+					{/* Instruction Mode Radio Group (Drop vs Call) */}
 					<div>
 						<label className="label py-0 mb-2">
 							<span className="label-text font-bold text-xs uppercase tracking-wider text-base-content/70">
-								Quick Instructions (Click to Toggle)
+								Instruction Type
 							</span>
 						</label>
-						<div className="flex flex-col gap-2">
-							{BASE_INSTRUCTIONS.map((inst) => {
-								const isSelected = selectedInstructions.includes(inst.id);
-								const thText =
-									inst.id === "building" ? inst.th(buildingInfo) : inst.th;
-								const enText =
-									inst.id === "building" ? inst.en(buildingInfo) : inst.en;
-								return (
-									<button
-										key={inst.id}
-										type="button"
-										onClick={() => toggleInstruction(inst.id)}
-										className={`btn btn-sm justify-start active:scale-95 transition-transform duration-100 ease-out w-full border ${
-											isSelected
-												? "btn-primary text-primary-content"
-												: "btn-outline border-base-300 text-base-content/80 hover:bg-base-200"
-										}`}>
-										<span className="font-bold">{thText}</span>
-										<span className="text-xs opacity-60 ml-2 font-normal">
-											({enText})
-										</span>
-									</button>
-								);
-							})}
+						<div className="grid grid-cols-2 gap-3">
+							{/* Drop Option */}
+							<label
+								className={`flex flex-col p-3 rounded-xl border-2 cursor-pointer transition-all ${
+									instructionMode === "drop"
+										? "border-primary bg-primary/10"
+										: "border-base-300 bg-base-100 hover:bg-base-200/50"
+								}`}>
+								<div className="flex items-center justify-between mb-1">
+									<div className="flex items-center gap-2 font-bold text-sm">
+										<PackageCheck className="w-4 h-4 text-primary" />
+										Drop at Point
+									</div>
+									<input
+										type="radio"
+										name="instruction_mode"
+										className="radio radio-primary radio-sm"
+										checked={instructionMode === "drop"}
+										onChange={() => setInstructionMode("drop")}
+									/>
+								</div>
+								<span className="text-xs text-base-content/60 font-medium">
+									วางไว้ที่จุดรับส่งอาหาร
+								</span>
+							</label>
+
+							{/* Call Option */}
+							<label
+								className={`flex flex-col p-3 rounded-xl border-2 cursor-pointer transition-all ${
+									instructionMode === "call"
+										? "border-primary bg-primary/10"
+										: "border-base-300 bg-base-100 hover:bg-base-200/50"
+								}`}>
+								<div className="flex items-center justify-between mb-1">
+									<div className="flex items-center gap-2 font-bold text-sm">
+										<PhoneCall className="w-4 h-4 text-primary" />
+										Call on Arrival
+									</div>
+									<input
+										type="radio"
+										name="instruction_mode"
+										className="radio radio-primary radio-sm"
+										checked={instructionMode === "call"}
+										onChange={() => setInstructionMode("call")}
+									/>
+								</div>
+								<span className="text-xs text-base-content/60 font-medium">
+									ถึงแล้วโทรหาลูกค้า
+								</span>
+							</label>
+						</div>
+
+						{/* Dynamic Result Live Preview */}
+						<div className="mt-2.5 px-3 py-2 bg-base-200/70 rounded-lg border border-base-300 text-xs font-mono text-base-content/80 flex items-center gap-2">
+							<span className="badge badge-neutral badge-xs uppercase font-bold text-[9px]">
+								Preview
+							</span>
+							<span className="font-medium truncate">
+								{getCraftedInstruction()}
+							</span>
 						</div>
 					</div>
 
-					{/* Custom Thai Notes */}
+					{/* Custom Notes */}
 					<div>
 						<label className="label py-0 mb-1">
 							<span className="label-text font-semibold flex items-center gap-1 text-xs text-base-content/80">
@@ -434,7 +476,7 @@ const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
 					</button>
 				</div>
 			</div>
-			{/* Backdrop for click outside to close */}
+			{/* Backdrop */}
 			<div className="modal-backdrop bg-black/50" onClick={onClose}></div>
 		</div>
 	);
