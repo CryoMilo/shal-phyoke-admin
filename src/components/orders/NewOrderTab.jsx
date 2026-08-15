@@ -54,6 +54,13 @@ const NewOrderTab = ({ processOrder, isProcessing }) => {
 	const subtotal = getSubtotal();
 	const totalAmount = getTotalAmount();
 
+	const isOrderInvalid = useMemo(() => {
+		if (orderType === "delivery" && !customerInfo?.name?.trim()) {
+			return true;
+		}
+		return false;
+	}, [orderType, customerInfo?.name]);
+
 	useEffect(() => {
 		setOrderType("dine_in");
 	}, []);
@@ -291,8 +298,12 @@ const NewOrderTab = ({ processOrder, isProcessing }) => {
 						<div className="space-y-2">
 							<input
 								type="text"
-								placeholder="Customer Name"
-								className="input input-bordered w-full"
+								placeholder="Customer Name (Required)"
+								className={`input input-bordered w-full ${
+									orderType === "delivery" && !customerInfo?.name?.trim()
+										? "border-error/45 focus:border-error"
+										: ""
+								}`}
 								value={customerInfo.name}
 								onChange={(e) =>
 									setCustomerInfo((prev) => ({ ...prev, name: e.target.value }))
@@ -615,7 +626,7 @@ const NewOrderTab = ({ processOrder, isProcessing }) => {
 				<div className="mt-6 space-y-2">
 					<button
 						className="btn btn-primary w-full active:scale-95 transition-transform duration-100 ease-out"
-						disabled={cart.length === 0 || isProcessing}
+						disabled={cart.length === 0 || isProcessing || isOrderInvalid}
 						onClick={processOrder}>
 						{isProcessing ? (
 							<>
@@ -635,7 +646,7 @@ const NewOrderTab = ({ processOrder, isProcessing }) => {
 					<button
 						className="btn btn-secondary btn-outline btn-xs w-full mt-2 active:scale-95 transition-transform duration-100 ease-out"
 						onClick={saveCurrentToDraft}
-						disabled={cart.length === 0 || isProcessing}>
+						disabled={cart.length === 0 || isProcessing || isOrderInvalid}>
 						Save to Draft
 					</button>
 				</div>
