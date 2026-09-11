@@ -13,7 +13,6 @@ import {
 	Search,
 	Check,
 } from "lucide-react";
-import { ALL_CATEGORIES } from "../constants";
 import { showToast } from "../utils/toastUtils";
 
 const ComboManager = () => {

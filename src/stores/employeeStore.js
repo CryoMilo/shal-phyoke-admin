@@ -26,17 +26,6 @@ const useEmployeeStore = create((set, get) => ({
 		}
 	},
 
-	fetchActiveEmployees: async () => {
-		const { data, error } = await supabase
-			.from("employees")
-			.select("*")
-			.eq("is_active", true)
-			.order("name");
-
-		if (error) throw error;
-		return data || [];
-	},
-
 	addEmployee: async (employeeData) => {
 		set({ loading: true });
 		try {

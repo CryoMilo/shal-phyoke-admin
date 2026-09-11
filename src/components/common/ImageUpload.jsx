@@ -1,6 +1,6 @@
 // src/components/common/ImageUpload.jsx
 import { useState, useRef } from "react";
-import { Camera, X, Loader2, Image as ImageIcon } from "lucide-react";
+import { Camera, X, Loader2 } from "lucide-react";
 import { supabase } from "../../services/supabase";
 
 const ImageUpload = ({

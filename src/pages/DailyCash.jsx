@@ -6,11 +6,9 @@ import {
 	TrendingUp,
 	TrendingDown,
 	Save,
-	CreditCard,
 	AlertCircle,
 	ArrowLeft,
 	ArrowRight,
-	Receipt,
 	Banknote,
 } from "lucide-react";
 import { useForm } from "react-hook-form";

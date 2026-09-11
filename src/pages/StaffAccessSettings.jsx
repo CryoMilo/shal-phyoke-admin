@@ -9,7 +9,6 @@ import {
 	Calendar,
 	ShoppingBasket,
 	Layers2,
-	UtensilsCrossed,
 	Menu,
 	Settings2,
 	ShoppingCart,

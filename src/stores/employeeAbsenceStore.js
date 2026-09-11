@@ -36,22 +36,6 @@ const useEmployeeAbsenceStore = create((set) => ({
 		}
 	},
 
-	fetchAbsencesForMonth: async (monthStr) => {
-		const monthStart = `${monthStr}-01`;
-		const [year, month] = monthStr.split("-").map(Number);
-		const lastDay = new Date(year, month, 0).getDate();
-		const monthEnd = `${monthStr}-${String(lastDay).padStart(2, "0")}`;
-
-		const { data, error } = await supabase
-			.from("employee_absences")
-			.select("*")
-			.gte("absence_date", monthStart)
-			.lte("absence_date", monthEnd);
-
-		if (error) throw error;
-		return data || [];
-	},
-
 	addAbsence: async (absenceData) => {
 		set({ loading: true });
 		try {

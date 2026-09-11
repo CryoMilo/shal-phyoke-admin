@@ -1,5 +1,5 @@
 import React from "react";
-import { ShoppingCart, Minus, Plus, Package, Edit2 } from "lucide-react";
+import { ShoppingCart, Minus, Plus, Package } from "lucide-react";
 import { getSafeImageUrl } from "../../utils/imageUtils";
 
 const InventoryCard = ({ item, onAddToMarketList, onUpdateStock, onClick }) => {

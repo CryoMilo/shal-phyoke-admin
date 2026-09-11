@@ -3,7 +3,7 @@ import { format, startOfMonth } from "date-fns";
 import { supabase } from "../services/supabase";
 import { showToast } from "../utils/toastUtils";
 
-const useBonusStore = create((set, get) => ({
+const useBonusStore = create((set) => ({
 	loading: false,
 	error: null,
 
@@ -59,11 +59,6 @@ const useBonusStore = create((set, get) => ({
 			showToast.error("Failed to load bonus tracker: " + err.message);
 			set({ error: err.message || "Failed to calculate bonuses", loading: false });
 		}
-	},
-
-	// Keep fetchBonusTracker wrapper for compatibility
-	fetchBonusTracker: async (referenceDate = new Date()) => {
-		await get().fetchMonthlyBonuses(referenceDate);
 	},
 
 	bonusConfigs: [],

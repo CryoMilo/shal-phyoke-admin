@@ -91,23 +91,6 @@ const useMenuStore = create(
 				set({ filteredMenus: filtered });
 			},
 
-			// Quick filter helpers
-			showOnlyRegularItems: () => {
-				set({
-					showRegularOnly: true,
-					activeCategory: "all",
-				});
-				get().applyFilters();
-			},
-
-			showOnlyRotatingItems: () => {
-				set({
-					showRegularOnly: false,
-					activeCategory: "all",
-				});
-				get().applyFilters();
-			},
-
 			resetFilters: () => {
 				set({
 					searchQuery: "",
@@ -119,32 +102,11 @@ const useMenuStore = create(
 			},
 
 			// ===== GETTERS =====
-			getAllRegularItems: () => {
-				const state = get();
-				return state.allMenuItems.filter(
-					(item) => item.is_regular && item.is_active
-				);
-			},
-
-			getAllRotatingItems: () => {
-				const state = get();
-				return state.allMenuItems.filter(
-					(item) => !item.is_regular && item.is_active
-				);
-			},
-
 			getActiveFixedCombos: () => {
 				return get().allMenuItems.filter(
 					(item) =>
 						item.is_combo === true &&
 						item.combo_type === "fixed"
-				);
-			},
-
-			getItemsByCategory: (category) => {
-				const state = get();
-				return state.allMenuItems.filter(
-					(item) => item.category === category
 				);
 			},
 
@@ -156,41 +118,12 @@ const useMenuStore = create(
 				);
 			},
 
-			getRotatingItemsByCategory: (category) => {
-				const state = get();
-				return state.allMenuItems.filter(
-					(item) =>
-						!item.is_regular && item.category === category
-				);
-			},
-
-			// Get unique categories (with type info)
-			getAllCategories: () => {
-				const state = get();
-				const categories = [
-					...new Set(state.allMenuItems.map((item) => item.category)),
-				];
-				return categories.sort();
-			},
-
 			getRegularCategories: () => {
 				const state = get();
 				const categories = [
 					...new Set(
 						state.allMenuItems
 							.filter((item) => item.is_regular)
-							.map((item) => item.category)
-					),
-				];
-				return categories.sort();
-			},
-
-			getRotatingCategories: () => {
-				const state = get();
-				const categories = [
-					...new Set(
-						state.allMenuItems
-							.filter((item) => !item.is_regular)
 							.map((item) => item.category)
 					),
 				];
@@ -314,47 +247,6 @@ const useMenuStore = create(
 					console.error("Error fetching regular menus:", error);
 					showToast.error("Failed to load regular menu items");
 					set({ loading: false });
-				}
-			},
-
-			fetchRotatingMenuItems: async () => {
-				set({ loading: true });
-				try {
-					const { data, error } = await supabase
-						.from("menu_items")
-						.select("*")
-						.eq("is_regular", false)
-						.order("category")
-						.order("name_burmese");
-
-					if (error) throw error;
-
-					set({
-						allMenuItems: data || [],
-						filteredMenus: data || [],
-						loading: false,
-					});
-				} catch (error) {
-					console.error("Error fetching rotating menus:", error);
-					showToast.error("Failed to load rotating menu items");
-					set({ loading: false });
-				}
-			},
-
-			fetchMenuItemById: async (id) => {
-				try {
-					const { data, error } = await supabase
-						.from("menu_items")
-						.select("*")
-						.eq("id", id)
-						.maybeSingle();
-
-					if (error) throw error;
-					return { data, error: null };
-				} catch (error) {
-					console.error("Error fetching menu by id:", error);
-					showToast.error("Failed to fetch menu item details");
-					return { data: null, error };
 				}
 			},
 

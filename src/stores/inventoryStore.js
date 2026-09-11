@@ -219,12 +219,6 @@ const useInventoryStore = create(
 					showRegularOnly: false,
 				}),
 
-			// Get all unique categories
-			getAllCategories: () => {
-				const items = get().inventoryItems;
-				return [...new Set(items.map((item) => item.category))].sort();
-			},
-
 			// Get all unique vendors with counts
 			getVendorsWithCounts: () => {
 				const items = get().inventoryItems;
@@ -260,14 +254,6 @@ const useInventoryStore = create(
 
 					return matchesSearch && matchesVendor && matchesRegular;
 				});
-			},
-
-			// Get low stock items (quantity <= threshold)
-			getLowStockItems: () => {
-				const items = get().inventoryItems;
-				return items.filter(
-					(item) => item.quantity <= item.threshold && item.threshold > 0
-				);
 			},
 
 			createInventoryItem: async (itemData) => {

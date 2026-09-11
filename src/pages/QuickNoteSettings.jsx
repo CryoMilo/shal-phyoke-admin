@@ -6,7 +6,6 @@ import {
 	Edit2,
 	Settings2,
 	X,
-	AlertCircle,
 	Copy,
 } from "lucide-react";
 import { PageHeader } from "../components/common/PageHeader";

@@ -6,8 +6,6 @@ import useStaffAccessStore from "../stores/staffAccessStore";
 import useOrderStore from "../stores/orderStore";
 import {
 	Home,
-	UtensilsCrossed,
-	Calendar,
 	Menu,
 	ChevronLeft,
 	ChevronRight,
