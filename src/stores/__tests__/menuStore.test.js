@@ -1,4 +1,12 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
+
+// Mock the supabase service BEFORE importing the store
+vi.mock("../../services/supabase", () => ({
+	supabase: {
+		from: vi.fn(),
+	},
+}));
+
 import useMenuStore from "../menuStore";
 
 describe("menuStore.js - Menu queries and category filters", () => {
