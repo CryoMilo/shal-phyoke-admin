@@ -35,8 +35,3 @@ export const menuSchema = z.object({
 	combo_slots: z.any().nullable().optional(),
 	combo_note_summary: z.string().nullable().optional(),
 });
-
-// For regular menu page
-export const regularMenuSchema = menuSchema.extend({
-	is_regular: z.literal(true), // Force true for regular menu page
-});

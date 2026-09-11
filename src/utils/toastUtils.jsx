@@ -30,21 +30,6 @@ export const showToast = {
 		});
 	},
 
-	orderConfirmed: (vendorName, pdfGenerated = true) => {
-		toast.success(
-			<div>
-				<p className="font-semibold">Order Confirmed for {vendorName}</p>
-				<p className="text-sm">
-					{pdfGenerated ? "✓ PDF generated successfully" : "Order recorded"}
-				</p>
-			</div>,
-			{
-				icon: "📋",
-				autoClose: 5000,
-			}
-		);
-	},
-
 	itemAdded: (itemName, quantity, unit) => {
 		toast.info(
 			<div>
@@ -84,9 +69,5 @@ export const showToast = {
 				autoClose: 3000,
 			}
 		);
-	},
-
-	dismiss: (toastId) => {
-		toast.dismiss(toastId);
 	},
 };

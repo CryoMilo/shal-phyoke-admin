@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { X, Check, Utensils, AlertTriangle } from "lucide-react";
+import { isAddonAvailable } from "../../utils/menuAvailabilityUtils";
 
 const AddonSelectionModal = ({ isOpen, onClose, onConfirm, item }) => {
 	const [selectedExtras, setSelectedExtras] = useState([]);
@@ -13,17 +14,10 @@ const AddonSelectionModal = ({ isOpen, onClose, onConfirm, item }) => {
 
 	const [quantity, setQuantity] = useState(1);
 
-	// Local helper to check if addon is available based on active status
-	const checkAddonAvailability = (extra) => {
-		if (!extra) return false;
-		if (extra.extra_item && extra.extra_item.is_active === false) return false;
-		return true;
-	};
-
 	useEffect(() => {
 		if (isOpen) {
 			setQuantity(1);
-			const firstActiveAddon = availableExtras.find((e) => checkAddonAvailability(e));
+			const firstActiveAddon = availableExtras.find((e) => isAddonAvailable(e));
 			if (firstActiveAddon && !allowNoAddon) {
 				setSelectedExtras([firstActiveAddon]);
 			} else {

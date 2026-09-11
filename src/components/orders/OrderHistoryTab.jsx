@@ -3,14 +3,12 @@ import React, { useState, useEffect, useMemo } from "react";
 import { supabase } from "../../services/supabase";
 import {
 	Search,
-	User,
 	Clock,
 	CheckCircle2,
 	Eye,
 	XCircle,
 	Phone,
 	MapPin,
-	Users,
 	RefreshCw,
 } from "lucide-react";
 import PrintKitchenTicketButton from "./PrintKitchenTicketButton";

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Edit2, Trash2, X, Calendar, Percent, ShieldAlert, Award, ArrowRight } from "lucide-react";
+import { Plus, Edit2, Trash2, X, Calendar, Award, ArrowRight } from "lucide-react";
 import { format } from "date-fns";
 import useBonusStore from "../../stores/bonusStore";
 import { useAuth } from "../../contexts/AuthContext";

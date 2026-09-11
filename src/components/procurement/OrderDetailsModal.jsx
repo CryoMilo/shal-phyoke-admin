@@ -1,6 +1,6 @@
 // src/components/procurement/OrderDetailsModal.jsx
 import React, { useState } from "react";
-import { X, Check, AlertCircle, Package, Calendar } from "lucide-react";
+import { X, Check, AlertCircle } from "lucide-react";
 import useProcurementStore from "../../stores/procurementStore";
 import { showToast } from "../../utils/toastUtils";
 
