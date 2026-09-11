@@ -1,5 +1,5 @@
 // components/ActiveOrdersTab.jsx
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { supabase } from "../../services/supabase";
 import {
 	Users,
@@ -9,6 +9,7 @@ import {
 	Phone,
 	MapPin,
 	Truck,
+	RefreshCw,
 } from "lucide-react";
 import PrintKitchenTicketButton from "./PrintKitchenTicketButton";
 import DeliveryPagerModal from "./DeliveryPagerModal";
@@ -27,34 +28,12 @@ const ActiveOrdersTab = () => {
 	const [selectedTableId, setSelectedTableId] = useState(null);
 	const [pagerOrder, setPagerOrder] = useState(null);
 	const [isPagerOpen, setIsPagerOpen] = useState(false);
+	const [isRefreshing, setIsRefreshing] = useState(false);
+	const debounceTimerRef = useRef(null);
 
-	useEffect(() => {
-		fetchActiveOrders();
-
-		const channel = supabase
-			.channel("orders-active-realtime")
-			.on(
-				"postgres_changes",
-				{
-					event: "*",
-					schema: "public",
-					table: "orders",
-				},
-				() => {
-					fetchActiveOrders();
-				}
-			)
-			.subscribe((status) => {
-				console.log("Active Orders Realtime status:", status);
-			});
-
-		return () => {
-			supabase.removeChannel(channel);
-		};
-	}, []);
-
-	const fetchActiveOrders = async () => {
+	const fetchActiveOrders = async (isManual = false) => {
 		try {
+			if (isManual) setIsRefreshing(true);
 			const { data, error } = await supabase
 				.from("orders")
 				.select("*")
@@ -66,8 +45,43 @@ const ActiveOrdersTab = () => {
 		} catch (error) {
 			console.error("Error fetching active orders:", error);
 			showToast.error("Failed to load active orders");
+		} finally {
+			if (isManual) setIsRefreshing(false);
 		}
 	};
+
+	useEffect(() => {
+		fetchActiveOrders();
+
+		const debouncedFetch = () => {
+			if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+			debounceTimerRef.current = setTimeout(() => {
+				fetchActiveOrders();
+			}, 350);
+		};
+
+		const channel = supabase
+			.channel("orders-active-realtime")
+			.on(
+				"postgres_changes",
+				{
+					event: "*",
+					schema: "public",
+					table: "orders",
+				},
+				() => {
+					debouncedFetch();
+				}
+			)
+			.subscribe((status) => {
+				console.log("Active Orders Realtime status:", status);
+			});
+
+		return () => {
+			if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+			supabase.removeChannel(channel);
+		};
+	}, []);
 
 	const { tableGroups, singularOrders } = useMemo(() => {
 		const hubs = {};
@@ -133,6 +147,14 @@ const ActiveOrdersTab = () => {
 							{singularOrders.length}
 						</span>
 					</div>
+					<button
+						onClick={() => fetchActiveOrders(true)}
+						disabled={isRefreshing}
+						className="btn btn-ghost btn-xs gap-1 opacity-70 hover:opacity-100"
+						title="Sync active orders with server">
+						<RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-primary" : ""}`} />
+						<span className="text-xs hidden sm:inline">Refresh</span>
+					</button>
 				</div>
 
 				{singularOrders.length > 0 ? (
@@ -420,7 +442,6 @@ const SingularOrderModal = ({ order, onClose, onUpdate, onOpenPager }) => {
 			showToast.success(`Order ${status}`);
 			onUpdate();
 			onClose();
-			// eslint-disable-next-line no-unused-vars
 		} catch (error) {
 			console.error("Error cancelling/refunding order:", error);
 			showToast.error("Update failed");

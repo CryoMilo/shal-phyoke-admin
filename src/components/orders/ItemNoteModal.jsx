@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Package, X } from "lucide-react";
+import { Package } from "lucide-react";
 import useQuickNoteStore from "../../stores/quickNoteStore";
 
 const ItemNoteModal = ({ show, onClose, onSave, item }) => {
@@ -15,10 +15,8 @@ const ItemNoteModal = ({ show, onClose, onSave, item }) => {
 
 	const formatTasteNote = (label, level) => {
 		if (!label || !level) return "";
-		// Burmese: Object (Label) + Modifier (Level) -> "ကြက်သွန်နီ မထည့်"
-		// English: Modifier (Level) + Object (Label) -> "No Onion"
-		return isBurmese(label) || isBurmese(level) 
-			? `${label} ${level}` 
+		return isBurmese(label) || isBurmese(level)
+			? `${label} ${level}`
 			: `${level} ${label}`;
 	};
 
@@ -58,7 +56,6 @@ const ItemNoteModal = ({ show, onClose, onSave, item }) => {
 			const toppings = [];
 			const tastes = {};
 
-			// Initialize tastes from settings - default to null
 			tasteCategories.forEach((cat) => {
 				tastes[cat.id] = null;
 			});
@@ -73,7 +70,6 @@ const ItemNoteModal = ({ show, onClose, onSave, item }) => {
 				tasteCategories.forEach((cat) => {
 					const levels = cat.options || [];
 					levels.forEach((level) => {
-						// Check both orders to be safe and handle legacy notes
 						if (part === `${level} ${cat.label}` || part === `${cat.label} ${level}`) {
 							tastes[cat.id] = level;
 							matchedTaste = true;
@@ -91,7 +87,7 @@ const ItemNoteModal = ({ show, onClose, onSave, item }) => {
 					return;
 				}
 
-				// 3. Parse Frequent Notes (Multi-select options)
+				// 3. Parse Frequent Notes
 				let matchedFreq = false;
 				frequentNotes.forEach((note) => {
 					if (note.options?.includes(part)) {
@@ -99,9 +95,8 @@ const ItemNoteModal = ({ show, onClose, onSave, item }) => {
 						matchedFreq = true;
 					}
 				});
-				
+
 				if (!matchedFreq) {
-					// 4. Otherwise → add to custom array
 					custom.push(part);
 				}
 			});
@@ -147,7 +142,6 @@ const ItemNoteModal = ({ show, onClose, onSave, item }) => {
 
 		tasteCategories.forEach((cat) => {
 			const currentLevel = tasteProfiles[cat.id];
-			// Only add if it's explicitly selected (not null)
 			if (currentLevel) {
 				combinedNotes.push(formatTasteNote(cat.label, currentLevel));
 			}
@@ -188,12 +182,29 @@ const ItemNoteModal = ({ show, onClose, onSave, item }) => {
 	const hasNoExtras = availableExtras.length === 0;
 
 	return (
-		<div className="modal modal-open">
-			<div className="modal-box max-w-2xl w-11/12 p-0 overflow-hidden relative">
-				<div className="absolute top-6 right-14">
+		<div className="modal modal-open z-50">
+			<div className="modal-box max-w-2xl relative">
+				<button
+					type="button"
+					className="btn btn-sm btn-circle btn-ghost absolute right-3 top-3"
+					onClick={onClose}>
+					✕
+				</button>
+
+				<div className="flex justify-between items-start mb-4 pr-8">
+					<div>
+						<h3 className="font-bold text-xl">
+							{item?.name_burmese || "Notes"}
+						</h3>
+						{item?.name_english && (
+							<p className="text-sm text-base-content/60 mt-0.5">
+								{item.name_english}
+							</p>
+						)}
+					</div>
 					<button
 						type="button"
-						className={`btn btn-sm gap-2 normal-case ${
+						className={`btn btn-sm gap-2 ${
 							isTakeaway ? "btn-primary" : "btn-outline border-base-300"
 						}`}
 						onClick={() => setIsTakeaway(!isTakeaway)}>
@@ -202,47 +213,36 @@ const ItemNoteModal = ({ show, onClose, onSave, item }) => {
 					</button>
 				</div>
 
-				<button
-					type="button"
-					onClick={onClose}
-					className="absolute top-5 right-4 p-2 hover:bg-base-200 rounded-full transition-colors">
-					<X className="w-5 h-5 text-base-content/60" />
-				</button>
-
-				<div className="p-6 pb-2">
-					<h3 className="font-bold text-2xl pr-32">
-						{item?.name_burmese || "Notes"}
-					</h3>
-					{item?.name_english && (
-						<p className="text-sm text-base-content/60 mt-1">{item.name_english}</p>
-					)}
-				</div>
-
-				<div className="px-6 py-4 space-y-6 max-h-[70vh] overflow-y-auto pb-24">
+				<div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
 					{isCombo && hasNoQuickNotes && hasNoExtras ? (
-						<div className="px-6 py-4 text-center text-sm text-base-content/60">
+						<div className="text-center text-sm text-base-content/60 py-4">
 							Add any special instructions below
 						</div>
 					) : (
 						<>
 							{availableExtras.length > 0 && (
 								<div>
-									<div className="text-xs font-bold text-base-content/40 uppercase tracking-wider mb-3">
-										Toppings / Sides
-									</div>
+									<label className="label py-1">
+										<span className="label-text font-bold text-xs uppercase tracking-wider text-base-content/60">
+											Toppings / Sides
+										</span>
+									</label>
 									<div className="flex flex-wrap gap-2">
 										{availableExtras.map((extra) => {
-											const toppingName = extra.name_burmese || extra.name_english;
+											const toppingName =
+												extra.name_burmese || extra.name_english;
 											if (!toppingName) return null;
+											const isSelected =
+												selectedToppings.includes(toppingName);
 											return (
 												<button
 													type="button"
 													key={extra.id}
 													onClick={() => toggleTopping(toppingName)}
-													className={`px-4 py-2 rounded-full border text-sm font-medium transition-all ${
-														selectedToppings.includes(toppingName)
-															? "bg-primary text-primary-content border-primary"
-															: "border-base-300 text-base-content/70 hover:border-primary"
+													className={`btn btn-sm ${
+														isSelected
+															? "btn-primary"
+															: "btn-outline border-base-300"
 													}`}>
 													{toppingName}
 													{extra.additional_price > 0 && (
@@ -259,36 +259,39 @@ const ItemNoteModal = ({ show, onClose, onSave, item }) => {
 
 							{tasteCategories.length > 0 && (
 								<div>
-									<div className="text-xs font-bold text-base-content/40 uppercase tracking-wider mb-3">
-										Taste Profile
-									</div>
-									<div className="space-y-4">
+									<label className="label py-1">
+										<span className="label-text font-bold text-xs uppercase tracking-wider text-base-content/60">
+											Taste Profile
+										</span>
+									</label>
+									<div className="space-y-3">
 										{tasteCategories.map((cat) => (
-											<div key={cat.id} className="flex items-center gap-4">
-												<div className="w-20 text-sm font-semibold text-base-content/80">
+											<div
+												key={cat.id}
+												className="flex items-center gap-3">
+												<span className="w-24 text-sm font-semibold text-base-content/80">
 													{cat.label}
-												</div>
-												<div className="flex flex-1 bg-base-200 rounded-lg p-1">
-													{(cat.options || []).map(
-														(level) => (
-															<button
-																type="button"
-																key={level}
-																onClick={() =>
-																	setTasteProfiles((prev) => ({
-																		...prev,
-																		[cat.id]: prev[cat.id] === level ? null : level,
-																	}))
-																}
-																className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${
-																	tasteProfiles[cat.id] === level
-																		? "bg-base-100 shadow-sm text-primary"
-																		: "text-base-content/50 hover:text-base-content"
-																}`}>
-																{level}
-															</button>
-														)
-													)}
+												</span>
+												<div className="join flex-1">
+													{(cat.options || []).map((level) => (
+														<button
+															type="button"
+															key={level}
+															onClick={() =>
+																setTasteProfiles((prev) => ({
+																	...prev,
+																	[cat.id]:
+																		prev[cat.id] === level ? null : level,
+																}))
+															}
+															className={`join-item btn btn-sm flex-1 ${
+																tasteProfiles[cat.id] === level
+																	? "btn-primary"
+																	: "btn-outline border-base-300"
+															}`}>
+															{level}
+														</button>
+													))}
 												</div>
 											</div>
 										))}
@@ -297,26 +300,29 @@ const ItemNoteModal = ({ show, onClose, onSave, item }) => {
 							)}
 
 							{frequentNotes.length > 0 && (
-								<div className="space-y-6">
+								<div className="space-y-3">
 									{frequentNotes.map((note) => (
 										<div key={note.id}>
-											<div className="text-xs font-bold text-base-content/40 uppercase tracking-wider mb-3">
-												{note.label}
-											</div>
+											<label className="label py-1">
+												<span className="label-text font-bold text-xs uppercase tracking-wider text-base-content/60">
+													{note.label}
+												</span>
+											</label>
 											<div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
 												{note.options?.map((option) => {
-													const isSelected = selectedCommonNotes.includes(option);
+													const isSelected =
+														selectedCommonNotes.includes(option);
 													return (
 														<button
 															type="button"
 															key={option}
-															className={`flex items-center justify-center p-3 rounded-xl border transition-all ${
+															className={`btn btn-sm h-auto py-2.5 ${
 																isSelected
-																	? "bg-primary/10 text-primary border-primary"
-																	: "border-base-200 hover:border-base-300 text-base-content/70"
+																	? "btn-primary"
+																	: "btn-outline border-base-300"
 															}`}
 															onClick={() => toggleCommonNote(option)}>
-															<span className="text-xs font-bold text-center">
+															<span className="text-xs font-semibold text-center">
 																{option}
 															</span>
 														</button>
@@ -329,43 +335,56 @@ const ItemNoteModal = ({ show, onClose, onSave, item }) => {
 							)}
 						</>
 					)}
+
+					{/* Custom Request Input */}
+					<div className="form-control pt-2">
+						<label className="label py-1">
+							<span className="label-text font-bold text-xs uppercase tracking-widest text-base-content/60">
+								Custom Request (Optional)
+							</span>
+						</label>
+						<input
+							type="text"
+							placeholder="Type specific instructions here..."
+							className="input input-bordered w-full"
+							value={customNote}
+							onChange={(e) => setCustomNote(e.target.value)}
+						/>
+					</div>
 				</div>
 
-				<div className="absolute bottom-0 left-0 right-0 p-4 bg-base-100 border-t border-base-200 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
-					<div className="flex items-center gap-2">
-						<div className="flex-1 relative">
-							<input
-								type="text"
-								placeholder="Custom Field..."
-								className="w-full input input-bordered bg-base-200 border-none focus:ring-0 text-base h-12 pr-8"
-								value={customNote}
-								onChange={(e) => setCustomNote(e.target.value)}
-							/>
-							{customNote && (
-								<span className="absolute right-3 top-1/2 -translate-y-1/2 w-2 h-2 bg-primary rounded-full" />
-							)}
-						</div>
+				{/* Modal Action Footer */}
+				<div className="modal-action border-t border-base-300 pt-4 mt-4 flex justify-between items-center">
+					<div>
 						{hasChanges && (
 							<button
 								type="button"
 								onClick={handleClearAll}
-								className="btn btn-ghost px-6 h-12 min-h-12">
-								Clear
+								className="btn btn-ghost btn-sm">
+								Clear All
 							</button>
 						)}
+					</div>
+					<div className="flex gap-2">
 						<button
 							type="button"
-							className="btn btn-primary px-8 h-12 min-h-12 shadow-lg shadow-primary/20 font-bold"
+							className="btn btn-ghost btn-sm"
+							onClick={onClose}>
+							Cancel
+						</button>
+						<button
+							type="button"
+							className="btn btn-primary btn-sm px-6 font-bold"
 							onClick={handleSave}>
-							Save
+							Save Note
 						</button>
 					</div>
 				</div>
-				<div
-					className="modal-backdrop bg-black/40 backdrop-blur-[2px]"
-					onClick={onClose}
-				/>
 			</div>
+			<div
+				className="modal-backdrop bg-black/50 backdrop-blur-xs"
+				onClick={onClose}
+			/>
 		</div>
 	);
 };

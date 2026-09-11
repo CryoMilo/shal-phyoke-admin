@@ -31,6 +31,9 @@ export const DEFAULT_PERMISSIONS = {
 	],
 };
 
+let lastPermissionsFetchTime = 0;
+const PERMISSIONS_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
 const useStaffAccessStore = create(
 	persist(
 		(set) => ({
@@ -39,7 +42,12 @@ const useStaffAccessStore = create(
 			openingDays: [1, 2, 3, 4, 5, 6], // Monday to Saturday (0 is Sunday)
 			loading: false,
 
-			fetchPermissions: async () => {
+			fetchPermissions: async (force = false) => {
+				const now = Date.now();
+				if (!force && now - lastPermissionsFetchTime < PERMISSIONS_CACHE_TTL) {
+					return;
+				}
+				lastPermissionsFetchTime = now;
 				set({ loading: true });
 				try {
 					const { data, error } = await supabase

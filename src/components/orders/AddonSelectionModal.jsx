@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { X, Check, Utensils, AlertTriangle } from "lucide-react";
 import useOrderStore from "../../stores/orderStore";
-import { getSafeImageUrl } from "../../utils/imageUtils";
 
 const AddonSelectionModal = ({ isOpen, onClose, onConfirm, item }) => {
 	const [selectedExtras, setSelectedExtras] = useState([]);
@@ -11,11 +10,6 @@ const AddonSelectionModal = ({ isOpen, onClose, onConfirm, item }) => {
 	// if requires_addon is true, selecting an add-on is mandatory (no "Plain" option allowed)
 	const allowNoAddon = !item?.requires_addon;
 
-	// Compute max allowed quantity
-	const alreadyInCartQty = useOrderStore
-		.getState()
-		.cart.filter((c) => c.id === item?.id)
-		.reduce((sum, c) => sum + c.quantity, 0);
 	const maxAllowedNewQty = 999;
 
 	const [quantity, setQuantity] = useState(1);
@@ -84,16 +78,8 @@ const AddonSelectionModal = ({ isOpen, onClose, onConfirm, item }) => {
 	};
 
 	return (
-		<>
-			{/* Backdrop */}
-			<div
-				className="modal-backdrop fixed inset-0 bg-black/60 z-40 backdrop-blur-xs"
-				onClick={onClose}
-			/>
-
-			{/* Modal */}
-			<div className="modal modal-open z-50">
-				<div className="modal-box p-0 relative max-w-lg w-full mx-2 bg-base-100 rounded-2xl shadow-2xl overflow-hidden border border-base-300">
+		<div className="modal modal-open z-50">
+			<div className="modal-box p-0 max-w-lg w-full mx-2 bg-base-100 rounded-2xl shadow-2xl overflow-hidden border border-base-300">
 					{/* Header */}
 					<div className="p-5 bg-base-200/70 border-b border-base-300 flex justify-between items-center">
 						<div className="flex items-center gap-3">
@@ -162,7 +148,6 @@ const AddonSelectionModal = ({ isOpen, onClose, onConfirm, item }) => {
 									extra.name_english ||
 									extra.extra_item?.name_burmese ||
 									extra.extra_item?.name_english;
-								const imgUrl = getSafeImageUrl(extra.extra_item?.image_url);
 
 								return (
 									<div
@@ -175,17 +160,9 @@ const AddonSelectionModal = ({ isOpen, onClose, onConfirm, item }) => {
 												? "border-primary bg-primary/5 ring-1 ring-primary/20 cursor-pointer shadow-xs"
 												: "border-base-300 bg-base-100 hover:border-base-400 cursor-pointer"
 										}`}>
-										{/* Add-on Card Image */}
-										<div className="w-12 h-12 rounded-lg bg-base-200 flex items-center justify-center overflow-hidden shrink-0 border border-base-300">
-											{imgUrl ? (
-												<img
-													src={imgUrl}
-													alt={toppingName}
-													className="w-full h-full object-cover"
-												/>
-											) : (
-												<Utensils className="w-5 h-5 text-base-content/40" />
-											)}
+										{/* Add-on Icon */}
+										<div className="w-12 h-12 rounded-lg bg-base-200 flex items-center justify-center shrink-0 border border-base-300">
+											<Utensils className="w-5 h-5 opacity-40" />
 										</div>
 
 										<div className="flex-1 min-w-0">
@@ -263,9 +240,12 @@ const AddonSelectionModal = ({ isOpen, onClose, onConfirm, item }) => {
 						</div>
 					</div>
 				</div>
+				<div
+					className="modal-backdrop bg-black/50 backdrop-blur-xs"
+					onClick={onClose}
+				/>
 			</div>
-		</>
-	);
-};
+		);
+	};
 
 export default AddonSelectionModal;

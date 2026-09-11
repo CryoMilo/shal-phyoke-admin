@@ -29,8 +29,15 @@ const useOrderStore = create(
 			setDeliveryFee: (amount) => set({ deliveryFee: amount }),
 			setPaymentMethod: (method) => set({ paymentMethod: method }),
 			setDiscountAmount: (amount) => set({ discountAmount: amount }),
-			setNotes: (notes) => set({ notes }),
-			setIsNightMode: (isNight) => set({ isNightMode: isNight }),
+			setIsNightMode: (isNight) =>
+				set((state) => ({
+					isNightMode:
+						typeof isNight === "function"
+							? isNight(state.isNightMode)
+							: Boolean(isNight),
+				})),
+			toggleNightMode: () =>
+				set((state) => ({ isNightMode: !state.isNightMode })),
 			loadOrder: (order) => {
 				set({
 					editingOrderId: order.id,
@@ -256,6 +263,22 @@ const useOrderStore = create(
 		}),
 		{
 			name: "pos-order-storage",
+			partialize: (state) => ({
+				cart: state.cart,
+				orderType: state.orderType,
+				customerInfo: state.customerInfo,
+				tableNumber: state.tableNumber,
+				deliveryFee: state.deliveryFee,
+				paymentMethod: state.paymentMethod,
+				discountAmount: state.discountAmount,
+				editingOrderId: state.editingOrderId,
+				editingDraftId: state.editingDraftId,
+				drafts: state.drafts,
+				notes: state.notes,
+				itemNotes: state.itemNotes,
+				itemExtraPrices: state.itemExtraPrices,
+				isNightMode: state.isNightMode,
+			}),
 		}
 	)
 );

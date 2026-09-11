@@ -12,8 +12,6 @@ const useBonusStore = create((set, get) => ({
 		totalPool: 0,
 		isAtLoss: false,
 	},
-	loading: false,
-	error: null,
 
 	fetchMonthlyBonuses: async (selectedDate = new Date()) => {
 		set({ loading: true, error: null });

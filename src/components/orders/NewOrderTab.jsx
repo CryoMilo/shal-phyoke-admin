@@ -1,6 +1,6 @@
 // components/NewOrderTab.jsx
 import React, { useState, useEffect, useMemo } from "react";
-import { Split, Copy, Check, FolderOpen } from "lucide-react";
+import { Split, Copy, Check, FolderOpen, RefreshCw } from "lucide-react";
 import ItemNoteModal from "./ItemNoteModal";
 import AddonSelectionModal from "./AddonSelectionModal";
 import TableSelectionModal from "./TableSelectionModal";
@@ -74,6 +74,17 @@ const NewOrderTab = ({ processOrder, isProcessing }) => {
 	const [activeItemForNote, setActiveItemForNote] = useState(null);
 	const [showAddonModal, setShowAddonModal] = useState(false);
 	const [itemForAddon, setItemForAddon] = useState(null);
+
+	const toggleNightMode = () => {
+		const store = useOrderStore.getState();
+		if (typeof store.toggleNightMode === "function") {
+			store.toggleNightMode();
+		} else if (typeof store.setIsNightMode === "function") {
+			store.setIsNightMode(!store.isNightMode);
+		} else {
+			useOrderStore.setState({ isNightMode: !store.isNightMode });
+		}
+	};
 
 	const handleItemClick = (item) => {
 		const isAvailable = isBaseItemAvailable(item);
@@ -279,6 +290,7 @@ const NewOrderTab = ({ processOrder, isProcessing }) => {
 							</button>
 						))}
 						<button
+							type="button"
 							className="btn btn-sm btn-outline btn-secondary gap-1 active:scale-95 transition-transform duration-100 ease-out"
 							onClick={() => setShowDraftsModal(true)}>
 							<FolderOpen className="w-4 h-4" />
@@ -288,6 +300,14 @@ const NewOrderTab = ({ processOrder, isProcessing }) => {
 									{drafts.length}
 								</span>
 							)}
+						</button>
+						<button
+							type="button"
+							className="btn btn-sm btn-ghost gap-1 active:scale-95 transition-transform duration-100 ease-out opacity-70 hover:opacity-100"
+							onClick={() => fetchAllMenuItems()}
+							title="Refresh menu items">
+							<RefreshCw className="w-3.5 h-3.5" />
+							<span className="hidden sm:inline text-xs">Sync Menu</span>
 						</button>
 					</div>
 				</div>
@@ -366,10 +386,11 @@ const NewOrderTab = ({ processOrder, isProcessing }) => {
 						))}
 					</div>
 
-					{/* Night Menu Mode Toggle (Desktop only) */}
+					{/* Night Menu Mode Toggle */}
 					<button
-						onClick={() => setIsNightMode(!isNightMode)}
-						className={`btn btn-sm flex-shrink-0 gap-1.5 transition-all duration-300 rounded-full px-4 border hidden lg:inline-flex ${
+						type="button"
+						onClick={toggleNightMode}
+						className={`btn btn-sm flex-shrink-0 gap-1.5 transition-all duration-300 rounded-full px-3 sm:px-4 border inline-flex ${
 							isNightMode
 								? "bg-slate-900 hover:bg-slate-800 text-yellow-300 border-indigo-500 shadow-md shadow-indigo-500/30"
 								: "btn-outline border-base-300 text-base-content/75 hover:bg-base-200"
