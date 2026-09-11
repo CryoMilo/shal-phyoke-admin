@@ -26,6 +26,7 @@ export interface Database {
 					payment_status: "pending" | "paid" | "refunded";
 					pos_order_status: "pending" | "preparing" | "ready" | "completed" | "cancelled" | "refunded";
 					notes: string | null;
+					customer_id: string | null;
 					order_items: Json;
 					item_notes: Json | null;
 					item_extra_prices: Json | null;
@@ -48,6 +49,7 @@ export interface Database {
 					payment_status?: "pending" | "paid" | "refunded";
 					pos_order_status?: "pending" | "preparing" | "ready" | "completed" | "cancelled" | "refunded";
 					notes?: string | null;
+					customer_id?: string | null;
 					order_items: Json;
 					item_notes?: Json | null;
 					item_extra_prices?: Json | null;
@@ -310,8 +312,59 @@ export interface Database {
 				};
 				Update: Partial<Database["public"]["Tables"]["print_jobs"]["Insert"]>;
 			};
+			customers: {
+				Row: {
+					id: string;
+					name: string;
+					phone: string | null;
+					delivery_address: string | null;
+					default_notes: string | null;
+					total_orders: number;
+					total_spent: number;
+					first_order_at: string | null;
+					last_order_at: string | null;
+					frequent_notes: Json;
+					favorite_items: Json;
+					created_at: string;
+					updated_at: string;
+				};
+				Insert: {
+					id?: string;
+					name: string;
+					phone?: string | null;
+					delivery_address?: string | null;
+					default_notes?: string | null;
+					total_orders?: number;
+					total_spent?: number;
+					first_order_at?: string | null;
+					last_order_at?: string | null;
+					frequent_notes?: Json;
+					favorite_items?: Json;
+					created_at?: string;
+					updated_at?: string;
+				};
+				Update: Partial<Database["public"]["Tables"]["customers"]["Insert"]>;
+			};
 		};
 		Functions: {
+			search_customers: {
+				Args: {
+					p_query: string;
+					p_limit?: number;
+				};
+				Returns: {
+					id: string;
+					name: string;
+					phone: string | null;
+					delivery_address: string | null;
+					default_notes: string | null;
+					total_orders: number;
+				}[];
+			};
+			get_customer_dashboard_overview: {
+				Args: Record<string, never>;
+				Returns: Json;
+			};
 			complete_procurement_order: {
 				Args: {
 					p_order_id: string;

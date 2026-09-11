@@ -1,10 +1,20 @@
-// components/NewOrderTab.jsx
-import React, { useState, useEffect, useMemo } from "react";
-import { Split, Copy, Check, FolderOpen, RefreshCw } from "lucide-react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
+import {
+	Split,
+	Copy,
+	Check,
+	FolderOpen,
+	RefreshCw,
+	Users,
+	Phone,
+	MapPin,
+	CheckCircle2,
+} from "lucide-react";
 import ItemNoteModal from "./ItemNoteModal";
 import AddonSelectionModal from "./AddonSelectionModal";
 import TableSelectionModal from "./TableSelectionModal";
 import useMenuStore from "../../stores/menuStore";
+import useCustomerStore from "../../stores/customerStore";
 import { useAuth } from "../../contexts/AuthContext";
 import useOrderStore from "../../stores/orderStore";
 import PaymentModal from "../common/PaymentModal";
@@ -73,6 +83,85 @@ const NewOrderTab = ({ processOrder, isProcessing }) => {
 	const [activeItemForNote, setActiveItemForNote] = useState(null);
 	const [showAddonModal, setShowAddonModal] = useState(false);
 	const [itemForAddon, setItemForAddon] = useState(null);
+
+	// Customer Autocomplete State for Delivery Orders
+	const { searchCustomers } = useCustomerStore();
+	const [customerSuggestions, setCustomerSuggestions] = useState([]);
+	const [showCustomerSuggestions, setShowCustomerSuggestions] = useState(false);
+	const [isSearchingCustomer, setIsSearchingCustomer] = useState(false);
+	const customerDropdownRef = useRef(null);
+	const justSelectedCustomerRef = useRef(false);
+
+	// Dismiss customer suggestions when clicking outside
+	useEffect(() => {
+		const handleClickOutside = (event) => {
+			if (
+				customerDropdownRef.current &&
+				!customerDropdownRef.current.contains(event.target)
+			) {
+				setShowCustomerSuggestions(false);
+			}
+		};
+		document.addEventListener("mousedown", handleClickOutside);
+		return () => {
+			document.removeEventListener("mousedown", handleClickOutside);
+		};
+	}, []);
+
+	// Debounced customer search when typing customer name
+	useEffect(() => {
+		if (orderType !== "delivery") {
+			setCustomerSuggestions([]);
+			setShowCustomerSuggestions(false);
+			return;
+		}
+		if (justSelectedCustomerRef.current) {
+			justSelectedCustomerRef.current = false;
+			return;
+		}
+		const query = customerInfo?.name?.trim();
+		if (!query || query.length < 1) {
+			setCustomerSuggestions([]);
+			setShowCustomerSuggestions(false);
+			return;
+		}
+
+		const timer = setTimeout(async () => {
+			setIsSearchingCustomer(true);
+			try {
+				const results = await searchCustomers(query);
+				setCustomerSuggestions(results || []);
+				setShowCustomerSuggestions((results || []).length > 0);
+			} catch (err) {
+				console.error("Error searching customers:", err);
+			} finally {
+				setIsSearchingCustomer(false);
+			}
+		}, 250);
+
+		return () => clearTimeout(timer);
+	}, [customerInfo?.name, orderType, searchCustomers]);
+
+	const handleSelectCustomer = (cust) => {
+		justSelectedCustomerRef.current = true;
+		setShowCustomerSuggestions(false);
+		setCustomerSuggestions([]);
+		setCustomerInfo((prev) => ({
+			...prev,
+			name: cust.name || "",
+			phone: cust.phone || "",
+			address: cust.delivery_address || "",
+			customerId: cust.id,
+		}));
+
+		// Auto-populate order notes if currently empty and customer has default_notes
+		if (cust.default_notes && !notes) {
+			setNotes(cust.default_notes);
+			showToast.info("Customer details & default notes auto-filled");
+		} else {
+			showToast.info("Customer details auto-filled");
+		}
+	};
 
 	const toggleNightMode = () => {
 		const store = useOrderStore.getState();
@@ -315,24 +404,94 @@ const NewOrderTab = ({ processOrder, isProcessing }) => {
 				{orderType === "delivery" && (
 					<div className="bg-base-200 p-4 rounded-lg mb-4">
 						<div className="space-y-2">
-							<input
-								type="text"
-								placeholder="Customer Name (Required)"
-								className={`input input-bordered w-full ${
-									orderType === "delivery" && !customerInfo?.name?.trim()
-										? "border-error/45 focus:border-error"
-										: ""
-								}`}
-								value={customerInfo.name}
-								onChange={(e) =>
-									setCustomerInfo((prev) => ({ ...prev, name: e.target.value }))
-								}
-							/>
+							<div className="relative" ref={customerDropdownRef}>
+								<div className="relative">
+									<input
+										type="text"
+										placeholder="Customer Name (Required)"
+										className={`input input-bordered w-full pr-16 ${
+											orderType === "delivery" && !customerInfo?.name?.trim()
+												? "border-error/45 focus:border-error"
+												: ""
+										}`}
+										value={customerInfo?.name || ""}
+										onChange={(e) => {
+											justSelectedCustomerRef.current = false;
+											setCustomerInfo((prev) => ({
+												...prev,
+												name: e.target.value,
+												customerId: null,
+											}));
+											setShowCustomerSuggestions(true);
+										}}
+										onFocus={() => {
+											if (customerSuggestions.length > 0) {
+												setShowCustomerSuggestions(true);
+											}
+										}}
+									/>
+									{isSearchingCustomer && (
+										<span className="absolute right-3 top-1/2 -translate-y-1/2 loading loading-spinner loading-xs text-base-content/40" />
+									)}
+									{customerInfo?.customerId && !isSearchingCustomer && (
+										<span className="badge badge-success badge-sm absolute right-3 top-1/2 -translate-y-1/2 gap-1 text-[11px] font-medium">
+											<CheckCircle2 className="w-3 h-3" />
+											Linked
+										</span>
+									)}
+								</div>
+
+								{/* Customer Suggestions Dropdown */}
+								{showCustomerSuggestions && customerSuggestions.length > 0 && (
+									<ul className="absolute z-50 left-0 right-0 mt-1 bg-base-100 border border-base-300 rounded-xl shadow-2xl max-h-60 overflow-y-auto p-1 divide-y divide-base-200">
+										{customerSuggestions.map((cust) => (
+											<li
+												key={cust.id}
+												onClick={() => handleSelectCustomer(cust)}
+												className="p-2.5 hover:bg-base-200 cursor-pointer rounded-lg transition-colors flex flex-col gap-1 text-left"
+											>
+												<div className="flex items-center justify-between gap-2">
+													<span className="font-semibold text-sm text-base-content flex items-center gap-1.5">
+														<Users className="w-3.5 h-3.5 text-primary" />
+														{cust.name}
+													</span>
+													{cust.total_orders > 0 && (
+														<span className="badge badge-sm badge-ghost text-[11px]">
+															{cust.total_orders}{" "}
+															{cust.total_orders === 1 ? "order" : "orders"}
+														</span>
+													)}
+												</div>
+												<div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-base-content/70">
+													{cust.phone && (
+														<span className="flex items-center gap-1">
+															<Phone className="w-3 h-3 text-base-content/50" />
+															{cust.phone}
+														</span>
+													)}
+													{cust.delivery_address && (
+														<span className="flex items-center gap-1 truncate max-w-[220px]">
+															<MapPin className="w-3 h-3 text-base-content/50" />
+															{cust.delivery_address}
+														</span>
+													)}
+												</div>
+												{cust.default_notes && (
+													<span className="text-xs text-primary/90 italic truncate">
+														📝 {cust.default_notes}
+													</span>
+												)}
+											</li>
+										))}
+									</ul>
+								)}
+							</div>
+
 							<input
 								type="tel"
 								placeholder="Phone Number"
 								className="input input-bordered w-full"
-								value={customerInfo.phone}
+								value={customerInfo?.phone || ""}
 								onChange={(e) =>
 									setCustomerInfo((prev) => ({
 										...prev,
@@ -343,7 +502,7 @@ const NewOrderTab = ({ processOrder, isProcessing }) => {
 							<textarea
 								placeholder="Delivery Address"
 								className="textarea textarea-bordered w-full"
-								value={customerInfo.address}
+								value={customerInfo?.address || ""}
 								onChange={(e) =>
 									setCustomerInfo((prev) => ({
 										...prev,

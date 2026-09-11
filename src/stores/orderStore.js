@@ -6,7 +6,7 @@ const useOrderStore = create(
 		(set, get) => ({
 			cart: [],
 			orderType: "dine_in",
-			customerInfo: { name: "", phone: "", address: "" },
+			customerInfo: { name: "", phone: "", address: "", customerId: null },
 			tableNumber: null,
 			deliveryFee: 0,
 			paymentMethod: "unpaid",
@@ -50,6 +50,7 @@ const useOrderStore = create(
 						name: order.customer_name || "",
 						phone: order.customer_phone || "",
 						address: order.delivery_address || "",
+						customerId: order.customer_id || null,
 					},
 					tableNumber: order.table_number || null,
 					deliveryFee: order.delivery_fee || 0,
@@ -232,7 +233,7 @@ const useOrderStore = create(
 			clearCart: () => {
 				set({
 					cart: [],
-					customerInfo: { name: "", phone: "", address: "" },
+					customerInfo: { name: "", phone: "", address: "", customerId: null },
 					tableNumber: null,
 					deliveryFee: 0,
 					discountAmount: 0,

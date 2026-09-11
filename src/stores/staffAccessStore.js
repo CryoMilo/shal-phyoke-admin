@@ -7,6 +7,7 @@ export const DEFAULT_PERMISSIONS = {
 	admin: [
 		"/dashboard",
 		"/orders",
+		"/customers",
 		"/combo-manager",
 		"/regular-menu",
 		"/procurement",
@@ -20,6 +21,7 @@ export const DEFAULT_PERMISSIONS = {
 	],
 	staff: [
 		"/orders",
+		"/customers",
 		"/combo-manager",
 		"/regular-menu",
 		"/procurement",
