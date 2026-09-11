@@ -11,6 +11,7 @@ import useStaffAccessStore from "../stores/staffAccessStore";
 import { sendToKitchenPrinter } from "../services/printerService";
 import { playDeliveryNotificationSound } from "../utils/soundUtils";
 import { markOrderAsPlayed } from "../components/common/DeliveryNotificationListener";
+import POSCrashBoundary from "../components/common/POSCrashBoundary";
 
 export const Orders = () => {
 	const fetchActiveNotes = useQuickNoteStore((state) => state.fetchActiveNotes);
@@ -64,17 +65,19 @@ export const Orders = () => {
 					orderType === "dine_in" || orderType === "takeaway"
 						? tableNumber
 						: null,
-				order_items: cart.map((item) => {
-					// Strip UI-only flags and combo store data
-					// before persisting to the database
-					const { ...cleanItem } = item;
-
-					return {
-						...cleanItem,
-						extra_price: itemExtraPrices[item.cart_id] || 0,
-						final_price: item.price + (itemExtraPrices[item.cart_id] || 0),
-					};
-				}),
+				order_items: cart.map((item) => ({
+					id: item.id,
+					cart_id: item.cart_id,
+					name_burmese: item.name_burmese,
+					name_english: item.name_english || null,
+					category: item.category || null,
+					price: item.price,
+					quantity: item.quantity,
+					extra_price: itemExtraPrices[item.cart_id] || 0,
+					final_price: item.price + (itemExtraPrices[item.cart_id] || 0),
+					is_combo: item.is_combo || false,
+					combo_note_summary: item.combo_note_summary || null,
+				})),
 				subtotal,
 				discount_amount: discountAmount,
 				total_amount: totalAmount,
@@ -188,14 +191,20 @@ export const Orders = () => {
 			{/* Tab Content */}
 			<>
 				{activeTab === "new-order" ? (
-					<NewOrderTab
-						processOrder={processOrder}
-						isProcessing={isProcessing}
-					/>
+					<POSCrashBoundary title="New Order Screen Issue" allowResetCart>
+						<NewOrderTab
+							processOrder={processOrder}
+							isProcessing={isProcessing}
+						/>
+					</POSCrashBoundary>
 				) : activeTab === "active-orders" ? (
-					<ActiveOrdersTab />
+					<POSCrashBoundary title="Active Orders Screen Issue">
+						<ActiveOrdersTab />
+					</POSCrashBoundary>
 				) : (
-					<OrderHistoryTab />
+					<POSCrashBoundary title="Order History Screen Issue">
+						<OrderHistoryTab />
+					</POSCrashBoundary>
 				)}
 			</>
 		</div>

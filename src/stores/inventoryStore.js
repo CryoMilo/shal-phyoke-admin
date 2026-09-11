@@ -67,6 +67,7 @@ const useInventoryStore = create(
 
 			// Set up real-time subscription
 			subscribeToInventory: () => {
+				let inventoryRefetchTimer = null;
 				const subscription = supabase
 					.channel("inventory_changes")
 					.on(
@@ -78,7 +79,10 @@ const useInventoryStore = create(
 							// or if the update is from another source.
 							const { pendingUpdates } = get();
 							if (Object.keys(pendingUpdates).length === 0) {
-								get().fetchInventoryItems();
+								if (inventoryRefetchTimer) clearTimeout(inventoryRefetchTimer);
+								inventoryRefetchTimer = setTimeout(() => {
+									get().fetchInventoryItems();
+								}, 1500);
 							}
 						}
 					)
@@ -123,9 +127,6 @@ const useInventoryStore = create(
 				const updateEntries = Object.entries(pendingUpdates);
 
 				if (updateEntries.length === 0) return;
-
-				// Snapshot of what we're about to sync
-				const snapshot = { ...pendingUpdates };
 
 				// Clear pending state immediately to allow new updates to accumulate
 				set({ pendingUpdates: {}, syncTimeout: null });

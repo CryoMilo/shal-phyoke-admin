@@ -243,9 +243,6 @@ const useProcurementStore = create((set, get) => ({
 		const updateEntries = Object.entries(pendingUpdates);
 		
 		if (updateEntries.length === 0) return;
-
-		// Snapshot
-		const snapshot = { ...pendingUpdates };
 		
 		// Clear immediately
 		set({ pendingUpdates: {}, syncTimeout: null });
@@ -486,64 +483,95 @@ const useProcurementStore = create((set, get) => ({
 		try {
 			set({ loading: true });
 
-			// Update order
-			const { error: orderError } = await supabase
-				.from("procurement_orders")
-				.update({
-					status,
-					arrived_at: status === "arrived" ? new Date() : null,
-					notes,
-				})
-				.eq("id", orderId);
+			// 1. Attempt atomic RPC execution
+			const receivedItemIds = receivedItems.map((i) => i.id);
+			const formattedMissedItems = missedItems.map((item) => ({
+				id: item.id,
+				inventory_item_id: item.inventory_item_id,
+				custom_item_name: item.custom_item_name,
+				quantity: item.quantity,
+				unit: item.unit,
+				notes: item.notes
+					? `Missed from order - ${item.notes}`
+					: "Missed from order",
+				vendor_id: item.vendor_id,
+			}));
 
-			if (orderError) throw orderError;
-
-			// Update received status for items
-			for (const item of receivedItems) {
-				await supabase
-					.from("procurement_order_items")
-					.update({
-						received: true,
-						received_quantity: item.quantity,
-						is_missed: false,
-					})
-					.eq("id", item.id);
+			let rpcExecuted = false;
+			try {
+				const { data: rpcSuccess, error: rpcError } = await supabase.rpc(
+					"complete_procurement_order",
+					{
+						p_order_id: orderId,
+						p_status: status,
+						p_received_item_ids: receivedItemIds,
+						p_missed_items: formattedMissedItems,
+						p_notes: notes,
+					}
+				);
+				if (!rpcError && rpcSuccess) {
+					rpcExecuted = true;
+				}
+			} catch {
+				// RPC not yet deployed in remote database; seamlessly execute client fallback
 			}
 
-			// Handle missed items - ADD BACK TO MARKET LIST WITH CORRECT VENDOR
-			for (const item of missedItems) {
-				// Update the order item to mark as missed
-				await supabase
-					.from("procurement_order_items")
+			// 2. Fallback to client-side sequential transactions if RPC not present
+			if (!rpcExecuted) {
+				const { error: orderError } = await supabase
+					.from("procurement_orders")
 					.update({
-						received: false,
-						received_quantity: 0,
-						is_missed: true,
+						status,
+						arrived_at: status === "arrived" ? new Date() : null,
+						notes,
 					})
-					.eq("id", item.id);
+					.eq("id", orderId);
 
-				// Add missed items back to market list with the ORIGINAL vendor
-				const { error: insertError } = await supabase
-					.from("market_list")
-					.insert([
-						{
-							inventory_item_id: item.inventory_item_id,
-							custom_item_name: item.custom_item_name,
-							vendor_id: item.vendor_id, // Use the original vendor_id from the order item
-							quantity: item.quantity,
-							unit: item.unit,
-							notes: item.notes
-								? `Missed from order - ${item.notes}`
-								: "Missed from order",
-							is_ordered: false,
-						},
-					]);
+				if (orderError) throw orderError;
 
-				if (insertError) {
-					console.error(
-						"Failed to add missed item back to market list:",
-						insertError
-					);
+				for (const item of receivedItems) {
+					await supabase
+						.from("procurement_order_items")
+						.update({
+							received: true,
+							received_quantity: item.quantity,
+							is_missed: false,
+						})
+						.eq("id", item.id);
+				}
+
+				for (const item of missedItems) {
+					await supabase
+						.from("procurement_order_items")
+						.update({
+							received: false,
+							received_quantity: 0,
+							is_missed: true,
+						})
+						.eq("id", item.id);
+
+					const { error: insertError } = await supabase
+						.from("market_list")
+						.insert([
+							{
+								inventory_item_id: item.inventory_item_id,
+								custom_item_name: item.custom_item_name,
+								vendor_id: item.vendor_id,
+								quantity: item.quantity,
+								unit: item.unit,
+								notes: item.notes
+									? `Missed from order - ${item.notes}`
+									: "Missed from order",
+								is_ordered: false,
+							},
+						]);
+
+					if (insertError) {
+						console.error(
+							"Failed to add missed item back to market list:",
+							insertError
+						);
+					}
 				}
 			}
 

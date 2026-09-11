@@ -5,7 +5,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { ALL_CATEGORIES, CATEGORY_DISPLAY_NAMES, MENU_TAGS } from "../../constants";
 import ImageUploadField from "./ImageUploadField";
 import useQuickNoteStore from "../../stores/quickNoteStore";
-import useMenuStore from "../../stores/menuStore";
 
 const MenuForm = ({
 	editingMenu,
@@ -16,7 +15,6 @@ const MenuForm = ({
 	activeTab = "basic",
 }) => {
 	const { activeNotes, fetchActiveNotes } = useQuickNoteStore();
-	const { allMenuItems } = useMenuStore();
 
 	const {
 		register,

@@ -11,12 +11,12 @@ import {
 	Phone,
 	MapPin,
 	Users,
+	RefreshCw,
 } from "lucide-react";
 import PrintKitchenTicketButton from "./PrintKitchenTicketButton";
 import { showToast } from "../../utils/toastUtils";
 import {
 	getBangkokDayRange,
-	formatDisplayDate,
 	toBangkokDateString,
 } from "../../utils/dateUtils";
 import BangkokDatePicker from "../common/BangkokDatePicker";
@@ -31,6 +31,7 @@ const STATUS_FILTERS = [
 const OrderHistoryTab = () => {
 	const [orders, setOrders] = useState([]);
 	const [loading, setLoading] = useState(true);
+	const [isRefreshing, setIsRefreshing] = useState(false);
 	const [searchTerm, setSearchTerm] = useState("");
 	const [statusFilter, setStatusFilter] = useState("all");
 	const [selectedOrder, setSelectedOrder] = useState(null);
@@ -39,33 +40,13 @@ const OrderHistoryTab = () => {
 	const isTodaySelected =
 		toBangkokDateString(selectedDate) === toBangkokDateString(new Date());
 
-	useEffect(() => {
-		fetchHistory();
-
-		const channel = supabase
-			.channel("orders-history-realtime")
-			.on(
-				"postgres_changes",
-				{
-					event: "*",
-					schema: "public",
-					table: "orders",
-				},
-				() => {
-					fetchHistory();
-				}
-			)
-			.subscribe();
-
-		return () => {
-			supabase.removeChannel(channel);
-		};
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [selectedDate]);
-
-	const fetchHistory = async () => {
+	const fetchHistory = async (isManual = false) => {
 		try {
-			setLoading(true);
+			if (isManual) {
+				setIsRefreshing(true);
+			} else {
+				setLoading(true);
+			}
 			const { start, end } = getBangkokDayRange(selectedDate);
 
 			const { data, error } = await supabase
@@ -83,8 +64,14 @@ const OrderHistoryTab = () => {
 			showToast.error("Failed to load order history");
 		} finally {
 			setLoading(false);
+			setIsRefreshing(false);
 		}
 	};
+
+	useEffect(() => {
+		fetchHistory();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [selectedDate]);
 
 	const filteredOrders = useMemo(() => {
 		return orders.filter((o) => {
@@ -101,49 +88,58 @@ const OrderHistoryTab = () => {
 
 	return (
 		<div className="space-y-4">
-			{/* Header & Search */}
-			<div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-				<div>
-					<h2 className="text-xl font-bold">Order History</h2>
+			{/* Single-line Compact Header */}
+			<div className="flex flex-wrap items-center justify-between gap-3">
+				{/* Left: Title + Status Filters */}
+				<div className="flex items-center gap-3 flex-wrap">
 					<div className="flex items-center gap-2">
-						<p className="text-sm opacity-60">
-							{formatDisplayDate(selectedDate)}
-						</p>
+						<h2 className="text-lg font-bold whitespace-nowrap">Order History</h2>
 						{!isTodaySelected && (
-							<span className="badge badge-xs badge-warning">Past</span>
+							<span className="badge badge-xs badge-warning font-semibold">Past</span>
 						)}
 					</div>
+
+					{/* Status Filter Dropdown */}
+					<select
+						className="select select-bordered select-sm text-xs font-semibold bg-base-100"
+						value={statusFilter}
+						onChange={(e) => setStatusFilter(e.target.value)}>
+						{STATUS_FILTERS.map(({ id, label }) => (
+							<option key={id} value={id}>
+								{id === "all" ? "All Status" : label}
+							</option>
+						))}
+					</select>
 				</div>
-				<div className="flex flex-col gap-2 w-full md:w-72">
-					<div className="relative">
-						<Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 opacity-50" />
+
+				{/* Right: Search + Date Picker + Refresh */}
+				<div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+					<div className="relative w-40 sm:w-52">
+						<Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 opacity-50" />
 						<input
 							type="text"
-							placeholder="Search order, name, table..."
-							className="input input-bordered input-sm w-full pl-10"
+							placeholder="Search order, name..."
+							className="input input-bordered input-sm w-full pl-8 text-xs"
 							value={searchTerm}
 							onChange={(e) => setSearchTerm(e.target.value)}
 						/>
 					</div>
+
 					<BangkokDatePicker
 						value={selectedDate}
 						onChange={setSelectedDate}
+						className="!p-1 !rounded-lg"
 					/>
-				</div>
-			</div>
 
-			{/* Status Filters */}
-			<div className="tabs tabs-boxed bg-base-200 p-1 w-fit rounded-lg">
-				{STATUS_FILTERS.map(({ id, label }) => (
 					<button
-						key={id}
-						className={`tab tab-sm ${
-							statusFilter === id ? "tab-active font-bold" : ""
-						}`}
-						onClick={() => setStatusFilter(id)}>
-						{label}
+						type="button"
+						onClick={() => fetchHistory(true)}
+						disabled={isRefreshing || loading}
+						className="btn btn-ghost btn-sm btn-square border border-base-300 hover:bg-base-200"
+						title="Refresh Order History">
+						<RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-primary" : ""}`} />
 					</button>
-				))}
+				</div>
 			</div>
 
 			{/* Table Card */}

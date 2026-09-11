@@ -30,7 +30,7 @@ const Sidebar = ({ children }) => {
 	const [isCollapsed, setIsCollapsed] = useState(false);
 	const { profile, signOut, isAdmin, isStaff } = useAuth();
 	const { permissions, fetchPermissions } = useStaffAccessStore();
-	const { isNightMode, setIsNightMode } = useOrderStore();
+	const isNightMode = useOrderStore((state) => state.isNightMode);
 
 	useEffect(() => {
 		fetchPermissions();
@@ -201,7 +201,17 @@ const Sidebar = ({ children }) => {
 					{/* Night Menu Mode Toggle */}
 					<div className="flex-none pr-2">
 						<button
-							onClick={() => setIsNightMode(!isNightMode)}
+							type="button"
+							onClick={() => {
+								const store = useOrderStore.getState();
+								if (typeof store.toggleNightMode === "function") {
+									store.toggleNightMode();
+								} else if (typeof store.setIsNightMode === "function") {
+									store.setIsNightMode(!store.isNightMode);
+								} else {
+									useOrderStore.setState({ isNightMode: !store.isNightMode });
+								}
+							}}
 							className={`btn btn-sm btn-circle transition-all duration-300 ${
 								isNightMode
 									? "bg-slate-900 text-yellow-300 border-indigo-500 shadow-md shadow-indigo-500/30"

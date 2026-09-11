@@ -4,6 +4,7 @@ import Sidebar from "./components/Sidebar";
 import { useAuth } from "./contexts/AuthContext";
 import { Loading } from "./components/common/Loading";
 import useOrderStore from "./stores/orderStore";
+import POSCrashBoundary from "./components/common/POSCrashBoundary";
 
 function App() {
 	const { user, loading } = useAuth();
@@ -30,7 +31,9 @@ function App() {
 
 	return (
 		<div className="min-h-screen bg-base-100">
-			{user ? <Sidebar /> : <Outlet />}
+			<POSCrashBoundary title="Application Screen Issue">
+				{user ? <Sidebar /> : <Outlet />}
+			</POSCrashBoundary>
 		</div>
 	);
 }
