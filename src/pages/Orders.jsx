@@ -11,6 +11,7 @@ import useStaffAccessStore from "../stores/staffAccessStore";
 import { sendToKitchenPrinter } from "../services/printerService";
 import { playDeliveryNotificationSound } from "../utils/soundUtils";
 import { markOrderAsPlayed } from "../components/common/DeliveryNotificationListener";
+import POSCrashBoundary from "../components/common/POSCrashBoundary";
 
 export const Orders = () => {
 	const fetchActiveNotes = useQuickNoteStore((state) => state.fetchActiveNotes);
@@ -190,14 +191,20 @@ export const Orders = () => {
 			{/* Tab Content */}
 			<>
 				{activeTab === "new-order" ? (
-					<NewOrderTab
-						processOrder={processOrder}
-						isProcessing={isProcessing}
-					/>
+					<POSCrashBoundary title="New Order Screen Issue" allowResetCart>
+						<NewOrderTab
+							processOrder={processOrder}
+							isProcessing={isProcessing}
+						/>
+					</POSCrashBoundary>
 				) : activeTab === "active-orders" ? (
-					<ActiveOrdersTab />
+					<POSCrashBoundary title="Active Orders Screen Issue">
+						<ActiveOrdersTab />
+					</POSCrashBoundary>
 				) : (
-					<OrderHistoryTab />
+					<POSCrashBoundary title="Order History Screen Issue">
+						<OrderHistoryTab />
+					</POSCrashBoundary>
 				)}
 			</>
 		</div>

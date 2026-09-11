@@ -30,7 +30,7 @@ const Sidebar = ({ children }) => {
 	const [isCollapsed, setIsCollapsed] = useState(false);
 	const { profile, signOut, isAdmin, isStaff } = useAuth();
 	const { permissions, fetchPermissions } = useStaffAccessStore();
-	const { isNightMode, setIsNightMode } = useOrderStore();
+	const isNightMode = useOrderStore((state) => state.isNightMode);
 
 	useEffect(() => {
 		fetchPermissions();

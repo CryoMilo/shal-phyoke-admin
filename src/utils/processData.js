@@ -1,9 +1,9 @@
-import { startOfMonth, endOfMonth, differenceInDays } from "date-fns";
+import { startOfMonth, endOfMonth } from "date-fns";
 
 // Helper functions
 const getSafeNumber = (value) => parseFloat(value) || 0;
 
-const calculateDailyOverheadCost = (monthlyOverheads, selectedDate, openingDays = [1, 2, 3, 4, 5, 6]) => {
+export const calculateDailyOverheadCost = (monthlyOverheads, selectedDate, openingDays = [1, 2, 3, 4, 5, 6]) => {
 	if (!monthlyOverheads || monthlyOverheads.length === 0) return 0;
 
 	// Check if selectedDate is an open day
@@ -34,7 +34,7 @@ const calculateDailyOverheadCost = (monthlyOverheads, selectedDate, openingDays 
 	return openDaysCount > 0 ? totalOverheads / openDaysCount : 0;
 };
 
-const processSalesData = (orders, aggregatedSales, dateStr) => {
+export const processSalesData = (orders, aggregatedSales, dateStr) => {
 	// Filter completed orders (only completed orders count towards sales income, items sold, and traffic)
 	const completedOrders = orders.filter((o) => o.pos_order_status === "completed");
 	const cancelledOrders = orders.filter((o) => o.pos_order_status === "cancelled");
@@ -171,7 +171,7 @@ const processSalesData = (orders, aggregatedSales, dateStr) => {
 	};
 };
 
-const processDailyExpenses = (dailyExpenses) => {
+export const processDailyExpenses = (dailyExpenses) => {
 	const totalDailyExpenses = dailyExpenses.reduce(
 		(sum, expense) => sum + getSafeNumber(expense.amount),
 		0
@@ -200,7 +200,7 @@ const processDailyExpenses = (dailyExpenses) => {
 	};
 };
 
-const processMonthlyOverheads = (monthlyOverheads, selectedDate, openingDays = [1, 2, 3, 4, 5, 6]) => {
+export const processMonthlyOverheads = (monthlyOverheads, selectedDate, openingDays = [1, 2, 3, 4, 5, 6]) => {
 	const totalMonthlyOverheads = monthlyOverheads.reduce(
 		(sum, overhead) => sum + getSafeNumber(overhead.amount),
 		0
@@ -244,7 +244,7 @@ const processMonthlyOverheads = (monthlyOverheads, selectedDate, openingDays = [
 	};
 };
 
-const processCashData = (dailyCash, cashSales) => {
+export const processCashData = (dailyCash, cashSales) => {
 	const cashCollected = getSafeNumber(dailyCash?.cash_collected);
 	const cashDeposited = getSafeNumber(dailyCash?.cash_deposited);
 	const openingBalance = getSafeNumber(dailyCash?.opening_balance);

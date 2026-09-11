@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { X, Check, Utensils, AlertTriangle } from "lucide-react";
-import useOrderStore from "../../stores/orderStore";
 
 const AddonSelectionModal = ({ isOpen, onClose, onConfirm, item }) => {
 	const [selectedExtras, setSelectedExtras] = useState([]);

@@ -17,7 +17,6 @@ import PrintKitchenTicketButton from "./PrintKitchenTicketButton";
 import { showToast } from "../../utils/toastUtils";
 import {
 	getBangkokDayRange,
-	formatDisplayDate,
 	toBangkokDateString,
 } from "../../utils/dateUtils";
 import BangkokDatePicker from "../common/BangkokDatePicker";

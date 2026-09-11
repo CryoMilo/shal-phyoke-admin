@@ -360,7 +360,8 @@ const useMenuStore = create(
 
 			createMenuItem: async (menuData) => {
 				try {
-					const { available_extras, ...cleanData } = menuData;
+					const cleanData = { ...menuData };
+					delete cleanData.available_extras;
 					const { data, error } = await supabase
 						.from("menu_items")
 						.insert([cleanData])
@@ -398,7 +399,8 @@ const useMenuStore = create(
 					}
 
 					// Strip UI-only fields like available_extras that aren't database columns
-					const { available_extras, ...cleanData } = menuData;
+					const cleanData = { ...menuData };
+					delete cleanData.available_extras;
 
 					// Perform the update
 					const { data, error } = await supabase

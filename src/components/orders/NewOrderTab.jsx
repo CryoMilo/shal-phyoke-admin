@@ -31,7 +31,6 @@ const NewOrderTab = ({ processOrder, isProcessing }) => {
 		itemExtraPrices,
 		drafts,
 		isNightMode,
-		setIsNightMode,
 		setOrderType,
 		setCustomerInfo,
 		setTableNumber,
