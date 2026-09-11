@@ -126,7 +126,7 @@ const AddonSelectionModal = ({ isOpen, onClose, onConfirm, item }) => {
 										<Utensils className="w-5 h-5 opacity-40" />
 									</div>
 									<div className="flex-1 min-w-0">
-										<p className="font-semibold text-sm">No Add-on (Plain)</p>
+										<p className="font-semibold text-sm">No Add-on</p>
 										<p className="text-xs text-base-content/60">
 											Base Price Only
 										</p>
