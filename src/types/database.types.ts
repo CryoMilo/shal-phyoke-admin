@@ -345,8 +345,71 @@ export interface Database {
 				};
 				Update: Partial<Database["public"]["Tables"]["customers"]["Insert"]>;
 			};
+			bonus_config: {
+				Row: {
+					id: string;
+					pool_percentage: number;
+					allowed_absences: number;
+					penalty_tiers: Json;
+					effective_from: string;
+					effective_to: string | null;
+					created_at: string;
+					created_by: string | null;
+				};
+				Insert: {
+					id?: string;
+					pool_percentage?: number;
+					allowed_absences?: number;
+					penalty_tiers?: Json;
+					effective_from: string;
+					effective_to?: string | null;
+					created_at?: string;
+					created_by?: string | null;
+				};
+				Update: Partial<Database["public"]["Tables"]["bonus_config"]["Insert"]>;
+			};
+			employee_bonus_log: {
+				Row: {
+					id: string;
+					bonus_month: string;
+					employee_id: string;
+					total_bonus_pool: number;
+					employee_share_percentage: number;
+					base_bonus_amount: number;
+					absence_points: number;
+					penalty_percentage: number;
+					final_bonus_amount: number;
+					config_snapshot: Json | null;
+					created_at: string;
+					calculated_at?: string;
+				};
+				Insert: {
+					id?: string;
+					bonus_month: string;
+					employee_id: string;
+					total_bonus_pool: number;
+					employee_share_percentage: number;
+					base_bonus_amount: number;
+					absence_points: number;
+					penalty_percentage: number;
+					final_bonus_amount: number;
+					config_snapshot?: Json | null;
+					created_at?: string;
+					calculated_at?: string;
+				};
+				Update: Partial<Database["public"]["Tables"]["employee_bonus_log"]["Insert"]>;
+			};
 		};
 		Functions: {
+			calculate_monthly_employee_bonuses: {
+				Args: {
+					p_bonus_month: string;
+				};
+				Returns: {
+					out_employee_id: string;
+					out_final_bonus: number;
+				}[];
+			};
 			search_customers: {
 				Args: {
 					p_query: string;
