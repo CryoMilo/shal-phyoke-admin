@@ -101,4 +101,10 @@ describe("orderStore.js - POS Cart and Order Lifecycle", () => {
 		expect(useOrderStore.getState().cart[0].id).toBe("m-draft");
 		expect(useOrderStore.getState().tableNumber).toBe(5);
 	});
+
+	it("updates general order notes via setNotes", () => {
+		expect(useOrderStore.getState().notes).toBe("");
+		useOrderStore.getState().setNotes("Please pack chili sauce separately");
+		expect(useOrderStore.getState().notes).toBe("Please pack chili sauce separately");
+	});
 });

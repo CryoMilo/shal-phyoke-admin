@@ -50,7 +50,7 @@ export const TrafficAnalyticsCard = ({ hourlyTraffic }) => {
 					</div>
 				</div>
 
-				<div className="h-64">
+				<div className="h-64 w-full min-w-0">
 					{hasData ? (
 						<ResponsiveContainer
 							width="100%"

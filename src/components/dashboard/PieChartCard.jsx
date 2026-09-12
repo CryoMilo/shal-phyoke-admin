@@ -70,7 +70,7 @@ export const PieChartCard = ({
 					<span className="badge badge-primary">{totalItems} items sold</span>
 				</div>
 
-				<div className="h-64 cursor-pointer" onClick={onChartClick}>
+				<div className="h-64 w-full min-w-0 cursor-pointer" onClick={onChartClick}>
 					{dailySales.length > 0 ? (
 						<ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
 							<PieChart>

@@ -29,6 +29,7 @@ const useOrderStore = create(
 			setDeliveryFee: (amount) => set({ deliveryFee: amount }),
 			setPaymentMethod: (method) => set({ paymentMethod: method }),
 			setDiscountAmount: (amount) => set({ discountAmount: amount }),
+			setNotes: (notes) => set({ notes }),
 			setIsNightMode: (isNight) =>
 				set((state) => ({
 					isNightMode:
