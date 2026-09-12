@@ -19,13 +19,15 @@ import {
 	Wallet,
 	CheckCircle2,
 	XCircle,
-	Printer
+	Printer,
+	UserCheck,
 } from "lucide-react";
 import useStaffAccessStore, { DEFAULT_PERMISSIONS } from "../stores/staffAccessStore";
 
 const ALL_TABS = [
 	{ name: "Dashboard", path: "/dashboard", icon: Home, category: "Operations" },
 	{ name: "Orders", path: "/orders", icon: ShoppingBasket, category: "Operations" },
+	{ name: "Customers", path: "/customers", icon: UserCheck, category: "Operations" },
 	{ name: "Combo Manager", path: "/combo-manager", icon: Layers2, category: "Operations" },
 	{ name: "Regular Menu Items", path: "/regular-menu", icon: Menu, category: "Menu" },
 	{ name: "Procurement", path: "/procurement", icon: ShoppingCart, category: "Inventory" },

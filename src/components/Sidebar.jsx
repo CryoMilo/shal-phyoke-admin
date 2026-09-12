@@ -20,6 +20,7 @@ import {
 	LogOut,
 	ShieldCheck,
 	Users,
+	UserCheck,
 	Wallet,
 } from "lucide-react";
 
@@ -72,6 +73,11 @@ const Sidebar = ({ children }) => {
 			name: "Orders",
 			path: "/orders",
 			icon: ShoppingBasket,
+		},
+		{
+			name: "Customers",
+			path: "/customers",
+			icon: UserCheck,
 		},
 		{
 			name: "Combo Manager",

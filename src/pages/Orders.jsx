@@ -60,6 +60,7 @@ export const Orders = () => {
 				customer_phone: orderType === "delivery" ? customerInfo.phone : null,
 				delivery_address:
 					orderType === "delivery" ? customerInfo.address : null,
+				customer_id: customerInfo.customerId || null,
 				delivery_fee: orderType === "delivery" ? deliveryFee : 0,
 				table_number:
 					orderType === "dine_in" || orderType === "takeaway"

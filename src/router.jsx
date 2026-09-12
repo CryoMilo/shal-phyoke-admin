@@ -19,6 +19,7 @@ import InventoryItems from "./pages/InventoryItems";
 import ComboManager from "./pages/ComboManager";
 import StaffAccessSettings from "./pages/StaffAccessSettings";
 import EmployeeManagement from "./pages/EmployeeManagement";
+import Customers from "./pages/Customers";
 import ProtectedRoute from "./components/ProtectedRoute";
 import BonusTracker from "./components/employees/BonusTracker";
 
@@ -111,6 +112,16 @@ const ordersRoute = createRoute({
 	),
 });
 
+const customersRoute = createRoute({
+	path: "/customers",
+	getParentRoute: () => rootRoute,
+	component: () => (
+		<ProtectedRoute>
+			<Customers />
+		</ProtectedRoute>
+	),
+});
+
 const quickNoteSettingsRoute = createRoute({
 	path: "/quick-note-settings",
 	getParentRoute: () => rootRoute,
@@ -178,6 +189,7 @@ const routeTree = rootRoute.addChildren([
 	regularMenuRoute,
 	comboManagerRoute,
 	ordersRoute,
+	customersRoute,
 	quickNoteSettingsRoute,
 	dailyCashRoute,
 	dailyExpensesRoute,
