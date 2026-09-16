@@ -327,6 +327,7 @@ export interface Database {
 					favorite_items: Json;
 					created_at: string;
 					updated_at: string;
+					building_info: string | null;
 				};
 				Insert: {
 					id?: string;
@@ -342,6 +343,7 @@ export interface Database {
 					favorite_items?: Json;
 					created_at?: string;
 					updated_at?: string;
+					building_info?: string | null;
 				};
 				Update: Partial<Database["public"]["Tables"]["customers"]["Insert"]>;
 			};
@@ -422,6 +424,7 @@ export interface Database {
 					delivery_address: string | null;
 					default_notes: string | null;
 					total_orders: number;
+					building_info?: string | null;
 				}[];
 			};
 			get_customer_dashboard_overview: {

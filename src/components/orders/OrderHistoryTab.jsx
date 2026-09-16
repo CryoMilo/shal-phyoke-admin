@@ -9,6 +9,7 @@ import {
 	XCircle,
 	Phone,
 	MapPin,
+	Building2,
 	RefreshCw,
 } from "lucide-react";
 import PrintKitchenTicketButton from "./PrintKitchenTicketButton";
@@ -49,7 +50,7 @@ const OrderHistoryTab = () => {
 
 			const { data, error } = await supabase
 				.from("orders")
-				.select("*")
+				.select("*, customers(building_info)")
 				.in("pos_order_status", ["completed", "cancelled", "refunded"])
 				.gte("created_at", start)
 				.lte("created_at", end)
@@ -302,7 +303,9 @@ const OrderHistoryTab = () => {
 
 							{/* Customer Details Section */}
 							{(selectedOrder.customer_phone ||
-								selectedOrder.delivery_address) && (
+								selectedOrder.delivery_address ||
+								selectedOrder.building_info ||
+								selectedOrder.customers?.building_info) && (
 								<div className="bg-base-200/50 p-4 rounded-xl space-y-3">
 									<div className="grid grid-cols-2 gap-1">
 										{selectedOrder.customer_phone && (
@@ -315,13 +318,25 @@ const OrderHistoryTab = () => {
 												</div>
 											</div>
 										)}
-										{selectedOrder.delivery_address && (
+										{(selectedOrder.delivery_address ||
+											selectedOrder.building_info ||
+											selectedOrder.customers?.building_info) && (
 											<div className="col-span-2 border-base-300/50">
 												<div className="text-[10px] opacity-40 mb-0.5 flex items-center gap-1">
 													<MapPin className="w-2.5 h-2.5" /> Delivery Address
 												</div>
-												<div className="text-sm font-medium leading-relaxed">
-													{selectedOrder.delivery_address}
+												<div className="text-sm font-medium leading-relaxed flex flex-wrap items-center gap-2">
+													{selectedOrder.delivery_address && (
+														<span>{selectedOrder.delivery_address}</span>
+													)}
+													{(selectedOrder.building_info ||
+														selectedOrder.customers?.building_info) && (
+														<span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-md bg-base-300/70 text-base-content/80 font-normal">
+															<Building2 className="w-3 h-3 text-primary shrink-0" />
+															{selectedOrder.building_info ||
+																selectedOrder.customers?.building_info}
+														</span>
+													)}
 												</div>
 											</div>
 										)}

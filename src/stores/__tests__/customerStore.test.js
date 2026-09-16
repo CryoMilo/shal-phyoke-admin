@@ -107,4 +107,59 @@ describe("customerStore.js - Customer Analytics & Autocomplete State", () => {
 		expect(useCustomerStore.getState().selectedCustomer).toBeNull();
 		expect(useCustomerStore.getState().customerOrders).toEqual([]);
 	});
+
+	it("searchCustomers returns building_info when provided directly by RPC", async () => {
+		const mockData = [
+			{
+				id: "cust-1",
+				name: "Daw Mya",
+				phone: "0812345678",
+				delivery_address: "Sukhumvit 55",
+				building_info: "Building A, Rm 304",
+				total_orders: 5,
+			},
+		];
+		supabase.rpc.mockResolvedValueOnce({ data: mockData, error: null });
+
+		const store = useCustomerStore.getState();
+		const results = await store.searchCustomers("Daw");
+
+		expect(results[0].building_info).toBe("Building A, Rm 304");
+	});
+
+	it("searchCustomers fallback query includes building_info if RPC fails", async () => {
+		supabase.rpc.mockResolvedValueOnce({ data: null, error: { message: "RPC error" } });
+
+		const mockFallback = [
+			{
+				id: "cust-2",
+				name: "U Ba",
+				phone: "0899999999",
+				delivery_address: "Silom",
+				building_info: "Floor 12",
+				default_notes: "Leave at door",
+				total_orders: 2,
+			},
+		];
+
+		const mockSelect = vi.fn().mockReturnThis();
+		const mockOr = vi.fn().mockReturnThis();
+		const mockOrder = vi.fn().mockReturnThis();
+		const mockLimit = vi.fn().mockResolvedValueOnce({ data: mockFallback, error: null });
+
+		supabase.from.mockReturnValueOnce({
+			select: mockSelect,
+			or: mockOr,
+			order: mockOrder,
+			limit: mockLimit,
+		});
+
+		const store = useCustomerStore.getState();
+		const results = await store.searchCustomers("U Ba");
+
+		expect(mockSelect).toHaveBeenCalledWith(
+			"id, name, phone, delivery_address, default_notes, total_orders, building_info"
+		);
+		expect(results).toEqual(mockFallback);
+	});
 });

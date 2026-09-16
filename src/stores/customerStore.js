@@ -47,11 +47,41 @@ const useCustomerStore = create((set, get) => ({
 				p_limit: 8,
 			});
 
+			if (!error && data && data.length > 0) {
+				// If RPC returns building_info (updated RPC schema), use it directly
+				if ("building_info" in data[0]) {
+					return data;
+				}
+				// If older RPC without building_info, enrich matched records with building_info
+				try {
+					const ids = data.map((c) => c.id);
+					const query = supabase.from("customers");
+					if (query && typeof query.select === "function") {
+						const selectQuery = query.select("id, building_info");
+						if (selectQuery && typeof selectQuery.in === "function") {
+							const { data: enriched } = await selectQuery.in("id", ids);
+							if (enriched && Array.isArray(enriched)) {
+								const buildingMap = new Map(
+									enriched.map((e) => [e.id, e.building_info])
+								);
+								return data.map((c) => ({
+									...c,
+									building_info: buildingMap.get(c.id) || null,
+								}));
+							}
+						}
+					}
+				} catch {
+					// Fallback to un-enriched RPC data if table query fails
+				}
+				return data;
+			}
+
 			if (error) {
 				// Fallback to client query if RPC call fails
 				const { data: fallback } = await supabase
 					.from("customers")
-					.select("id, name, phone, delivery_address, default_notes, total_orders")
+					.select("id, name, phone, delivery_address, default_notes, total_orders, building_info")
 					.or(`name.ilike.%${queryStr.trim()}%,phone.ilike.%${queryStr.trim()}%`)
 					.order("total_orders", { ascending: false })
 					.limit(8);
@@ -88,7 +118,7 @@ const useCustomerStore = create((set, get) => ({
 			let query = supabase
 				.from("customers")
 				.select(
-					"id, name, phone, delivery_address, default_notes, total_orders, total_spent, first_order_at, last_order_at, frequent_notes, favorite_items"
+					"id, name, phone, delivery_address, default_notes, total_orders, total_spent, first_order_at, last_order_at, frequent_notes, favorite_items, building_info"
 				);
 
 			if (filterOnlyRepeat) {

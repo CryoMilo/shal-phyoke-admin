@@ -116,6 +116,22 @@ export const Orders = () => {
 
 			if (dbError) throw dbError;
 
+			// If building info was specified or modified, persist to customers table
+			const targetCustomerId = customerInfo.customerId || finalOrder?.customer_id;
+			if (orderType === "delivery" && targetCustomerId && customerInfo.buildingInfo !== undefined) {
+				try {
+					await supabase
+						.from("customers")
+						.update({
+							building_info: customerInfo.buildingInfo?.trim() || null,
+							updated_at: new Date().toISOString(),
+						})
+						.eq("id", targetCustomerId);
+				} catch (custErr) {
+					console.error("Failed to update customer building_info:", custErr);
+				}
+			}
+
 			// If we successfully processed a draft, delete it from our drafts list
 			if (editingDraftId) {
 				deleteDraft(editingDraftId);

@@ -107,4 +107,37 @@ describe("orderStore.js - POS Cart and Order Lifecycle", () => {
 		useOrderStore.getState().setNotes("Please pack chili sauce separately");
 		expect(useOrderStore.getState().notes).toBe("Please pack chili sauce separately");
 	});
+
+	it("correctly handles buildingInfo in customerInfo, clearCart, loadOrder, and drafts", () => {
+		const store = useOrderStore.getState();
+		expect(store.customerInfo.buildingInfo).toBe("");
+
+		// Update customerInfo with buildingInfo
+		store.setCustomerInfo({
+			name: "Mya Mya",
+			phone: "0891234567",
+			address: "Sukhumvit 55",
+			buildingInfo: "Tower B, Room 1402",
+			customerId: "cust-99",
+		});
+
+		expect(useOrderStore.getState().customerInfo.buildingInfo).toBe("Tower B, Room 1402");
+
+		// Load order with building_info
+		store.loadOrder({
+			id: "order-1",
+			order_items: [],
+			customer_name: "Aung Aung",
+			customer_phone: "0812345678",
+			delivery_address: "Rama 9",
+			building_info: "Building 3, Floor 5",
+			customer_id: "cust-1",
+		});
+
+		expect(useOrderStore.getState().customerInfo.buildingInfo).toBe("Building 3, Floor 5");
+
+		// Clear cart resets buildingInfo
+		useOrderStore.getState().clearCart();
+		expect(useOrderStore.getState().customerInfo.buildingInfo).toBe("");
+	});
 });

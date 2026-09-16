@@ -22,6 +22,7 @@ export const generateOrderDetailsText = ({
 
 	if (customerInfo?.name) text += `👤 *Customer:* ${customerInfo.name}\n`;
 	if (customerInfo?.phone) text += `📞 *Phone:* ${customerInfo.phone}\n`;
+	if (customerInfo?.buildingInfo) text += `🏢 *Building:* ${customerInfo.buildingInfo}\n`;
 	if (customerInfo?.address) text += `📍 *Address:* ${customerInfo.address}\n`;
 
 	text += `🍴 *Type:* ${orderType.toUpperCase()}\n`;

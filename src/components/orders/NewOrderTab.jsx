@@ -8,6 +8,7 @@ import {
 	Users,
 	Phone,
 	MapPin,
+	Building2,
 	CheckCircle2,
 } from "lucide-react";
 import ItemNoteModal from "./ItemNoteModal";
@@ -151,6 +152,7 @@ const NewOrderTab = ({ processOrder, isProcessing }) => {
 			name: cust.name || "",
 			phone: cust.phone || "",
 			address: cust.delivery_address || "",
+			buildingInfo: cust.building_info || "",
 			customerId: cust.id,
 		}));
 
@@ -475,6 +477,12 @@ const NewOrderTab = ({ processOrder, isProcessing }) => {
 															{cust.delivery_address}
 														</span>
 													)}
+													{cust.building_info && (
+														<span className="flex items-center gap-1 truncate max-w-[220px] text-base-content/60">
+															<Building2 className="w-3 h-3 text-base-content/50" />
+															{cust.building_info}
+														</span>
+													)}
 												</div>
 												{cust.default_notes && (
 													<span className="text-xs text-primary/90 italic truncate">
@@ -496,6 +504,18 @@ const NewOrderTab = ({ processOrder, isProcessing }) => {
 									setCustomerInfo((prev) => ({
 										...prev,
 										phone: e.target.value,
+									}))
+								}
+							/>
+							<input
+								type="text"
+								placeholder="Building Info (Optional - Room, Floor, Landmark)"
+								className="input input-bordered w-full"
+								value={customerInfo?.buildingInfo || ""}
+								onChange={(e) =>
+									setCustomerInfo((prev) => ({
+										...prev,
+										buildingInfo: e.target.value,
 									}))
 								}
 							/>

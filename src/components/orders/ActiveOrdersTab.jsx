@@ -8,6 +8,7 @@ import {
 	Banknote,
 	Phone,
 	MapPin,
+	Building2,
 	Truck,
 	RefreshCw,
 } from "lucide-react";
@@ -36,7 +37,7 @@ const ActiveOrdersTab = () => {
 			if (isManual) setIsRefreshing(true);
 			const { data, error } = await supabase
 				.from("orders")
-				.select("*")
+				.select("*, customers(building_info)")
 				.in("pos_order_status", ["pending", "preparing", "ready"])
 				.order("created_at", { ascending: true });
 
@@ -204,6 +205,14 @@ const ActiveOrdersTab = () => {
 											{order.delivery_address && (
 												<div className="text-[10px] opacity-60 truncate w-full">
 													{order.delivery_address}
+												</div>
+											)}
+											{(order.building_info || order.customers?.building_info) && (
+												<div className="text-[9px] text-primary font-medium truncate w-full flex items-center justify-center gap-0.5">
+													<Building2 className="w-2.5 h-2.5 shrink-0" />
+													<span className="truncate">
+														{order.building_info || order.customers?.building_info}
+													</span>
 												</div>
 											)}
 										</div>
@@ -518,7 +527,10 @@ const SingularOrderModal = ({ order, onClose, onUpdate, onOpenPager }) => {
 					</div>
 
 					{/* Customer Details Section */}
-					{(order.customer_phone || order.delivery_address) && (
+					{(order.customer_phone ||
+						order.delivery_address ||
+						order.building_info ||
+						order.customers?.building_info) && (
 						<div className="bg-base-200/50 p-4 rounded-xl space-y-3">
 							<div className="grid grid-cols-2 gap-2">
 								{order.customer_phone && (
@@ -531,13 +543,25 @@ const SingularOrderModal = ({ order, onClose, onUpdate, onOpenPager }) => {
 										</div>
 									</div>
 								)}
-								{order.delivery_address && (
+								{(order.delivery_address ||
+									order.building_info ||
+									order.customers?.building_info) && (
 									<div className="col-span-2 border-base-300/50">
 										<div className="text-[10px] opacity-40 mb-0.5 flex items-center gap-1">
 											<MapPin className="w-2.5 h-2.5" /> Delivery Address
 										</div>
-										<div className="text-sm font-medium leading-relaxed">
-											{order.delivery_address}
+										<div className="text-sm font-medium leading-relaxed flex flex-wrap items-center gap-2">
+											{order.delivery_address && (
+												<span>{order.delivery_address}</span>
+											)}
+											{(order.building_info ||
+												order.customers?.building_info) && (
+												<span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-md bg-base-300/70 text-base-content/80 font-normal">
+													<Building2 className="w-3 h-3 text-primary shrink-0" />
+													{order.building_info ||
+														order.customers?.building_info}
+												</span>
+											)}
 										</div>
 									</div>
 								)}

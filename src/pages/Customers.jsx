@@ -5,6 +5,7 @@ import {
 	UserCheck,
 	Phone,
 	MapPin,
+	Building2,
 	ShoppingBag,
 	DollarSign,
 	Search,
@@ -348,11 +349,21 @@ const Customers = () => {
 										</div>
 									</div>
 
-									{/* Delivery Address */}
-									{cust.delivery_address && (
-										<div className="flex items-start gap-1.5 text-xs text-base-content/70 bg-base-200/60 p-2 rounded-xl">
-											<MapPin className="w-3.5 h-3.5 text-base-content/50 shrink-0 mt-0.5" />
-											<span className="line-clamp-2">{cust.delivery_address}</span>
+									{/* Delivery Address & Building Info */}
+									{(cust.delivery_address || cust.building_info) && (
+										<div className="flex flex-col gap-1 text-xs text-base-content/70 bg-base-200/60 p-2 rounded-xl">
+											{cust.delivery_address && (
+												<div className="flex items-start gap-1.5">
+													<MapPin className="w-3.5 h-3.5 text-base-content/50 shrink-0 mt-0.5" />
+													<span className="line-clamp-2">{cust.delivery_address}</span>
+												</div>
+											)}
+											{cust.building_info && (
+												<div className="flex items-start gap-1.5 text-base-content/60">
+													<Building2 className="w-3.5 h-3.5 text-base-content/50 shrink-0 mt-0.5" />
+													<span className="line-clamp-1">{cust.building_info}</span>
+												</div>
+											)}
 										</div>
 									)}
 
@@ -509,16 +520,31 @@ const Customers = () => {
 							</div>
 						</div>
 
-						{/* Delivery Address */}
-						{selectedCustomer.delivery_address && (
-							<div className="py-3 border-b border-base-200 flex items-start gap-2 text-sm text-base-content/80">
-								<MapPin className="w-4 h-4 text-base-content/50 shrink-0 mt-0.5" />
-								<div>
-									<span className="font-semibold text-xs text-base-content/60 block uppercase">
-										Delivery Address:
-									</span>
-									<span>{selectedCustomer.delivery_address}</span>
-								</div>
+						{/* Delivery Address & Building Info */}
+						{(selectedCustomer.delivery_address || selectedCustomer.building_info) && (
+							<div className="py-3 border-b border-base-200 flex flex-col gap-2.5 text-sm text-base-content/80">
+								{selectedCustomer.delivery_address && (
+									<div className="flex items-start gap-2">
+										<MapPin className="w-4 h-4 text-base-content/50 shrink-0 mt-0.5" />
+										<div>
+											<span className="font-semibold text-xs text-base-content/60 block uppercase">
+												Delivery Address:
+											</span>
+											<span>{selectedCustomer.delivery_address}</span>
+										</div>
+									</div>
+								)}
+								{selectedCustomer.building_info && (
+									<div className="flex items-start gap-2">
+										<Building2 className="w-4 h-4 text-base-content/50 shrink-0 mt-0.5" />
+										<div>
+											<span className="font-semibold text-xs text-base-content/60 block uppercase">
+												Building Info:
+											</span>
+											<span>{selectedCustomer.building_info}</span>
+										</div>
+									</div>
+								)}
 							</div>
 						)}
 
