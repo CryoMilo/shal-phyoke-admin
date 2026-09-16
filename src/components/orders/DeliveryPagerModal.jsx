@@ -9,6 +9,8 @@ import {
 	Truck,
 	MessageSquare,
 	Clipboard,
+	Copy,
+	Check,
 	Home,
 	PhoneCall,
 	PackageCheck,
@@ -19,6 +21,7 @@ import { showToast } from "../../utils/toastUtils";
 const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
 	const [instructionMode, setInstructionMode] = useState("drop"); // "call" | "drop"
 	const [isSubmitting, setIsSubmitting] = useState(false);
+	const [isCopied, setIsCopied] = useState(false);
 
 	const { register, handleSubmit, setValue, watch, reset } = useForm({
 		defaultValues: {
@@ -41,19 +44,42 @@ const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
 	useEffect(() => {
 		if (order && isOpen) {
 			const defaultPrepaid = order.payment_status === "paid";
+			const prefilledBuilding =
+				order.building_info ||
+				order.customers?.building_info ||
+				"";
+
 			reset({
 				dispatchText: "",
 				customerPhone: order.customer_phone || "",
-				customerAddress: "",
-				buildingInfo: "",
+				customerAddress: order.delivery_address || "",
+				buildingInfo: prefilledBuilding,
 				riderPlate: "",
 				isPrepaid: defaultPrepaid,
 				amountToPay: defaultPrepaid ? Number(order.delivery_fee || 0) : "",
 				customNote: "",
 			});
 			setInstructionMode("drop");
+			setIsCopied(false);
+
+			// Fallback: fetch building_info directly from customers table if customer_id is present
+			if (!prefilledBuilding && order.customer_id) {
+				supabase
+					.from("customers")
+					.select("building_info")
+					.eq("id", order.customer_id)
+					.single()
+					.then(({ data, error }) => {
+						if (!error && data?.building_info) {
+							setValue("buildingInfo", data.building_info);
+						}
+					})
+					.catch((err) => {
+						console.error("Failed to fetch customer building_info for pager:", err);
+					});
+			}
 		}
-	}, [order, isOpen, reset]);
+	}, [order, isOpen, reset, setValue]);
 
 	// Auto-switch to drop mode if phone number is cleared and current mode is call
 	useEffect(() => {
@@ -121,6 +147,48 @@ const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
 		return `ถึงแล้วโทรหา ${phone || "ลูกค้า"} ${bldg}`;
 	};
 
+	// Clean Thai instruction text without placeholders for copying
+	const getCopyableInstruction = () => {
+		const bldg = buildingInfo?.trim()
+			? `ตึก ${buildingInfo.trim()}`
+			: "";
+		const phone = customerPhone?.trim() || "";
+
+		if (instructionMode === "drop") {
+			const base = bldg
+				? `วางไว้ที่จุดรับส่งอาหาร ${bldg}`
+				: "วางไว้ที่จุดรับส่งอาหาร";
+			if (!phone) {
+				return `${base} • ไม่ต้องติดต่อลูกค้า • หากเป็นไปได้ รบกวนส่งหมายเลขตะกร้าเข้ามาในแชท`;
+			}
+			return `${base} • หากเป็นไปได้ รบกวนส่งหมายเลขตะกร้าเข้ามาในแชท`;
+		}
+		return `ถึงแล้วโทรหา ${phone || "ลูกค้า"}${bldg ? ` ${bldg}` : ""}`;
+	};
+
+	// Copy Thai written instruction text
+	const handleCopyInstruction = async () => {
+		const textToCopy = getCopyableInstruction();
+		try {
+			if (navigator?.clipboard?.writeText) {
+				await navigator.clipboard.writeText(textToCopy);
+			} else {
+				const textarea = document.createElement("textarea");
+				textarea.value = textToCopy;
+				document.body.appendChild(textarea);
+				textarea.select();
+				document.execCommand("copy");
+				document.body.removeChild(textarea);
+			}
+			setIsCopied(true);
+			showToast.success("Thai instruction copied to clipboard!");
+			setTimeout(() => setIsCopied(false), 2000);
+		} catch (error) {
+			console.error("Failed to copy instruction:", error);
+			showToast.error("Failed to copy instruction to clipboard");
+		}
+	};
+
 	const onSubmit = async (data) => {
 		if (!order) return;
 
@@ -171,6 +239,21 @@ const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
 
 			if (error) throw error;
 
+			// Sync building_info back to customers table if order has a linked customer
+			if (order.customer_id && data.buildingInfo?.trim()) {
+				try {
+					await supabase
+						.from("customers")
+						.update({
+							building_info: data.buildingInfo.trim(),
+							updated_at: new Date().toISOString(),
+						})
+						.eq("id", order.customer_id);
+				} catch (custErr) {
+					console.error("Failed to sync customer building_info from pager:", custErr);
+				}
+			}
+
 			showToast.success("Delivery pager job created successfully!");
 			onClose();
 		} catch (error) {
@@ -200,12 +283,35 @@ const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
 							</span>
 						</div>
 					</div>
-					<button
-						type="button"
-						className="btn btn-sm btn-circle btn-ghost active:scale-90 transition-transform duration-100 ease-out"
-						onClick={onClose}>
-						<X className="w-4 h-4" />
-					</button>
+					<div className="flex items-center gap-2">
+						<button
+							type="button"
+							onClick={handleCopyInstruction}
+							title="Copy Thai instruction text"
+							className={`btn btn-sm gap-1.5 font-medium transition-all ${
+								isCopied
+									? "btn-success text-success-content"
+									: "btn-outline border-base-300 hover:border-primary hover:bg-primary/10 hover:text-primary"
+							}`}>
+							{isCopied ? (
+								<>
+									<Check className="w-3.5 h-3.5" />
+									<span className="text-xs">Copied!</span>
+								</>
+							) : (
+								<>
+									<Copy className="w-3.5 h-3.5" />
+									<span className="text-xs">Copy Instruction</span>
+								</>
+							)}
+						</button>
+						<button
+							type="button"
+							className="btn btn-sm btn-circle btn-ghost active:scale-90 transition-transform duration-100 ease-out"
+							onClick={onClose}>
+							<X className="w-4 h-4" />
+						</button>
+					</div>
 				</div>
 
 				{/* Scrollable Form Body */}
@@ -446,13 +552,23 @@ const DeliveryPagerModal = ({ isOpen, onClose, order }) => {
 						</div>
 
 						{/* Dynamic Result Live Preview */}
-						<div className="mt-2.5 px-3 py-2 bg-base-200/70 rounded-lg border border-base-300 text-xs font-mono text-base-content/80 flex items-center gap-2">
-							<span className="badge badge-neutral badge-xs uppercase font-bold text-[9px]">
-								Preview
-							</span>
-							<span className="font-medium truncate">
-								{getCraftedInstruction()}
-							</span>
+						<div className="mt-2.5 px-3 py-2 bg-base-200/70 rounded-lg border border-base-300 text-xs font-mono text-base-content/80 flex items-center justify-between gap-2">
+							<div className="flex items-center gap-2 min-w-0 flex-1">
+								<span className="badge badge-neutral badge-xs uppercase font-bold text-[9px] shrink-0">
+									Preview
+								</span>
+								<span className="font-medium truncate">
+									{getCraftedInstruction()}
+								</span>
+							</div>
+							<button
+								type="button"
+								onClick={handleCopyInstruction}
+								className="btn btn-ghost btn-xs text-primary gap-1 shrink-0"
+								title="Copy Thai instruction">
+								{isCopied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+								<span className="text-[10px]">{isCopied ? "Copied" : "Copy"}</span>
+							</button>
 						</div>
 					</div>
 

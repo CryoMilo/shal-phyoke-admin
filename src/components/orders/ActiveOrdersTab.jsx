@@ -459,8 +459,9 @@ const SingularOrderModal = ({ order, onClose, onUpdate, onOpenPager }) => {
 
 	return (
 		<div className="modal modal-open">
-			<div className="modal-box max-w-lg p-0 overflow-hidden bg-base-100">
-				<div className="p-4 bg-base-200 border-b border-base-300 flex justify-between items-center">
+			<div className="modal-box max-w-lg p-0 overflow-hidden bg-base-100 max-h-[90vh] flex flex-col">
+				{/* 1. Static Header */}
+				<div className="p-4 bg-base-200 border-b border-base-300 flex justify-between items-center shrink-0">
 					<div className="flex items-center gap-3">
 						<div
 							className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-sm
@@ -488,7 +489,8 @@ const SingularOrderModal = ({ order, onClose, onUpdate, onOpenPager }) => {
 					</button>
 				</div>
 
-				<div className="p-6 space-y-6">
+				{/* 2. Static Top Details: Order #, Status, Customer Address */}
+				<div className="p-6 pb-2 space-y-4 shrink-0">
 					<div className="flex justify-between items-start">
 						<div>
 							<div className="text-[10px] font-bold opacity-40 uppercase mb-1">
@@ -568,33 +570,35 @@ const SingularOrderModal = ({ order, onClose, onUpdate, onOpenPager }) => {
 							</div>
 						</div>
 					)}
+				</div>
 
-					<div className="space-y-3">
-						<h4 className="text-[10px] font-bold opacity-40 uppercase">
-							Order Items
-						</h4>
-						{order.order_items.map((item, idx) => (
-							<div key={idx} className="flex flex-col gap-1">
-								<div className="flex justify-between text-sm">
-									<span className="font-medium">
-										{item.quantity}x {item.name_burmese}
-									</span>
-									<span className="font-mono">
-										฿{(item.final_price || item.price) * item.quantity}
-									</span>
-								</div>
-								{(item.note || order.item_notes?.[item.cart_id]) && (
-									<div className="ml-4 text-[10px] opacity-60 italic">
-										{item.note || order.item_notes?.[item.cart_id]}
-									</div>
-								)}
+				{/* 3. Scrollable Order Items Section */}
+				<div className="px-6 py-2 overflow-y-auto flex-1 min-h-0 space-y-2.5 max-h-56 border-y border-base-200">
+					<h4 className="text-[10px] font-bold opacity-40 uppercase sticky top-0 bg-base-100 py-1 z-10">
+						Order Items
+					</h4>
+					{order.order_items.map((item, idx) => (
+						<div key={idx} className="flex flex-col gap-1">
+							<div className="flex justify-between text-sm">
+								<span className="font-medium">
+									{item.quantity}x {item.name_burmese}
+								</span>
+								<span className="font-mono">
+									฿{(item.final_price || item.price) * item.quantity}
+								</span>
 							</div>
-						))}
-					</div>
+							{(item.note || order.item_notes?.[item.cart_id]) && (
+								<div className="ml-4 text-[10px] opacity-60 italic">
+									{item.note || order.item_notes?.[item.cart_id]}
+								</div>
+							)}
+						</div>
+					))}
+				</div>
 
-					<div className="divider my-0 opacity-50"></div>
-
-					<div className="space-y-2">
+				{/* 4. Static Bottom Section: Totals & Action Buttons */}
+				<div className="p-6 pt-3 space-y-4 shrink-0 bg-base-100">
+					<div className="space-y-1.5">
 						<div className="flex justify-between text-sm">
 							<span className="opacity-60">Subtotal</span>
 							<span className="font-mono text-sm">฿{order.subtotal}</span>
@@ -625,7 +629,7 @@ const SingularOrderModal = ({ order, onClose, onUpdate, onOpenPager }) => {
 						</div>
 					</div>
 
-					<div className="grid grid-cols-2 gap-3 mt-8">
+					<div className="grid grid-cols-2 gap-3 pt-1">
 						{order.payment_status !== "paid" ? (
 							<>
 								<button
@@ -641,7 +645,7 @@ const SingularOrderModal = ({ order, onClose, onUpdate, onOpenPager }) => {
 							</>
 						) : (
 							<button
-								className="btn btn-primary col-span-2 gap-2 h-16 text-lg"
+								className="btn btn-primary col-span-2 gap-2 h-14 text-lg font-bold"
 								onClick={handleCompleteOrder}
 								disabled={isProcessing}>
 								{isProcessing ? (
@@ -653,7 +657,7 @@ const SingularOrderModal = ({ order, onClose, onUpdate, onOpenPager }) => {
 							</button>
 						)}
 
-						<div className="col-span-2 flex justify-center mt-2">
+						<div className="col-span-2 flex justify-center mt-1">
 							{confirmAction ? (
 								<div className="flex gap-2 w-full">
 									<button
@@ -678,7 +682,7 @@ const SingularOrderModal = ({ order, onClose, onUpdate, onOpenPager }) => {
 									}>
 									{order.payment_status === "paid"
 										? "Refund Bill"
-										: "Cancel Bill"}
+										: "Cancel Order"}
 								</button>
 							)}
 						</div>

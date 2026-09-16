@@ -254,8 +254,9 @@ const OrderHistoryTab = () => {
 			{/* Detailed View Modal */}
 			{selectedOrder && (
 				<div className="modal modal-open">
-					<div className="modal-box max-w-lg p-0 overflow-hidden">
-						<div className="p-4 bg-base-200 border-b border-base-300 flex justify-between items-center">
+					<div className="modal-box max-w-lg p-0 overflow-hidden max-h-[90vh] flex flex-col bg-base-100">
+						{/* Static Header */}
+						<div className="p-4 bg-base-200 border-b border-base-300 flex justify-between items-center shrink-0">
 							<h3 className="font-bold">Order Details</h3>
 							<button
 								className="btn btn-sm btn-circle btn-ghost"
@@ -264,7 +265,8 @@ const OrderHistoryTab = () => {
 							</button>
 						</div>
 
-						<div className="p-6 space-y-4">
+						{/* Static Top Details: Order Number, Status, Customer Address */}
+						<div className="p-6 pb-2 space-y-4 shrink-0">
 							<div className="flex justify-between items-start">
 								<div>
 									<div className="text-xs font-bold opacity-40 uppercase">
@@ -343,34 +345,36 @@ const OrderHistoryTab = () => {
 									</div>
 								</div>
 							)}
+						</div>
 
-							<div className="space-y-3">
-								<h4 className="text-xs font-bold opacity-40 uppercase">
-									Items
-								</h4>
-								{selectedOrder.order_items.map((item, idx) => (
-									<div key={idx} className="flex flex-col gap-1">
-										<div className="flex justify-between text-sm">
-											<span className="font-medium">
-												{item.quantity}x {item.name_burmese}
-											</span>
-											<span className="font-mono">
-												฿{(item.final_price || item.price) * item.quantity}
-											</span>
-										</div>
-										{(item.note ||
-											selectedOrder.item_notes?.[item.cart_id]) && (
-											<div className="ml-4 text-[10px] opacity-60 italic">
-												{item.note || selectedOrder.item_notes?.[item.cart_id]}
-											</div>
-										)}
+						{/* Scrollable Order Items Section */}
+						<div className="px-6 py-2 overflow-y-auto flex-1 min-h-0 space-y-2.5 max-h-56 border-y border-base-200">
+							<h4 className="text-xs font-bold opacity-40 uppercase sticky top-0 bg-base-100 py-1 z-10">
+								Items
+							</h4>
+							{selectedOrder.order_items.map((item, idx) => (
+								<div key={idx} className="flex flex-col gap-1">
+									<div className="flex justify-between text-sm">
+										<span className="font-medium">
+											{item.quantity}x {item.name_burmese}
+										</span>
+										<span className="font-mono">
+											฿{(item.final_price || item.price) * item.quantity}
+										</span>
 									</div>
-								))}
-							</div>
+									{(item.note ||
+										selectedOrder.item_notes?.[item.cart_id]) && (
+										<div className="ml-4 text-[10px] opacity-60 italic">
+											{item.note || selectedOrder.item_notes?.[item.cart_id]}
+										</div>
+									)}
+								</div>
+							))}
+						</div>
 
-							<div className="divider my-0"></div>
-
-							<div className="space-y-2">
+						{/* Static Bottom Section: Totals & Footer Info */}
+						<div className="p-6 pt-3 space-y-4 shrink-0 bg-base-100">
+							<div className="space-y-1.5">
 								<div className="flex justify-between text-sm">
 									<span className="opacity-60">Subtotal</span>
 									<span className="font-mono text-sm">
@@ -391,9 +395,9 @@ const OrderHistoryTab = () => {
 										</span>
 									</div>
 								)}
-								<div className="flex justify-between font-bold text-lg pt-2">
+								<div className="flex justify-between font-bold text-lg pt-2 border-t border-base-200">
 									<span>Total</span>
-									<span className="text-primary">
+									<span className="text-primary text-xl">
 										฿{selectedOrder.total_amount}
 									</span>
 								</div>
@@ -420,7 +424,7 @@ const OrderHistoryTab = () => {
 								</div>
 							</div>
 						</div>
-						<div className="p-4 bg-base-100 border-t border-base-300 flex justify-end">
+						<div className="p-4 bg-base-200 border-t border-base-300 flex justify-end shrink-0">
 							<button
 								className="btn btn-sm"
 								onClick={() => setSelectedOrder(null)}>
