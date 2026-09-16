@@ -12,12 +12,24 @@ export const sendToKitchenPrinter = async (order) => {
 		}
 
 		const orderItems = Array.isArray(order.order_items) ? order.order_items : [];
-		const items = orderItems.map((item) => ({
-			name: item.name_burmese || item.name_english || "Unknown Item",
-			qty: item.quantity || item.qty || 1,
-			price: item.price || 0,
-			note: order.item_notes?.[item.cart_id] ?? null,
-		}));
+		const items = orderItems.map((item) => {
+			const extraPrice =
+				item.extra_price ??
+				order.item_extra_prices?.[item.cart_id] ??
+				0;
+			const finalPrice =
+				item.final_price ??
+				(typeof item.price === "number" ? item.price + extraPrice : extraPrice);
+
+			return {
+				name: item.name_burmese || item.name_english || "Unknown Item",
+				qty: item.quantity || item.qty || 1,
+				price: finalPrice,
+				extra_price: extraPrice,
+				final_price: finalPrice,
+				note: order.item_notes?.[item.cart_id] ?? item.note ?? null,
+			};
+		});
 
 		const tableNo =
 			order.order_type === "dine_in"
