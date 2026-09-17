@@ -11,6 +11,8 @@ import useStaffAccessStore from "../stores/staffAccessStore";
 import { sendToKitchenPrinter } from "../services/printerService";
 import { playDeliveryNotificationSound } from "../utils/soundUtils";
 import { markOrderAsPlayed } from "../components/common/DeliveryNotificationListener";
+import { Volume2 } from "lucide-react";
+import SoundAlertsModal from "../components/orders/SoundAlertsModal";
 import POSCrashBoundary from "../components/common/POSCrashBoundary";
 
 export const Orders = () => {
@@ -36,6 +38,7 @@ export const Orders = () => {
 
 	const [activeTab, setActiveTab] = useState("new-order");
 	const [isProcessing, setIsProcessing] = useState(false);
+	const [isSoundModalOpen, setIsSoundModalOpen] = useState(false);
 	const { autoPrintKitchenTicket, fetchPermissions } = useStaffAccessStore();
 
 	useEffect(() => {
@@ -180,29 +183,42 @@ export const Orders = () => {
 
 	return (
 		<div className="p-4 bg-base-100 min-h-screen">
-			{/* Tabs Navigation */}
-			<div className="tabs tabs-boxed mb-3 bg-base-200 p-1 w-fit rounded-lg flex items-center gap-1">
-				<button
-					className={`tab tab-lg ${
-						activeTab === "new-order" ? "tab-active font-bold" : ""
-					}`}
-					onClick={() => setActiveTab("new-order")}>
-					New
-				</button>
-				<button
-					className={`tab tab-lg ${
-						activeTab === "active-orders" ? "tab-active font-bold" : ""
-					}`}
-					onClick={() => setActiveTab("active-orders")}>
-					Active
-				</button>
-				<button
-					className={`tab tab-lg ${
-						activeTab === "order-history" ? "tab-active font-bold" : ""
-					}`}
-					onClick={() => setActiveTab("order-history")}>
-					History
-				</button>
+			{/* Tabs Navigation & Action Row */}
+			<div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+				<div className="tabs tabs-boxed bg-base-200 p-1 w-fit rounded-lg flex items-center gap-1">
+					<button
+						className={`tab tab-lg ${
+							activeTab === "new-order" ? "tab-active font-bold" : ""
+						}`}
+						onClick={() => setActiveTab("new-order")}>
+						New
+					</button>
+					<button
+						className={`tab tab-lg ${
+							activeTab === "active-orders" ? "tab-active font-bold" : ""
+						}`}
+						onClick={() => setActiveTab("active-orders")}>
+						Active
+					</button>
+					<button
+						className={`tab tab-lg ${
+							activeTab === "order-history" ? "tab-active font-bold" : ""
+						}`}
+						onClick={() => setActiveTab("order-history")}>
+						History
+					</button>
+				</div>
+
+				{/* Sound Alerts Trigger Button (Right corner on same row as tabs for Active Orders) */}
+				{activeTab === "active-orders" && (
+					<button
+						onClick={() => setIsSoundModalOpen(true)}
+						className="btn btn-sm md:btn-md btn-outline btn-primary gap-2 shadow-xs font-bold transition-all hover:scale-[1.02]"
+						title="Sound Announcements">
+						<Volume2 className="w-4 h-4 md:w-5 md:h-5 text-primary" />
+						<span>Sound Alerts</span>
+					</button>
+				)}
 			</div>
 
 			{/* Tab Content */}
@@ -216,7 +232,7 @@ export const Orders = () => {
 					</POSCrashBoundary>
 				) : activeTab === "active-orders" ? (
 					<POSCrashBoundary title="Active Orders Screen Issue">
-						<ActiveOrdersTab />
+						<ActiveOrdersTab onOpenSoundAlerts={() => setIsSoundModalOpen(true)} />
 					</POSCrashBoundary>
 				) : (
 					<POSCrashBoundary title="Order History Screen Issue">
@@ -224,6 +240,12 @@ export const Orders = () => {
 					</POSCrashBoundary>
 				)}
 			</>
+
+			{/* Sound Alerts Modal */}
+			<SoundAlertsModal
+				isOpen={isSoundModalOpen}
+				onClose={() => setIsSoundModalOpen(false)}
+			/>
 		</div>
 	);
 };
