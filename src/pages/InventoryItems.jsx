@@ -48,7 +48,7 @@ const InventoryItems = () => {
 		return () => {
 			subscription.unsubscribe();
 		};
-	}, []);
+	}, [fetchInventoryItems, fetchVendors, subscribeToInventory]);
 
 	const filteredItems = getFilteredItems();
 	const vendorsWithCounts = getVendorsWithCounts();

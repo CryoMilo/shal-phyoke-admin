@@ -29,7 +29,7 @@ const ItemNoteModal = ({ show, onClose, onSave, item }) => {
 	const applicableSettings = useMemo(() => {
 		if (!item || !item.quick_note_ids) return [];
 		return getNotesByIds(item.quick_note_ids);
-	}, [item?.quick_note_ids, getNotesByIds]);
+	}, [item, getNotesByIds]);
 
 	const tasteCategories = useMemo(
 		() => applicableSettings.filter((s) => s.type === "radio"),

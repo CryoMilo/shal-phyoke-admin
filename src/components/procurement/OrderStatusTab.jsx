@@ -14,7 +14,7 @@ const OrderStatusTab = () => {
 
 	useEffect(() => {
 		fetchProcurementOrders();
-	}, []);
+	}, [fetchProcurementOrders]);
 
 	const orderedOrders = getOrdersByStatus("ordered");
 

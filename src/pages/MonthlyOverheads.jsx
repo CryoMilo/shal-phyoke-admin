@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
 	format,
 	startOfMonth,
@@ -69,7 +69,7 @@ const MonthlyOverheads = () => {
 
 	const selectedCategory = watch("category");
 
-	const fetchOverheads = async () => {
+	const fetchOverheads = useCallback(async () => {
 		setLoading(true);
 		try {
 			const monthStart = startOfMonth(new Date(`${selectedMonth}-01`));
@@ -113,11 +113,11 @@ const MonthlyOverheads = () => {
 		} finally {
 			setLoading(false);
 		}
-	};
+	}, [selectedMonth]);
 
 	useEffect(() => {
 		fetchOverheads();
-	}, [selectedMonth]);
+	}, [fetchOverheads]);
 
 	const handleMonthChange = (months) => {
 		const newDate = new Date(`${selectedMonth}-01`);

@@ -32,7 +32,7 @@ const RegularMenuPage = () => {
 
 	useEffect(() => {
 		fetchRegularMenuItems();
-	}, []);
+	}, [fetchRegularMenuItems]);
 
 	// Get regular items only
 	const regularItems = allMenuItems.filter((item) => item.is_regular);

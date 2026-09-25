@@ -25,7 +25,7 @@ import { isBaseItemAvailable } from "../../utils/menuAvailabilityUtils";
 import MenuItemCard from "./MenuItemCard";
 
 const NewOrderTab = ({ processOrder, isProcessing }) => {
-	const { allMenuItems, fetchAllMenuItems, getActiveFixedCombos } =
+	const { allMenuItems, fetchAllMenuItems } =
 		useMenuStore();
 	const { isAdmin, isStaff } = useAuth();
 
@@ -73,7 +73,7 @@ const NewOrderTab = ({ processOrder, isProcessing }) => {
 
 	useEffect(() => {
 		setOrderType("dine_in");
-	}, []);
+	}, [setOrderType]);
 
 	const [activeCategory, setActiveCategory] = useState("");
 
@@ -214,7 +214,13 @@ const NewOrderTab = ({ processOrder, isProcessing }) => {
 	const [pendingPaymentMethod, setPendingPaymentMethod] = useState(null);
 	const [isCopied, setIsCopied] = useState(false);
 
-	const combos = useMemo(() => getActiveFixedCombos(), [allMenuItems]);
+	const combos = useMemo(
+		() =>
+			allMenuItems.filter(
+				(item) => item.is_combo === true && item.combo_type === "fixed"
+			),
+		[allMenuItems]
+	);
 
 	const menuItems = useMemo(
 		() =>

@@ -36,6 +36,7 @@ const MenuForm = ({
 						? editingMenu.aliases
 						: "",
 					requires_addon: editingMenu?.requires_addon ?? false,
+					requires_stock_check: editingMenu?.requires_stock_check ?? false,
 					is_vegan: editingMenu?.is_vegan ?? false,
 					quick_note_ids: editingMenu?.quick_note_ids ?? [],
 					tags: editingMenu?.tags ?? [],
@@ -60,6 +61,7 @@ const MenuForm = ({
 					is_regular: isRegularOnly ? true : false,
 					is_vegan: false,
 					requires_addon: false,
+					requires_stock_check: false,
 					quick_note_ids: [],
 					tags: [],
 			  },
@@ -81,6 +83,7 @@ const MenuForm = ({
 					? editingMenu.aliases
 					: "",
 				requires_addon: editingMenu?.requires_addon ?? false,
+				requires_stock_check: editingMenu?.requires_stock_check ?? false,
 				is_vegan: editingMenu?.is_vegan ?? false,
 				quick_note_ids: editingMenu?.quick_note_ids ?? [],
 				tags: editingMenu?.tags ?? [],
@@ -104,6 +107,7 @@ const MenuForm = ({
 				is_regular: isRegularOnly ? true : false,
 				is_vegan: false,
 				requires_addon: false,
+				requires_stock_check: false,
 				quick_note_ids: [],
 				tags: [],
 			});
@@ -508,6 +512,23 @@ const MenuForm = ({
 							/>
 							<div className="flex flex-col">
 								<span className="label-text font-medium">Must have Add-on</span>
+							</div>
+						</label>
+					</div>
+
+					<div className="form-control">
+						<label className="label cursor-pointer justify-start gap-3 p-0">
+							<input
+								{...register("requires_stock_check")}
+								type="checkbox"
+								className="toggle toggle-warning"
+								disabled={loading}
+							/>
+							<div className="flex flex-col">
+								<span className="label-text font-medium">Requires Stock Check</span>
+								<span className="label-text-alt text-base-content/60">
+									Requires kitchen stock check before customer payment
+								</span>
 							</div>
 						</label>
 					</div>

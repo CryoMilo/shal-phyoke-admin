@@ -28,6 +28,7 @@ export const menuSchema = z.object({
 	tags: z.array(z.string()).nullable().optional().default([]),
 	aliases: z.any().optional().default([]),
 	requires_addon: z.boolean().default(false),
+	requires_stock_check: z.boolean().default(false),
 	// Combo fields (optional/nullable since most items are not combos)
 	is_combo: z.boolean().default(false),
 	combo_type: z.enum(["fixed", "rotating"]).nullable().optional(),

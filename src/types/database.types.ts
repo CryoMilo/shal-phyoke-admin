@@ -69,6 +69,7 @@ export interface Database {
 					is_active: boolean;
 					is_combo: boolean;
 					requires_addon: boolean;
+					requires_stock_check?: boolean;
 					quick_note_ids: string[] | null;
 					tags: string[] | null;
 					aliases: string[] | null;
@@ -85,6 +86,7 @@ export interface Database {
 					is_active?: boolean;
 					is_combo?: boolean;
 					requires_addon?: boolean;
+					requires_stock_check?: boolean;
 					quick_note_ids?: string[] | null;
 					tags?: string[] | null;
 					aliases?: string[] | null;

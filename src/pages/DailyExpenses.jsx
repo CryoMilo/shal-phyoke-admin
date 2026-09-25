@@ -80,7 +80,7 @@ const DailyExpenses = () => {
 		}
 	};
 
-	const fetchExpenses = async () => {
+	const fetchExpenses = useCallback(async () => {
 		setLoading(true);
 		try {
 			let query = supabase
@@ -112,11 +112,11 @@ const DailyExpenses = () => {
 		} finally {
 			setLoading(false);
 		}
-	};
+	}, [selectedDate, selectedCategory]);
 
 	useEffect(() => {
 		fetchExpenses();
-	}, [selectedDate, selectedCategory]);
+	}, [fetchExpenses]);
 
 	useEffect(() => {
 		fetchMostUsedCategories();

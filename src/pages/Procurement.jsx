@@ -32,7 +32,7 @@ const Procurement = () => {
 		};
 
 		init();
-	}, []);
+	}, [fetchInventoryItems, fetchMarketList, fetchVendors]);
 
 	const tabs = [
 		{ id: "market-list", label: "Market List", icon: ShoppingBag },

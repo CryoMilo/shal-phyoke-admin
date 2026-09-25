@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { format, subDays, addDays } from "date-fns";
 import {
 	Calendar,
@@ -45,7 +45,7 @@ const DailyCash = () => {
 
 	const watchedValues = watch();
 
-	const fetchDailyData = async (date) => {
+	const fetchDailyData = useCallback(async (date) => {
 		setLoading(true);
 		try {
 			// 1. Fetch Daily Cash Record
@@ -138,11 +138,11 @@ const DailyCash = () => {
 		} finally {
 			setLoading(false);
 		}
-	};
+	}, [reset]);
 
 	useEffect(() => {
 		fetchDailyData(selectedDate);
-	}, [selectedDate]);
+	}, [selectedDate, fetchDailyData]);
 
 	// Derived Calculations
 	const expectedCash = useMemo(() => {

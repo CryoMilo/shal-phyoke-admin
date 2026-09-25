@@ -20,6 +20,7 @@ import {
 	toBangkokDateString,
 } from "../../utils/dateUtils";
 import PaymentModal from "../common/PaymentModal";
+import OrderRequestsSection from "./OrderRequestsSection";
 
 // Synchronous guard to prevent duplicate order completions across re-renders
 const inProgressOrders = new Set();
@@ -137,6 +138,9 @@ const ActiveOrdersTab = () => {
 
 	return (
 		<div className="space-y-8 pb-20">
+			{/* SECTION 0: INCOMING ORDER REQUESTS */}
+			<OrderRequestsSection />
+
 			{/* SECTION 1: SINGULAR ORDERS (Takeaway & Delivery) */}
 			<section>
 				<div className="flex justify-between items-center mb-4">

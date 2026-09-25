@@ -32,7 +32,7 @@ const ComboManager = () => {
 		if (allMenuItems.length === 0) {
 			fetchAllMenuItems();
 		}
-	}, []);
+	}, [allMenuItems.length, fetchAllMenuItems]);
 
 	// Derived data
 	const combos = useMemo(

@@ -17,7 +17,7 @@ const OrderHistoryTab = () => {
 
 	useEffect(() => {
 		fetchProcurementOrders();
-	}, []);
+	}, [fetchProcurementOrders]);
 
 	// Filter for completed orders (arrived or cancelled)
 	const completedOrders = procurementOrders.filter(

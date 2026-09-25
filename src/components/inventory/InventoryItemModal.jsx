@@ -33,6 +33,20 @@ const validationRules = {
 	},
 };
 
+// Common categories for quick selection
+const commonCategories = [
+	"Meat",
+	"Seafood",
+	"Vegetables",
+	"Fruits",
+	"Dairy",
+	"Dry Goods",
+	"Spices",
+	"Packaging",
+	"Cleaning",
+	"Other",
+];
+
 const InventoryItemModal = ({
 	showModal,
 	setShowModal,
@@ -65,19 +79,6 @@ const InventoryItemModal = ({
 	const [customCategory, setCustomCategory] = React.useState("");
 	const [uploadError, setUploadError] = React.useState("");
 
-	// Common categories for quick selection
-	const commonCategories = [
-		"Meat",
-		"Seafood",
-		"Vegetables",
-		"Fruits",
-		"Dairy",
-		"Dry Goods",
-		"Spices",
-		"Packaging",
-		"Cleaning",
-		"Other",
-	];
 
 	// Load editing item data
 	useEffect(() => {
