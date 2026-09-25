@@ -1,8 +1,6 @@
 import { useEffect } from "react";
 import { supabase } from "../../services/supabase";
-import { playDeliveryNotificationSound } from "../../utils/soundUtils";
-
-// Keep track of IDs we've already played a sound for to avoid duplicates
+// Delivery notification listener (sound alerts removed)
 const playedOrderIds = new Set();
 
 const DeliveryNotificationListener = () => {
@@ -21,7 +19,7 @@ const DeliveryNotificationListener = () => {
 						const orderId = payload.new.id;
 						if (!playedOrderIds.has(orderId)) {
 							playedOrderIds.add(orderId);
-							playDeliveryNotificationSound();
+							// Sound alerts disabled
 
 							// Cleanup old IDs periodically
 							if (playedOrderIds.size > 100) {

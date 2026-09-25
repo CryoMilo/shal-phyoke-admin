@@ -11,18 +11,8 @@ const NOTIFICATION_SOUNDS = [
 ];
 
 /**
- * Plays a random notification sound from the public folder
+ * Plays notification sound (disabled - sound alerts removed)
  */
 export const playDeliveryNotificationSound = () => {
-	try {
-		const randomIndex = Math.floor(Math.random() * NOTIFICATION_SOUNDS.length);
-		const soundPath = NOTIFICATION_SOUNDS[randomIndex];
-		const audio = new Audio(soundPath);
-		audio.play().catch((error) => {
-			console.warn("Audio playback failed:", error);
-			// This often happens if the user hasn't interacted with the page yet
-		});
-	} catch (error) {
-		console.error("Error playing sound:", error);
-	}
+	// Sound alerts disabled per project configuration
 };

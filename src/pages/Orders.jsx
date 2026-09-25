@@ -9,8 +9,7 @@ import useQuickNoteStore from "../stores/quickNoteStore";
 import useOrderStore from "../stores/orderStore";
 import useStaffAccessStore from "../stores/staffAccessStore";
 import { sendToKitchenPrinter } from "../services/printerService";
-import { playDeliveryNotificationSound } from "../utils/soundUtils";
-import { markOrderAsPlayed } from "../components/common/DeliveryNotificationListener";
+
 import { Volume2 } from "lucide-react";
 import SoundAlertsModal from "../components/orders/SoundAlertsModal";
 import POSCrashBoundary from "../components/common/POSCrashBoundary";
@@ -140,11 +139,7 @@ export const Orders = () => {
 				deleteDraft(editingDraftId);
 			}
 
-			// Play sound for delivery orders
-			if (orderType === "delivery") {
-				playDeliveryNotificationSound();
-				markOrderAsPlayed(returnedOrderId);
-			}
+
 
 			// Trigger auto-print if enabled
 			if (autoPrintKitchenTicket) {

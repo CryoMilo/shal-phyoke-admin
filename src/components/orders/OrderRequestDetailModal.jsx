@@ -14,6 +14,7 @@ import {
 	QrCode,
 	MessageSquare,
 	Clock,
+	XCircle,
 } from "lucide-react";
 import useOrderRequestStore from "../../stores/orderRequestStore";
 
@@ -38,6 +39,7 @@ const OrderRequestDetailModal = ({ isOpen, onClose, request }) => {
 	const isStockCheck = request.status === "stock_checking";
 	const isPaymentCheck = request.status === "paid_pending_approval";
 	const isAwaitingPayment = request.status === "awaiting_payment";
+	const isCancelled = request.status === "cancelled";
 
 	const handleConfirmStock = async () => {
 		const res = await confirmStock(request.id);
@@ -78,13 +80,17 @@ const OrderRequestDetailModal = ({ isOpen, onClose, request }) => {
 					<div className="flex items-center gap-3">
 						<div
 							className={`w-10 h-10 rounded-2xl flex items-center justify-center shadow-xs shrink-0 ${
-								isStockCheck
+								isCancelled
+									? "bg-error/20 text-error"
+									: isStockCheck
 									? "bg-warning/20 text-warning"
 									: isPaymentCheck
 									? "bg-info/20 text-info"
 									: "bg-base-300 text-base-content"
 							}`}>
-							{isStockCheck ? (
+							{isCancelled ? (
+								<XCircle className="w-5 h-5" />
+							) : isStockCheck ? (
 								<AlertTriangle className="w-5 h-5" />
 							) : (
 								<Receipt className="w-5 h-5" />
@@ -100,6 +106,11 @@ const OrderRequestDetailModal = ({ isOpen, onClose, request }) => {
 								</span>
 							</div>
 							<div className="flex items-center gap-1.5 mt-0.5">
+								{isCancelled && (
+									<span className="badge badge-error badge-xs font-bold gap-1">
+										⚠️ Cancelled by Customer
+									</span>
+								)}
 								{isStockCheck && (
 									<span className="badge badge-warning badge-xs font-bold">
 										⏳ Phase 1: Stock Verification
@@ -130,6 +141,26 @@ const OrderRequestDetailModal = ({ isOpen, onClose, request }) => {
 
 				{/* Modal Scrollable Body */}
 				<div className="p-4 sm:p-5 space-y-4 overflow-y-auto flex-1 text-sm">
+					{/* Customer Cancellation Banner */}
+					{isCancelled && (
+						<div className="bg-error/10 border-2 border-error/30 rounded-2xl p-4 flex items-start gap-3">
+							<AlertTriangle className="w-5 h-5 text-error shrink-0 mt-0.5" />
+							<div className="space-y-1">
+								<h4 className="font-extrabold text-sm text-error">
+									Order Request Cancelled
+								</h4>
+								<p className="text-xs text-base-content/80 font-medium">
+									Customer cancelled this order request while waiting. No kitchen action needed.
+								</p>
+								{request.stock_rejection_reason && (
+									<p className="text-[11px] text-base-content/60 italic">
+										Reason: {request.stock_rejection_reason}
+									</p>
+								)}
+							</div>
+						</div>
+					)}
+
 					{/* 1. Customer & Delivery Info Card */}
 					<div className="bg-base-200/50 rounded-2xl p-3.5 border border-base-300/80 space-y-2">
 						<div className="flex items-center justify-between">
@@ -219,7 +250,7 @@ const OrderRequestDetailModal = ({ isOpen, onClose, request }) => {
 											</div>
 
 											{note && (
-												<div className="mt-1 text-xs text-primary bg-primary/10 px-2 py-0.5 rounded-md inline-block font-medium">
+										<div className="mt-1 text-xs text-primary bg-primary/10 px-2 py-0.5 rounded-md inline-block font-medium">
 													📝 {note}
 												</div>
 											)}
@@ -278,14 +309,17 @@ const OrderRequestDetailModal = ({ isOpen, onClose, request }) => {
 									<div className="flex items-center gap-3">
 										<div
 											onClick={() => setIsSlipEnlarged(!isSlipEnlarged)}
-											className="w-20 h-24 rounded-xl border-2 border-base-300 overflow-hidden cursor-pointer hover:opacity-90 relative shrink-0 shadow-sm">
+											className="w-20 h-24 rounded-xl border-2 border-base-300 overflow-hidden cursor-pointer hover:opacity-90 relative shrink-0 shadow-sm group">
 											<img
 												src={request.payment_slip_url}
 												alt="Payment Transfer Slip"
-												className="w-full h-full object-cover"
+												className="w-full h-full object-cover group-hover:scale-105 transition-transform"
 											/>
+											<div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-white text-[10px] font-bold">
+												Zoom
+											</div>
 										</div>
-										<div className="space-y-1 text-xs">
+										<div className="space-y-1.5 text-xs">
 											<p className="font-bold text-base-content">
 												Bank Transfer Slip Attached
 											</p>
@@ -293,32 +327,48 @@ const OrderRequestDetailModal = ({ isOpen, onClose, request }) => {
 												Verify recipient account and transfer amount (฿
 												{Number(request.total_amount || 0).toFixed(2)}).
 											</p>
-											<a
-												href={request.payment_slip_url}
-												target="_blank"
-												rel="noopener noreferrer"
-												className="btn btn-xs btn-ghost gap-1 text-primary p-0">
-												<span>Open Full Slip in New Tab</span>
-												<ExternalLink className="w-3 h-3" />
-											</a>
+											<div className="flex items-center gap-2">
+												<button
+													type="button"
+													onClick={() => setIsSlipEnlarged(!isSlipEnlarged)}
+													className="btn btn-xs btn-outline btn-info">
+													{isSlipEnlarged ? "Collapse" : "Enlarge Preview"}
+												</button>
+												<a
+													href={request.payment_slip_url}
+													target="_blank"
+													rel="noopener noreferrer"
+													className="btn btn-xs btn-ghost gap-1 text-primary p-0 font-medium">
+													<span>Open Full Slip in New Tab</span>
+													<ExternalLink className="w-3 h-3" />
+												</a>
+											</div>
 										</div>
 									</div>
 
 									{isSlipEnlarged && (
-										<div className="rounded-2xl overflow-hidden border border-base-300 bg-black/90 p-2 flex justify-center">
+										<div className="rounded-2xl overflow-hidden border border-base-300 bg-black/90 p-2 flex flex-col items-center gap-2">
 											<img
 												src={request.payment_slip_url}
 												alt="Payment Transfer Slip Full"
-												className="max-h-80 object-contain rounded-xl"
+												className="max-h-96 object-contain rounded-xl"
 											/>
+											<button
+												type="button"
+												onClick={() => setIsSlipEnlarged(false)}
+												className="btn btn-xs btn-ghost text-white/80 hover:text-white">
+												Close Preview
+											</button>
 										</div>
 									)}
 								</div>
 							) : request.payment_type === "cod" ? (
-								<p className="text-xs text-base-content/70">
-									Customer selected <strong>Cash on Delivery (COD)</strong>. Payment will
-									be collected by driver upon delivery.
-								</p>
+								<div className="bg-success/10 border border-success/30 rounded-xl p-3 text-xs text-base-content flex items-center gap-2">
+									<span className="text-base">💵</span>
+									<span className="font-medium">
+										<strong>Cash on Delivery</strong> (฿{Number(request.total_amount || 0).toFixed(2)} to collect upon delivery)
+									</span>
+								</div>
 							) : (
 								<p className="text-xs text-warning">
 									⚠️ QR payment selected, but transfer slip has not been uploaded yet.
@@ -394,64 +444,81 @@ const OrderRequestDetailModal = ({ isOpen, onClose, request }) => {
 
 				{/* Bottom Actions Bar */}
 				<div className="p-4 sm:p-5 bg-base-200/80 border-t border-base-300 flex flex-wrap items-center justify-between gap-2 shrink-0">
-					{/* Rejection trigger */}
-					{!isRejectOpen && !isChangeRequestedOpen && (
-						<button
-							type="button"
-							onClick={() => setIsRejectOpen(true)}
-							disabled={actionLoading}
-							className="btn btn-sm btn-ghost text-error hover:bg-error/10">
-							Reject
-						</button>
+					{isCancelled ? (
+						<div className="w-full flex items-center justify-between">
+							<span className="text-xs text-error font-semibold flex items-center gap-1">
+								<AlertTriangle className="w-3.5 h-3.5" />
+								No kitchen action needed
+							</span>
+							<button
+								type="button"
+								onClick={onClose}
+								className="btn btn-sm btn-outline border-base-300">
+								Close
+							</button>
+						</div>
+					) : (
+						<>
+							{/* Rejection trigger */}
+							{!isRejectOpen && !isChangeRequestedOpen && (
+								<button
+									type="button"
+									onClick={() => setIsRejectOpen(true)}
+									disabled={actionLoading}
+									className="btn btn-sm btn-ghost text-error hover:bg-error/10">
+									Reject
+								</button>
+							)}
+
+							<div className="flex items-center gap-2 ml-auto">
+								{/* Phase 1 Actions */}
+								{isStockCheck && !isChangeRequestedOpen && !isRejectOpen && (
+									<>
+										<button
+											type="button"
+											onClick={() => setIsChangeRequestedOpen(true)}
+											disabled={actionLoading}
+											className="btn btn-sm btn-outline btn-warning gap-1">
+											<AlertTriangle className="w-4 h-4" />
+											<span>Out of Stock</span>
+										</button>
+
+										<button
+											type="button"
+											onClick={handleConfirmStock}
+											disabled={actionLoading}
+											className="btn btn-sm btn-success font-extrabold text-success-content gap-1.5 shadow-md">
+											<Check className="w-4 h-4" />
+											<span>Confirm Stock Available</span>
+										</button>
+									</>
+								)}
+
+								{/* Phase 2 Actions */}
+								{isPaymentCheck && !isRejectOpen && (
+									<button
+										type="button"
+										onClick={handleApproveOrder}
+										disabled={actionLoading}
+										className="btn btn-sm btn-primary font-extrabold text-primary-content gap-1.5 shadow-md">
+										<ChefHat className="w-4 h-4" />
+										<span>Approve &amp; Print to Kitchen</span>
+									</button>
+								)}
+
+								{/* Awaiting Payment Action */}
+								{isAwaitingPayment && !isRejectOpen && (
+									<button
+										type="button"
+										onClick={handleApproveOrder}
+										disabled={actionLoading}
+										className="btn btn-sm btn-outline btn-primary gap-1">
+										<span>Manual Cash Approval</span>
+									</button>
+								)}
+							</div>
+						</>
 					)}
-
-					<div className="flex items-center gap-2 ml-auto">
-						{/* Phase 1 Actions */}
-						{isStockCheck && !isChangeRequestedOpen && !isRejectOpen && (
-							<>
-								<button
-									type="button"
-									onClick={() => setIsChangeRequestedOpen(true)}
-									disabled={actionLoading}
-									className="btn btn-sm btn-outline btn-warning gap-1">
-									<AlertTriangle className="w-4 h-4" />
-									<span>Out of Stock</span>
-								</button>
-
-								<button
-									type="button"
-									onClick={handleConfirmStock}
-									disabled={actionLoading}
-									className="btn btn-sm btn-success font-extrabold text-success-content gap-1.5 shadow-md">
-									<Check className="w-4 h-4" />
-									<span>Confirm Stock Available</span>
-								</button>
-							</>
-						)}
-
-						{/* Phase 2 Actions */}
-						{isPaymentCheck && !isRejectOpen && (
-							<button
-								type="button"
-								onClick={handleApproveOrder}
-								disabled={actionLoading}
-								className="btn btn-sm btn-primary font-extrabold text-primary-content gap-1.5 shadow-md">
-								<ChefHat className="w-4 h-4" />
-								<span>Approve &amp; Print to Kitchen</span>
-							</button>
-						)}
-
-						{/* Awaiting Payment Action */}
-						{isAwaitingPayment && !isRejectOpen && (
-							<button
-								type="button"
-								onClick={handleApproveOrder}
-								disabled={actionLoading}
-								className="btn btn-sm btn-outline btn-primary gap-1">
-								<span>Manual Cash Approval</span>
-							</button>
-						)}
-					</div>
 				</div>
 			</div>
 			<div className="modal-backdrop" onClick={onClose} />
@@ -460,3 +527,4 @@ const OrderRequestDetailModal = ({ isOpen, onClose, request }) => {
 };
 
 export default OrderRequestDetailModal;
+

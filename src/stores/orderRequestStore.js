@@ -2,7 +2,6 @@
 import { create } from "zustand";
 import { supabase } from "../services/supabase";
 import { showToast } from "../utils/toastUtils";
-import { playDeliveryNotificationSound } from "../utils/soundUtils";
 import { sendToKitchenPrinter } from "../services/printerService";
 import useStaffAccessStore from "./staffAccessStore";
 
@@ -73,15 +72,11 @@ const useOrderRequestStore = create((set, get) => ({
 				(payload) => {
 					const { eventType, new: newRecord, old: oldRecord } = payload;
 
-					// Sound alert trigger conditions:
-					// 1. New request created requiring stock verification or payment review
-					// 2. Updated request transitioned to stock_checking or paid_pending_approval
 					if (eventType === "INSERT") {
 						if (
 							newRecord.status === "stock_checking" ||
 							newRecord.status === "paid_pending_approval"
 						) {
-							playDeliveryNotificationSound();
 							showToast.info(
 								`📥 New Request #${newRecord.request_number} (${
 									newRecord.status === "stock_checking"
@@ -91,11 +86,27 @@ const useOrderRequestStore = create((set, get) => ({
 							);
 						}
 					} else if (eventType === "UPDATE") {
-						if (
+						// Always keep selectedRequest in sync in real-time if staff has it open
+						const currentSelected = get().selectedRequest;
+						if (currentSelected && currentSelected.id === newRecord.id) {
+							set({ selectedRequest: newRecord });
+						}
+
+						if (newRecord.status === "cancelled") {
+							if (oldRecord?.status !== "cancelled") {
+								const isCustomerCancelled =
+									newRecord.stock_rejection_reason?.toLowerCase().includes("customer") ||
+									newRecord.stock_status === "rejected";
+								showToast.warning(
+									`⚠️ Request #${newRecord.request_number || newRecord.id.slice(0, 6)} was cancelled${
+										isCustomerCancelled ? " by customer" : ""
+									}`
+								);
+							}
+						} else if (
 							newRecord.status === "paid_pending_approval" &&
 							oldRecord?.status !== "paid_pending_approval"
 						) {
-							playDeliveryNotificationSound();
 							showToast.success(
 								`💰 Slip uploaded for Request #${newRecord.request_number}!`
 							);
@@ -103,7 +114,6 @@ const useOrderRequestStore = create((set, get) => ({
 							newRecord.status === "stock_checking" &&
 							oldRecord?.status !== "stock_checking"
 						) {
-							playDeliveryNotificationSound();
 							showToast.info(
 								`⏳ Stock verification requested for #${newRecord.request_number}`
 							);

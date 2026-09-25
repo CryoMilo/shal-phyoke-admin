@@ -68,10 +68,6 @@ vi.mock("../../utils/toastUtils", () => ({
 	},
 }));
 
-vi.mock("../../utils/soundUtils", () => ({
-	playDeliveryNotificationSound: vi.fn(),
-}));
-
 vi.mock("../../services/printerService", () => ({
 	sendToKitchenPrinter: vi.fn().mockResolvedValue({ success: true }),
 }));
@@ -159,5 +155,21 @@ describe("orderRequestStore", () => {
 				pos_order_status: "preparing",
 			})
 		);
+	});
+
+	it("updates selectedRequest when customer cancels", () => {
+		useOrderRequestStore.setState({
+			selectedRequest: { id: "req-1", status: "stock_checking", request_number: "REQ-001" },
+		});
+		expect(useOrderRequestStore.getState().selectedRequest.status).toBe("stock_checking");
+
+		useOrderRequestStore.getState().setSelectedRequest({
+			id: "req-1",
+			status: "cancelled",
+			stock_status: "rejected",
+			stock_rejection_reason: "Cancelled by customer while waiting for stock check",
+		});
+		expect(useOrderRequestStore.getState().selectedRequest.status).toBe("cancelled");
+		expect(useOrderRequestStore.getState().selectedRequest.stock_status).toBe("rejected");
 	});
 });

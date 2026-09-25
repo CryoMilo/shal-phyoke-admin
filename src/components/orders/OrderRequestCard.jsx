@@ -26,9 +26,12 @@ const OrderRequestCard = ({ request, onClick }) => {
 	const isStockCheck = request.status === "stock_checking";
 	const isPaymentCheck = request.status === "paid_pending_approval";
 	const isAwaitingPayment = request.status === "awaiting_payment";
+	const isCancelled = request.status === "cancelled";
 
 	let cardBorder = "border-base-300 bg-base-100";
-	if (isStockCheck) {
+	if (isCancelled) {
+		cardBorder = "border-error/40 bg-error/5 hover:border-error";
+	} else if (isStockCheck) {
 		cardBorder = "border-warning/40 bg-warning/5 hover:border-warning";
 	} else if (isPaymentCheck) {
 		cardBorder = "border-info/40 bg-info/5 hover:border-info";
@@ -46,6 +49,12 @@ const OrderRequestCard = ({ request, onClick }) => {
 					<span className="font-mono font-bold text-xs text-base-content/90 tracking-tight">
 						#{request.request_number?.slice(-8) || request.id.slice(0, 6)}
 					</span>
+
+					{isCancelled && (
+						<span className="badge badge-error badge-xs font-bold gap-1">
+							⚠️ Cancelled by Customer
+						</span>
+					)}
 
 					{isStockCheck && (
 						<span className="badge badge-warning badge-xs font-bold gap-1 animate-pulse">
