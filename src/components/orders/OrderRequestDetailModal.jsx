@@ -36,10 +36,15 @@ const OrderRequestDetailModal = ({ isOpen, onClose, request }) => {
 	if (!isOpen || !request) return null;
 
 	const items = Array.isArray(request.items) ? request.items : [];
-	const isStockCheck = request.status === "stock_checking";
+	const isCancelled = request.status === "cancelled";
+	const isChangeRequested =
+		request.stock_status === "change_requested" &&
+		request.status === "stock_checking";
+	const isStockCheck =
+		request.status === "stock_checking" &&
+		request.stock_status !== "change_requested";
 	const isPaymentCheck = request.status === "paid_pending_approval";
 	const isAwaitingPayment = request.status === "awaiting_payment";
-	const isCancelled = request.status === "cancelled";
 
 	const handleConfirmStock = async () => {
 		const res = await confirmStock(request.id);
@@ -82,6 +87,8 @@ const OrderRequestDetailModal = ({ isOpen, onClose, request }) => {
 							className={`w-10 h-10 rounded-2xl flex items-center justify-center shadow-xs shrink-0 ${
 								isCancelled
 									? "bg-error/20 text-error"
+									: isChangeRequested
+									? "bg-secondary/20 text-secondary"
 									: isStockCheck
 									? "bg-warning/20 text-warning"
 									: isPaymentCheck
@@ -90,6 +97,8 @@ const OrderRequestDetailModal = ({ isOpen, onClose, request }) => {
 							}`}>
 							{isCancelled ? (
 								<XCircle className="w-5 h-5" />
+							) : isChangeRequested ? (
+								<MessageSquare className="w-5 h-5" />
 							) : isStockCheck ? (
 								<AlertTriangle className="w-5 h-5" />
 							) : (
@@ -109,6 +118,11 @@ const OrderRequestDetailModal = ({ isOpen, onClose, request }) => {
 								{isCancelled && (
 									<span className="badge badge-error badge-xs font-bold gap-1">
 										⚠️ Cancelled by Customer
+									</span>
+								)}
+								{isChangeRequested && (
+									<span className="badge badge-secondary badge-xs font-bold gap-1">
+										💬 Phase 1: Change Requested
 									</span>
 								)}
 								{isStockCheck && (
@@ -155,6 +169,26 @@ const OrderRequestDetailModal = ({ isOpen, onClose, request }) => {
 								{request.stock_rejection_reason && (
 									<p className="text-[11px] text-base-content/60 italic">
 										Reason: {request.stock_rejection_reason}
+									</p>
+								)}
+							</div>
+						</div>
+					)}
+
+					{/* Change Requested Banner */}
+					{isChangeRequested && (
+						<div className="bg-secondary/10 border-2 border-secondary/30 rounded-2xl p-4 flex items-start gap-3">
+							<MessageSquare className="w-5 h-5 text-secondary shrink-0 mt-0.5" />
+							<div className="space-y-1">
+								<h4 className="font-extrabold text-sm text-secondary">
+									Item Change Requested
+								</h4>
+								<p className="text-xs text-base-content/80 font-medium">
+									Customer was notified to swap out unavailable items. Waiting for customer to update cart and proceed.
+								</p>
+								{request.stock_rejection_reason && (
+									<p className="text-xs text-base-content/90 font-mono bg-base-100/90 p-2 rounded-xl border border-secondary/20 mt-1">
+										Note sent: &quot;{request.stock_rejection_reason}&quot;
 									</p>
 								)}
 							</div>
@@ -456,6 +490,32 @@ const OrderRequestDetailModal = ({ isOpen, onClose, request }) => {
 								className="btn btn-sm btn-outline border-base-300">
 								Close
 							</button>
+						</div>
+					) : isChangeRequested ? (
+						<div className="w-full flex items-center justify-between">
+							{!isRejectOpen ? (
+								<button
+									type="button"
+									onClick={() => setIsRejectOpen(true)}
+									disabled={actionLoading}
+									className="btn btn-sm btn-ghost text-error hover:bg-error/10">
+									Cancel Request
+								</button>
+							) : (
+								<div />
+							)}
+
+							<div className="flex items-center gap-2">
+								<span className="text-xs text-secondary font-medium">
+									Waiting for customer response...
+								</span>
+								<button
+									type="button"
+									onClick={onClose}
+									className="btn btn-sm btn-outline border-base-300">
+									Close
+								</button>
+							</div>
 						</div>
 					) : (
 						<>

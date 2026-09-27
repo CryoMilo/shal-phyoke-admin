@@ -252,7 +252,6 @@ const useOrderRequestStore = create((set, get) => ({
 				payment_method: request.payment_type === "cod" ? "cash" : "qr",
 				payment_status: request.payment_type === "cod" ? "unpaid" : "paid",
 				pos_order_status: "preparing",
-				payment_slip_url: request.payment_slip_url || null,
 				notes: request.notes || null,
 			};
 

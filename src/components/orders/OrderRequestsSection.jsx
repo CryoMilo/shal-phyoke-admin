@@ -7,6 +7,7 @@ import {
 	RefreshCw,
 	AlertTriangle,
 	Receipt,
+	MessageSquare,
 } from "lucide-react";
 import useOrderRequestStore from "../../stores/orderRequestStore";
 import OrderRequestCard from "./OrderRequestCard";
@@ -40,7 +41,10 @@ const OrderRequestsSection = () => {
 	}, [orderRequests.length, isCollapsed]);
 
 	const stockCheckCount = orderRequests.filter(
-		(r) => r.status === "stock_checking"
+		(r) => r.status === "stock_checking" && r.stock_status !== "change_requested"
+	).length;
+	const changeRequestedCount = orderRequests.filter(
+		(r) => r.status === "stock_checking" && r.stock_status === "change_requested"
 	).length;
 	const paymentReviewCount = orderRequests.filter(
 		(r) => r.status === "paid_pending_approval"
@@ -72,11 +76,17 @@ const OrderRequestsSection = () => {
 						</div>
 
 						{/* Subtitle breakdown */}
-						<div className="flex items-center gap-2 mt-0.5 text-[11px]">
+						<div className="flex items-center gap-2 mt-0.5 text-[11px] flex-wrap">
 							{stockCheckCount > 0 && (
 								<span className="text-warning font-bold flex items-center gap-1">
 									<AlertTriangle className="w-3 h-3" />
 									{stockCheckCount} Stock Check
+								</span>
+							)}
+							{changeRequestedCount > 0 && (
+								<span className="text-secondary font-bold flex items-center gap-1">
+									<MessageSquare className="w-3 h-3" />
+									{changeRequestedCount} Change Requested
 								</span>
 							)}
 							{paymentReviewCount > 0 && (

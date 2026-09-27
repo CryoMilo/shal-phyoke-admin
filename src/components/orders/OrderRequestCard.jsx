@@ -8,6 +8,7 @@ import {
 	Receipt,
 	Banknote,
 	QrCode,
+	MessageSquare,
 } from "lucide-react";
 
 const OrderRequestCard = ({ request, onClick }) => {
@@ -23,14 +24,21 @@ const OrderRequestCard = ({ request, onClick }) => {
 	const uncertainItemsCount = items.filter((i) => i.requires_stock_check).length;
 
 	// Visual theme based on status
-	const isStockCheck = request.status === "stock_checking";
+	const isCancelled = request.status === "cancelled";
+	const isChangeRequested =
+		request.stock_status === "change_requested" &&
+		request.status === "stock_checking";
+	const isStockCheck =
+		request.status === "stock_checking" &&
+		request.stock_status !== "change_requested";
 	const isPaymentCheck = request.status === "paid_pending_approval";
 	const isAwaitingPayment = request.status === "awaiting_payment";
-	const isCancelled = request.status === "cancelled";
 
 	let cardBorder = "border-base-300 bg-base-100";
 	if (isCancelled) {
 		cardBorder = "border-error/40 bg-error/5 hover:border-error";
+	} else if (isChangeRequested) {
+		cardBorder = "border-secondary/40 bg-secondary/5 hover:border-secondary";
 	} else if (isStockCheck) {
 		cardBorder = "border-warning/40 bg-warning/5 hover:border-warning";
 	} else if (isPaymentCheck) {
@@ -53,6 +61,13 @@ const OrderRequestCard = ({ request, onClick }) => {
 					{isCancelled && (
 						<span className="badge badge-error badge-xs font-bold gap-1">
 							⚠️ Cancelled by Customer
+						</span>
+					)}
+
+					{isChangeRequested && (
+						<span className="badge badge-secondary badge-xs font-bold gap-1">
+							<MessageSquare className="w-2.5 h-2.5" />
+							Change Requested
 						</span>
 					)}
 
@@ -122,11 +137,15 @@ const OrderRequestCard = ({ request, onClick }) => {
 					<span>
 						{items.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0)} items
 					</span>
-					{uncertainItemsCount > 0 && (
+					{isChangeRequested ? (
+						<span className="text-secondary font-semibold text-[10px]">
+							Waiting for customer
+						</span>
+					) : uncertainItemsCount > 0 ? (
 						<span className="text-warning font-semibold text-[10px] flex items-center gap-0.5">
 							⚠️ {uncertainItemsCount} uncertain
 						</span>
-					)}
+					) : null}
 				</div>
 
 				<div className="flex items-center gap-1 shrink-0 font-medium">
