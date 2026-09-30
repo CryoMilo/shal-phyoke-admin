@@ -30,11 +30,16 @@ const ShalPhyokeDatePicker = ({
 	const containerRef = useRef(null);
 	const buttonRef = useRef(null);
 	const [coords, setCoords] = useState({ top: 0, left: 0 });
+	const lastSyncedTimeRef = useRef(value instanceof Date ? value.getTime() : null);
 
-	// Sync current month view when value changes
+	// Sync current month view only when value timestamp actually changes
 	useEffect(() => {
-		if (value) {
-			setCurrentMonth(value);
+		if (value instanceof Date && !isNaN(value.getTime())) {
+			const time = value.getTime();
+			if (lastSyncedTimeRef.current !== time) {
+				lastSyncedTimeRef.current = time;
+				setCurrentMonth(value);
+			}
 		}
 	}, [value]);
 
@@ -66,6 +71,10 @@ const ShalPhyokeDatePicker = ({
 	const toggleOpen = () => {
 		if (!isOpen) {
 			updateCoords();
+			if (value instanceof Date && !isNaN(value.getTime())) {
+				setCurrentMonth(value);
+				lastSyncedTimeRef.current = value.getTime();
+			}
 		}
 		setIsOpen(!isOpen);
 	};
