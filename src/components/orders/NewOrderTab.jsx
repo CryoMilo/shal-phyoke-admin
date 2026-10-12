@@ -156,13 +156,7 @@ const NewOrderTab = ({ processOrder, isProcessing }) => {
 			customerId: cust.id,
 		}));
 
-		// Auto-populate order notes if currently empty and customer has default_notes
-		if (cust.default_notes && !notes) {
-			setNotes(cust.default_notes);
-			showToast.info("Customer details & default notes auto-filled");
-		} else {
-			showToast.info("Customer details auto-filled");
-		}
+		showToast.info("Customer details auto-filled");
 	};
 
 	const toggleNightMode = () => {
