@@ -22,6 +22,7 @@ import EmployeeManagement from "./pages/EmployeeManagement";
 import Customers from "./pages/Customers";
 import ProtectedRoute from "./components/ProtectedRoute";
 import BonusTracker from "./components/employees/BonusTracker";
+import DeliveryTripTracker from "./pages/DeliveryTripTracker";
 
 const rootRoute = createRootRoute({
 	component: () => <App />,
@@ -87,6 +88,16 @@ const bonusTrackerRoute = createRoute({
 	component: () => (
 		<ProtectedRoute>
 			<BonusTracker />
+		</ProtectedRoute>
+	),
+});
+
+const deliveryTripsRoute = createRoute({
+	path: "/delivery-trips",
+	getParentRoute: () => rootRoute,
+	component: () => (
+		<ProtectedRoute requiredRole="admin">
+			<DeliveryTripTracker />
 		</ProtectedRoute>
 	),
 });
@@ -197,6 +208,7 @@ const routeTree = rootRoute.addChildren([
 	employeeManagementRoute,
 	staffAccessSettingsRoute,
 	bonusTrackerRoute,
+	deliveryTripsRoute,
 	procurementRoute,
 	inventoryItemsRoute,
 ]);

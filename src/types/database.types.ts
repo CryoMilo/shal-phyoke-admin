@@ -30,6 +30,9 @@ export interface Database {
 					order_items: Json;
 					item_notes: Json | null;
 					item_extra_prices: Json | null;
+					delivery_provider: "in_house" | "bolt" | null;
+					delivery_trip_id: string | null;
+					delivery_fee_paid: boolean;
 					created_at: string;
 					updated_at: string;
 				};
@@ -53,6 +56,9 @@ export interface Database {
 					order_items: Json;
 					item_notes?: Json | null;
 					item_extra_prices?: Json | null;
+					delivery_provider?: "in_house" | "bolt" | null;
+					delivery_trip_id?: string | null;
+					delivery_fee_paid?: boolean;
 					created_at?: string;
 					updated_at?: string;
 				};
@@ -257,6 +263,25 @@ export interface Database {
 					created_at?: string;
 				};
 				Update: Partial<Database["public"]["Tables"]["employees"]["Insert"]>;
+			};
+			delivery_trips: {
+				Row: {
+					id: string;
+					employee_id: string;
+					trip_fee: number;
+					order_count: number;
+					notes: string | null;
+					created_at: string;
+				};
+				Insert: {
+					id?: string;
+					employee_id: string;
+					trip_fee?: number;
+					order_count?: number;
+					notes?: string | null;
+					created_at?: string;
+				};
+				Update: Partial<Database["public"]["Tables"]["delivery_trips"]["Insert"]>;
 			};
 			quick_notes: {
 				Row: {

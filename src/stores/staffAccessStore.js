@@ -17,6 +17,7 @@ export const DEFAULT_PERMISSIONS = {
 		"/monthly-overheads",
 		"/employee-management",
 		"/bonus-tracker",
+		"/delivery-trips",
 		"/quick-note-settings",
 	],
 	staff: [

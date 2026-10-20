@@ -22,6 +22,7 @@ import {
 	Users,
 	UserCheck,
 	Wallet,
+	Bike,
 } from "lucide-react";
 
 const Sidebar = ({ children }) => {
@@ -139,6 +140,11 @@ const Sidebar = ({ children }) => {
 			name: "Bonus Tracker",
 			path: "/bonus-tracker",
 			icon: Wallet,
+		},
+		{
+			name: "Delivery Trips",
+			path: "/delivery-trips",
+			icon: Bike,
 		},
 		{
 			type: "divider",

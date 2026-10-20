@@ -11,9 +11,15 @@ import {
 	Building2,
 	Truck,
 	RefreshCw,
+	Bike,
+	Zap,
+	ClipboardList,
+	Check,
 } from "lucide-react";
 import PrintKitchenTicketButton from "./PrintKitchenTicketButton";
 import DeliveryPagerModal from "./DeliveryPagerModal";
+import DeliveryTripSelectModal from "./DeliveryTripSelectModal";
+import TodayTripsModal from "./TodayTripsModal";
 import { showToast } from "../../utils/toastUtils";
 import {
 	getBangkokISOString,
@@ -21,17 +27,29 @@ import {
 } from "../../utils/dateUtils";
 import PaymentModal from "../common/PaymentModal";
 import OrderRequestsSection from "./OrderRequestsSection";
+import { useAuth } from "../../contexts/AuthContext";
+import useDeliveryTripStore from "../../stores/deliveryTripStore";
 
 // Synchronous guard to prevent duplicate order completions across re-renders
 const inProgressOrders = new Set();
 
 const ActiveOrdersTab = () => {
+	const { isAdmin } = useAuth();
+	const { recordStaffTrip, recordBoltDelivery } = useDeliveryTripStore();
+
 	const [activeOrders, setActiveOrders] = useState([]);
 	const [selectedTableId, setSelectedTableId] = useState(null);
 	const [pagerOrder, setPagerOrder] = useState(null);
 	const [isPagerOpen, setIsPagerOpen] = useState(false);
 	const [isRefreshing, setIsRefreshing] = useState(false);
 	const debounceTimerRef = useRef(null);
+
+	// In-house delivery trip selection states
+	const [isTripModalOpen, setIsTripModalOpen] = useState(false);
+	const [isTodayTripsOpen, setIsTodayTripsOpen] = useState(false);
+	const [tripSelectionConfig, setTripSelectionConfig] = useState(null); // { type: 'staff'|'bolt', employee, tripFee }
+	const [selectedDeliveryOrderIds, setSelectedDeliveryOrderIds] = useState([]);
+	const [isSubmittingTrip, setIsSubmittingTrip] = useState(false);
 
 	const fetchActiveOrders = async (isManual = false) => {
 		try {
@@ -136,6 +154,42 @@ const ActiveOrdersTab = () => {
 		return `${diff}m`;
 	};
 
+	const pendingDeliveryOrdersCount = useMemo(() => {
+		return singularOrders.filter(
+			(o) => o.order_type === "delivery" && !o.delivery_fee_paid
+		).length;
+	}, [singularOrders]);
+
+	const handleConfirmTripSelection = async () => {
+		if (!tripSelectionConfig || selectedDeliveryOrderIds.length === 0) return;
+		setIsSubmittingTrip(true);
+		try {
+			if (tripSelectionConfig.type === "staff") {
+				const res = await recordStaffTrip({
+					employeeId: tripSelectionConfig.employee.id,
+					orderIds: selectedDeliveryOrderIds,
+					tripFee: tripSelectionConfig.tripFee,
+				});
+				if (res.success) {
+					setTripSelectionConfig(null);
+					setSelectedDeliveryOrderIds([]);
+					await fetchActiveOrders();
+				}
+			} else if (tripSelectionConfig.type === "bolt") {
+				const res = await recordBoltDelivery({
+					orderIds: selectedDeliveryOrderIds,
+				});
+				if (res.success) {
+					setTripSelectionConfig(null);
+					setSelectedDeliveryOrderIds([]);
+					await fetchActiveOrders();
+				}
+			}
+		} finally {
+			setIsSubmittingTrip(false);
+		}
+	};
+
 	return (
 		<div className="space-y-8 pb-20">
 			{/* SECTION 0: INCOMING ORDER REQUESTS */}
@@ -143,7 +197,7 @@ const ActiveOrdersTab = () => {
 
 			{/* SECTION 1: SINGULAR ORDERS (Takeaway & Delivery) */}
 			<section>
-				<div className="flex justify-between items-center mb-4">
+				<div className="flex flex-wrap justify-between items-center gap-2 mb-4">
 					<div className="flex items-center gap-2">
 						<h2 className="text-xl font-black uppercase tracking-tight text-secondary">
 							Takeaway & Delivery
@@ -152,90 +206,229 @@ const ActiveOrdersTab = () => {
 							{singularOrders.length}
 						</span>
 					</div>
-					<button
-						onClick={() => fetchActiveOrders(true)}
-						disabled={isRefreshing}
-						className="btn btn-ghost btn-xs gap-1 opacity-70 hover:opacity-100"
-						title="Sync active orders with server">
-						<RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-primary" : ""}`} />
-						<span className="text-xs hidden sm:inline">Refresh</span>
-					</button>
+
+					<div className="flex items-center gap-2">
+						{isAdmin && !tripSelectionConfig && (
+							<>
+								<button
+									type="button"
+									onClick={() => setIsTripModalOpen(true)}
+									className="btn btn-primary btn-xs sm:btn-sm gap-1.5 font-bold shadow-sm">
+									<Bike className="w-3.5 h-3.5" />
+									<span>Record Trip</span>
+									{pendingDeliveryOrdersCount > 0 && (
+										<span className="badge badge-warning badge-xs font-bold">
+											{pendingDeliveryOrdersCount}
+										</span>
+									)}
+								</button>
+								<button
+									type="button"
+									onClick={() => setIsTodayTripsOpen(true)}
+									className="btn btn-outline btn-xs sm:btn-sm gap-1 opacity-80 hover:opacity-100">
+									<ClipboardList className="w-3.5 h-3.5" />
+									<span className="hidden sm:inline">Today's Trips</span>
+								</button>
+							</>
+						)}
+						<button
+							onClick={() => fetchActiveOrders(true)}
+							disabled={isRefreshing}
+							className="btn btn-ghost btn-xs gap-1 opacity-70 hover:opacity-100"
+							title="Sync active orders with server">
+							<RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-primary" : ""}`} />
+							<span className="text-xs hidden sm:inline">Refresh</span>
+						</button>
+					</div>
 				</div>
+
+				{/* Trip Selection Mode Banner */}
+				{tripSelectionConfig && (
+					<div className="bg-primary/10 border-2 border-primary/50 rounded-2xl p-4 mb-4 flex flex-wrap items-center justify-between gap-3 shadow-md animate-in fade-in slide-in-from-top-2">
+						<div className="flex items-center gap-3">
+							<div
+								className={`w-10 h-10 rounded-xl flex items-center justify-center font-black ${
+									tripSelectionConfig.type === "bolt"
+										? "bg-amber-500 text-black"
+										: "bg-primary text-primary-content"
+								}`}>
+								{tripSelectionConfig.type === "bolt" ? (
+									<Zap className="w-5 h-5 fill-current" />
+								) : (
+									<Bike className="w-5 h-5" />
+								)}
+							</div>
+							<div>
+								<h4 className="font-bold text-sm text-base-content">
+									{tripSelectionConfig.type === "bolt"
+										? "Selecting Orders for Bolt Delivery"
+										: `Assigning Trip to ${tripSelectionConfig.employee?.name}`}
+								</h4>
+								<p className="text-xs text-base-content/70">
+									<span className="font-bold text-primary">
+										{selectedDeliveryOrderIds.length}
+									</span>{" "}
+									delivery order(s) selected
+									{tripSelectionConfig.type === "staff" && (
+										<span> • Fixed Payout: ฿{tripSelectionConfig.tripFee}</span>
+									)}
+								</p>
+							</div>
+						</div>
+						<div className="flex items-center gap-2">
+							<button
+								type="button"
+								onClick={() => {
+									setTripSelectionConfig(null);
+									setSelectedDeliveryOrderIds([]);
+								}}
+								disabled={isSubmittingTrip}
+								className="btn btn-sm btn-ghost">
+								Cancel
+							</button>
+							<button
+								type="button"
+								onClick={handleConfirmTripSelection}
+								disabled={selectedDeliveryOrderIds.length === 0 || isSubmittingTrip}
+								className="btn btn-sm btn-primary font-bold gap-1.5 shadow-md">
+								{isSubmittingTrip ? (
+									<span className="loading loading-spinner loading-xs"></span>
+								) : (
+									<CheckCircle2 className="w-4 h-4" />
+								)}
+								Done ({selectedDeliveryOrderIds.length})
+							</button>
+						</div>
+					</div>
+				)}
 
 				{singularOrders.length > 0 ? (
 					<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-						{singularOrders.map((order) => (
-							<div
-								key={order.id}
-								className={`card shadow-sm border-2 transition-all cursor-pointer hover:scale-[1.02] active:scale-95
-									${
-										order.payment_status === "unpaid"
-											? "border-warning/30 bg-warning/5"
-											: "border-secondary/20 bg-base-100"
-									}`}
-								onClick={() => {
-									// For singular orders, we can open a simplified "Direct Action" modal
-									// or just reuse the existing one by wrapping the order in a fake group
+						{singularOrders.map((order) => {
+							const isSelectionMode = !!tripSelectionConfig;
+							const isEligibleDelivery =
+								order.order_type === "delivery" && !order.delivery_fee_paid;
+							const isSelected = selectedDeliveryOrderIds.includes(order.id);
+
+							const handleCardClick = () => {
+								if (isSelectionMode) {
+									if (!isEligibleDelivery) return;
+									setSelectedDeliveryOrderIds((prev) =>
+										prev.includes(order.id)
+											? prev.filter((id) => id !== order.id)
+											: [...prev, order.id]
+									);
+								} else {
 									setSelectedTableId(`singular-${order.id}`);
-								}}>
-								<div className="card-body p-3 items-center text-center">
-									<div className="absolute top-2 right-2">
-										<div className="text-[10px] opacity-40 font-mono">
-											{getTimeElapsed(order.created_at)}
-										</div>
-									</div>
+								}
+							};
 
-									<div
-										className={`w-12 h-12 rounded-full flex items-center justify-center font-black text-xl mb-1
+							return (
+								<div
+									key={order.id}
+									className={`card shadow-sm border-2 transition-all cursor-pointer relative
 										${
-											order.order_type === "delivery"
-												? "bg-accent text-accent-content"
-												: "bg-secondary text-secondary-content"
-										}`}>
-										{order.table_number ||
-											order.customer_name?.substring(0, 2).toUpperCase() ||
-											"?"}
-									</div>
-
-									<div className="text-xs font-bold truncate w-full px-1">
-										{order.customer_name ||
-											(order.order_type === "takeaway" && order.table_number
-												? `Table ${order.table_number}`
-												: order.order_type.toUpperCase())}
-									</div>
-
-									{order.order_type === "delivery" && (
-										<div className="flex flex-col items-center mt-1 w-full px-1 overflow-hidden">
-											{order.delivery_address && (
-												<div className="text-[10px] opacity-60 truncate w-full">
-													{order.delivery_address}
+											isSelectionMode
+												? isEligibleDelivery
+													? isSelected
+														? "border-primary bg-primary/10 ring-2 ring-primary ring-offset-1 scale-[1.02]"
+														: "border-primary/40 bg-base-100 hover:border-primary hover:scale-[1.02]"
+													: "opacity-30 grayscale cursor-not-allowed pointer-events-none border-base-300 bg-base-200/50"
+												: order.payment_status === "unpaid"
+												? "border-warning/30 bg-warning/5 hover:scale-[1.02] active:scale-95"
+												: "border-secondary/20 bg-base-100 hover:scale-[1.02] active:scale-95"
+										}`}
+									onClick={handleCardClick}>
+									<div className="card-body p-3 items-center text-center">
+										{/* Selection Checkbox */}
+										{isSelectionMode && isEligibleDelivery && (
+											<div className="absolute top-2 left-2">
+												<div
+													className={`w-5 h-5 rounded-md flex items-center justify-center border transition-all ${
+														isSelected
+															? "bg-primary text-primary-content border-primary"
+															: "bg-base-100 border-base-300"
+													}`}>
+													{isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
 												</div>
-											)}
-											{(order.building_info || order.customers?.building_info) && (
-												<div className="text-[9px] text-primary font-medium truncate w-full flex items-center justify-center gap-0.5">
-													<Building2 className="w-2.5 h-2.5 shrink-0" />
-													<span className="truncate">
-														{order.building_info || order.customers?.building_info}
-													</span>
-												</div>
+											</div>
+										)}
+
+										<div className="absolute top-2 right-2">
+											<div className="text-[10px] opacity-40 font-mono">
+												{getTimeElapsed(order.created_at)}
+											</div>
+										</div>
+
+										<div
+											className={`w-12 h-12 rounded-full flex items-center justify-center font-black text-xl mb-1
+											${
+												order.order_type === "delivery"
+													? "bg-accent text-accent-content"
+													: "bg-secondary text-secondary-content"
+											}`}>
+											{order.table_number ||
+												order.customer_name?.substring(0, 2).toUpperCase() ||
+												"?"}
+										</div>
+
+										<div className="text-xs font-bold truncate w-full px-1">
+											{order.customer_name ||
+												(order.order_type === "takeaway" && order.table_number
+													? `Table ${order.table_number}`
+													: order.order_type.toUpperCase())}
+										</div>
+
+										{order.order_type === "delivery" && (
+											<div className="flex flex-col items-center mt-1 w-full px-1 overflow-hidden">
+												{order.delivery_address && (
+													<div className="text-[10px] opacity-60 truncate w-full">
+														{order.delivery_address}
+													</div>
+												)}
+												{(order.building_info || order.customers?.building_info) && (
+													<div className="text-[9px] text-primary font-medium truncate w-full flex items-center justify-center gap-0.5">
+														<Building2 className="w-2.5 h-2.5 shrink-0" />
+														<span className="truncate">
+															{order.building_info || order.customers?.building_info}
+														</span>
+													</div>
+												)}
+											</div>
+										)}
+
+										<div className="flex flex-wrap gap-1 mt-1 justify-center">
+											<span
+												className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold
+												${
+													order.payment_status === "paid"
+														? "bg-success/20 text-success"
+														: "bg-error/20 text-error"
+												}`}>
+												{order.payment_status === "paid" ? "PAID" : "UNPAID"}
+											</span>
+
+											{order.order_type === "delivery" && (
+												<span
+													className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold ${
+														order.delivery_fee_paid
+															? order.delivery_provider === "bolt"
+																? "bg-amber-500/20 text-amber-600"
+																: "bg-primary/20 text-primary"
+															: "bg-warning/20 text-warning"
+													}`}>
+													{order.delivery_fee_paid
+														? order.delivery_provider === "bolt"
+															? "⚡ Bolt"
+															: "🛵 Trip Done"
+														: "🛵 Trip Needed"}
+												</span>
 											)}
 										</div>
-									)}
-
-									<div className="flex gap-1 mt-1">
-										<span
-											className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold
-											${
-												order.payment_status === "paid"
-													? "bg-success/20 text-success"
-													: "bg-error/20 text-error"
-											}`}>
-											{order.payment_status === "paid" ? "PAID" : "UNPAID"}
-										</span>
 									</div>
 								</div>
-							</div>
-						))}
+							);
+						})}
 					</div>
 				) : (
 					<div className="py-8 text-center bg-base-200/50 rounded-2xl border-2 border-dashed border-base-300">
@@ -342,6 +535,25 @@ const ActiveOrdersTab = () => {
 				}}
 				order={pagerOrder}
 			/>
+
+			{isAdmin && (
+				<>
+					<DeliveryTripSelectModal
+						isOpen={isTripModalOpen}
+						onClose={() => setIsTripModalOpen(false)}
+						onStartSelection={(config) => {
+							setTripSelectionConfig(config);
+							setSelectedDeliveryOrderIds([]);
+						}}
+					/>
+
+					<TodayTripsModal
+						isOpen={isTodayTripsOpen}
+						onClose={() => setIsTodayTripsOpen(false)}
+						onTripsChanged={fetchActiveOrders}
+					/>
+				</>
+			)}
 		</div>
 	);
 };
@@ -354,7 +566,16 @@ const SingularOrderModal = ({ order, onClose, onUpdate, onOpenPager }) => {
 
 	if (!order) return null;
 
+	const isDeliveryUnassigned =
+		order.order_type === "delivery" && !order.delivery_fee_paid;
+
 	const handleCompleteOrder = async () => {
+		if (isDeliveryUnassigned) {
+			showToast.error(
+				"This delivery order must be assigned to a staff trip or Bolt first"
+			);
+			return;
+		}
 		if (inProgressOrders.has(order.id) || isProcessing) return;
 		inProgressOrders.add(order.id);
 		setIsProcessing(true);
@@ -648,17 +869,31 @@ const SingularOrderModal = ({ order, onClose, onUpdate, onOpenPager }) => {
 								</button>
 							</>
 						) : (
-							<button
-								className="btn btn-primary col-span-2 gap-2 h-14 text-lg font-bold"
-								onClick={handleCompleteOrder}
-								disabled={isProcessing}>
-								{isProcessing ? (
-									<span className="loading loading-spinner"></span>
-								) : (
-									<CheckCircle2 className="w-6 h-6" />
+							<>
+								<button
+									className="btn btn-primary col-span-2 gap-2 h-14 text-lg font-bold"
+									onClick={handleCompleteOrder}
+									disabled={isProcessing || isDeliveryUnassigned}
+									title={
+										isDeliveryUnassigned
+											? "Assign to Staff Trip or Bolt before completing"
+											: ""
+									}>
+									{isProcessing ? (
+										<span className="loading loading-spinner"></span>
+									) : (
+										<CheckCircle2 className="w-6 h-6" />
+									)}
+									Complete & Close
+								</button>
+								{isDeliveryUnassigned && (
+									<div className="col-span-2 text-center p-2 bg-warning/10 border border-warning/30 rounded-xl">
+										<span className="text-xs font-bold text-warning flex items-center justify-center gap-1.5">
+											⚠️ Assign to Staff Trip or Bolt before completing
+										</span>
+									</div>
 								)}
-								Complete & Close
-							</button>
+							</>
 						)}
 
 						<div className="col-span-2 flex justify-center mt-1">
@@ -732,6 +967,19 @@ const TableBillsModal = ({ table, onClose, onUpdate }) => {
 				.single();
 
 			if (fetchError) throw fetchError;
+
+			if (order.order_type === "delivery" && !order.delivery_fee_paid) {
+				showToast.error(
+					"This delivery order must be assigned to a staff trip or Bolt first"
+				);
+				inProgressOrders.delete(orderId);
+				setProcessingOrders((prev) => {
+					const next = new Set(prev);
+					next.delete(orderId);
+					return next;
+				});
+				return;
+			}
 
 			const { data: existingSales, error: existingError } = await supabase
 				.from("monthly_sales")
@@ -981,17 +1229,34 @@ const TableBillsModal = ({ table, onClose, onUpdate }) => {
 											</button>
 										</>
 									) : (
-										<button
-											className="btn btn-sm btn-primary col-span-2 gap-2"
-											onClick={() => handleCompleteOrder(order.id)}
-											disabled={processingOrders.has(order.id)}>
-											{processingOrders.has(order.id) ? (
-												<span className="loading loading-spinner loading-xs"></span>
-											) : (
-												<CheckCircle2 className="w-4 h-4" />
+										<>
+											<button
+												className="btn btn-sm btn-primary col-span-2 gap-2"
+												onClick={() => handleCompleteOrder(order.id)}
+												disabled={
+													processingOrders.has(order.id) ||
+													(order.order_type === "delivery" && !order.delivery_fee_paid)
+												}
+												title={
+													order.order_type === "delivery" && !order.delivery_fee_paid
+														? "Assign to Staff Trip or Bolt before completing"
+														: ""
+												}>
+												{processingOrders.has(order.id) ? (
+													<span className="loading loading-spinner loading-xs"></span>
+												) : (
+													<CheckCircle2 className="w-4 h-4" />
+												)}
+												Complete & Close Bill
+											</button>
+											{order.order_type === "delivery" && !order.delivery_fee_paid && (
+												<div className="col-span-2 text-center p-1.5 bg-warning/10 border border-warning/30 rounded-lg">
+													<span className="text-[11px] font-bold text-warning flex items-center justify-center gap-1">
+														⚠️ Assign to Staff Trip or Bolt before completing
+													</span>
+												</div>
 											)}
-											Complete & Close Bill
-										</button>
+										</>
 									)}
 
 									{confirmAction?.orderId === order.id ? (
