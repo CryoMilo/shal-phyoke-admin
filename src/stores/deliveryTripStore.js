@@ -167,7 +167,7 @@ const useDeliveryTripStore = create((set, get) => ({
 		}
 	},
 
-	undoTrip: async (tripId) => {
+	deleteTrip: async (tripId, successMessage = "Trip deleted successfully") => {
 		if (!tripId) return { success: false };
 
 		set({ loading: true });
@@ -193,16 +193,23 @@ const useDeliveryTripStore = create((set, get) => ({
 
 			if (tripDeleteError) throw tripDeleteError;
 
-			showToast.success("Trip undone successfully");
+			showToast.success(successMessage);
 			await get().fetchTodayTrips();
-			set({ loading: false });
+			set((state) => ({
+				monthlyTrips: state.monthlyTrips.filter((t) => t.id !== tripId),
+				loading: false,
+			}));
 			return { success: true };
 		} catch (error) {
-			console.error("Error undoing delivery trip:", error);
-			showToast.error("Failed to undo trip");
+			console.error("Error deleting delivery trip:", error);
+			showToast.error(error.message || "Failed to delete trip");
 			set({ loading: false });
 			return { success: false, error };
 		}
+	},
+
+	undoTrip: async (tripId) => {
+		return get().deleteTrip(tripId, "Trip undone successfully");
 	},
 
 	transferTrip: async (tripId, newEmployeeId) => {

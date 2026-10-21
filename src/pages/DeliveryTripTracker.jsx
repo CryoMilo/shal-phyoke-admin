@@ -11,12 +11,14 @@ import {
 	RotateCcw,
 	PackageCheck,
 	ArrowRightLeft,
+	Trash2,
 } from "lucide-react";
 import useDeliveryTripStore from "../stores/deliveryTripStore";
 import useEmployeeStore from "../stores/employeeStore";
 import ResetTripsModal from "../components/orders/ResetTripsModal";
 import TransferTripModal from "../components/orders/TransferTripModal";
-import { format, addMonths, subMonths, isToday } from "date-fns";
+import DeleteTripModal from "../components/orders/DeleteTripModal";
+import { format, addMonths, subMonths } from "date-fns";
 
 const DeliveryTripTracker = () => {
 	const [selectedDate, setSelectedDate] = useState(new Date());
@@ -24,15 +26,14 @@ const DeliveryTripTracker = () => {
 		monthlyTrips,
 		boltMonthlyOrders,
 		fetchMonthlyTrips,
-		undoTrip,
 		loading,
 	} = useDeliveryTripStore();
 
 	const { employees, fetchEmployees } = useEmployeeStore();
 
-	const [undoingTripId, setUndoingTripId] = useState(null);
 	const [isResetModalOpen, setIsResetModalOpen] = useState(false);
 	const [transferTripTarget, setTransferTripTarget] = useState(null);
+	const [tripToDelete, setTripToDelete] = useState(null);
 
 	useEffect(() => {
 		fetchEmployees();
@@ -93,15 +94,6 @@ const DeliveryTripTracker = () => {
 	const moneySaved = ordersBatched * 20;
 
 	const totalBoltOrders = boltMonthlyOrders.length;
-
-	const handleUndoTrip = async (tripId) => {
-		setUndoingTripId(tripId);
-		const res = await undoTrip(tripId);
-		setUndoingTripId(null);
-		if (res.success) {
-			fetchMonthlyTrips(selectedDate);
-		}
-	};
 
 	return (
 		<div className="space-y-6 pb-20">
@@ -338,7 +330,6 @@ const DeliveryTripTracker = () => {
 							) : (
 								monthlyTrips.map((trip) => {
 									const tripDate = trip.created_at ? new Date(trip.created_at) : null;
-									const tripIsToday = tripDate ? isToday(tripDate) : false;
 									const orderNumbers =
 										trip.orders && trip.orders.length > 0
 											? trip.orders
@@ -375,17 +366,14 @@ const DeliveryTripTracker = () => {
 														<ArrowRightLeft className="w-3 h-3" />
 														<span>Transfer</span>
 													</button>
-													{tripIsToday && (
-														<button
-															type="button"
-															disabled={undoingTripId === trip.id}
-															onClick={() => handleUndoTrip(trip.id)}
-															className="btn btn-ghost btn-xs text-error gap-1 hover:bg-error/10"
-															title="Undo today's trip">
-															<RotateCcw className="w-3 h-3" />
-															{undoingTripId === trip.id ? "..." : "Undo"}
-														</button>
-													)}
+													<button
+														type="button"
+														onClick={() => setTripToDelete(trip)}
+														className="btn btn-ghost btn-xs text-error gap-1 hover:bg-error/10"
+														title="Delete this delivery trip">
+														<Trash2 className="w-3 h-3" />
+														<span>Delete</span>
+													</button>
 												</div>
 											</td>
 										</tr>
@@ -410,6 +398,14 @@ const DeliveryTripTracker = () => {
 				trip={transferTripTarget}
 				employees={activeEmployees}
 				onClose={() => setTransferTripTarget(null)}
+				onSuccess={() => fetchMonthlyTrips(selectedDate)}
+			/>
+
+			{/* Delete Trip Confirmation Modal */}
+			<DeleteTripModal
+				isOpen={!!tripToDelete}
+				trip={tripToDelete}
+				onClose={() => setTripToDelete(null)}
 				onSuccess={() => fetchMonthlyTrips(selectedDate)}
 			/>
 		</div>

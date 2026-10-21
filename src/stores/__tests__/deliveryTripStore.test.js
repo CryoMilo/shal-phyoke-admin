@@ -173,6 +173,45 @@ describe("deliveryTripStore", () => {
 		expect(mockEqTrips).toHaveBeenCalledWith("id", "trip-123");
 	});
 
+	it("successfully deletes a trip via deleteTrip and updates monthlyTrips state", async () => {
+		useDeliveryTripStore.setState({
+			monthlyTrips: [{ id: "trip-del-1" }, { id: "trip-keep-2" }],
+		});
+
+		const mockEqOrders = vi.fn().mockResolvedValue({ error: null });
+		const mockUpdateOrders = vi.fn().mockReturnValue({ eq: mockEqOrders });
+
+		const mockEqTrips = vi.fn().mockResolvedValue({ error: null });
+		const mockDeleteTrips = vi.fn().mockReturnValue({ eq: mockEqTrips });
+
+		const mockLte = vi.fn().mockReturnValue({
+			order: vi.fn().mockResolvedValue({ data: [], error: null }),
+		});
+		const mockGte = vi.fn().mockReturnValue({ lte: mockLte });
+		const mockSelect = vi.fn().mockReturnValue({ gte: mockGte });
+
+		supabase.from.mockImplementation((table) => {
+			if (table === "orders") {
+				return { update: mockUpdateOrders };
+			}
+			if (table === "delivery_trips") {
+				return {
+					delete: mockDeleteTrips,
+					select: mockSelect,
+				};
+			}
+			return {};
+		});
+
+		const result = await useDeliveryTripStore.getState().deleteTrip("trip-del-1");
+		expect(result.success).toBe(true);
+		expect(mockDeleteTrips).toHaveBeenCalled();
+		expect(mockEqTrips).toHaveBeenCalledWith("id", "trip-del-1");
+		expect(useDeliveryTripStore.getState().monthlyTrips).toEqual([
+			{ id: "trip-keep-2" },
+		]);
+	});
+
 	it("successfully resets all delivery trips", async () => {
 		const mockNotOrders = vi.fn().mockResolvedValue({ error: null });
 		const mockUpdateOrders = vi.fn().mockReturnValue({ not: mockNotOrders });
