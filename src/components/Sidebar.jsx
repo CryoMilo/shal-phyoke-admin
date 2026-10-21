@@ -142,6 +142,11 @@ const Sidebar = ({ children }) => {
 			icon: Wallet,
 		},
 		{
+			name: "Trip Summary",
+			path: "/trip-summary",
+			icon: Bike,
+		},
+		{
 			name: "Delivery Trips",
 			path: "/delivery-trips",
 			icon: Bike,

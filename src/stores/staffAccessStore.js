@@ -18,6 +18,7 @@ export const DEFAULT_PERMISSIONS = {
 		"/employee-management",
 		"/bonus-tracker",
 		"/delivery-trips",
+		"/trip-summary",
 		"/quick-note-settings",
 	],
 	staff: [
@@ -30,6 +31,7 @@ export const DEFAULT_PERMISSIONS = {
 		"/daily-cash",
 		"/daily-expenses",
 		"/bonus-tracker",
+		"/trip-summary",
 		"/quick-note-settings",
 	],
 };
