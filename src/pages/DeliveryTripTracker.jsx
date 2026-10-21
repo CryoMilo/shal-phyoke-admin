@@ -12,8 +12,12 @@ import {
 	PackageCheck,
 	Trash2,
 	AlertTriangle,
+	ArrowRightLeft,
+	ArrowRight,
+	User,
 } from "lucide-react";
 import useDeliveryTripStore from "../stores/deliveryTripStore";
+import useEmployeeStore from "../stores/employeeStore";
 import { format, addMonths, subMonths, isToday } from "date-fns";
 
 const DeliveryTripTracker = () => {
@@ -24,16 +28,33 @@ const DeliveryTripTracker = () => {
 		fetchMonthlyTrips,
 		undoTrip,
 		resetAllTrips,
+		transferTrip,
 		loading,
 	} = useDeliveryTripStore();
+
+	const { employees, fetchEmployees } = useEmployeeStore();
 
 	const [undoingTripId, setUndoingTripId] = useState(null);
 	const [isResetModalOpen, setIsResetModalOpen] = useState(false);
 	const [isResetting, setIsResetting] = useState(false);
 
+	// Trip Transfer Modal States
+	const [transferTripTarget, setTransferTripTarget] = useState(null);
+	const [transferTargetEmployeeId, setTransferTargetEmployeeId] = useState("");
+	const [isTransferring, setIsTransferring] = useState(false);
+
+	useEffect(() => {
+		fetchEmployees();
+	}, [fetchEmployees]);
+
 	useEffect(() => {
 		fetchMonthlyTrips(selectedDate);
 	}, [selectedDate, fetchMonthlyTrips]);
+
+	const activeEmployees = useMemo(
+		() => employees.filter((e) => e.is_active),
+		[employees]
+	);
 
 	const handlePrevMonth = () => setSelectedDate((prev) => subMonths(prev, 1));
 	const handleNextMonth = () => setSelectedDate((prev) => addMonths(prev, 1));
@@ -97,6 +118,18 @@ const DeliveryTripTracker = () => {
 		setIsResetting(false);
 		if (res.success) {
 			setIsResetModalOpen(false);
+			fetchMonthlyTrips(selectedDate);
+		}
+	};
+
+	const handleConfirmTransfer = async () => {
+		if (!transferTripTarget || !transferTargetEmployeeId) return;
+		setIsTransferring(true);
+		const res = await transferTrip(transferTripTarget.id, transferTargetEmployeeId);
+		setIsTransferring(false);
+		if (res.success) {
+			setTransferTripTarget(null);
+			setTransferTargetEmployeeId("");
 			fetchMonthlyTrips(selectedDate);
 		}
 	};
@@ -364,17 +397,30 @@ const DeliveryTripTracker = () => {
 												฿{Number(trip.trip_fee || 20).toFixed(2)}
 											</td>
 											<td className="text-right">
-												{tripIsToday && (
+												<div className="flex items-center justify-end gap-1">
 													<button
 														type="button"
-														disabled={undoingTripId === trip.id}
-														onClick={() => handleUndoTrip(trip.id)}
-														className="btn btn-ghost btn-xs text-error gap-1 hover:bg-error/10"
-														title="Undo today's trip">
-														<RotateCcw className="w-3 h-3" />
-														{undoingTripId === trip.id ? "..." : "Undo"}
+														onClick={() => {
+															setTransferTripTarget(trip);
+															setTransferTargetEmployeeId("");
+														}}
+														className="btn btn-ghost btn-xs text-primary gap-1 hover:bg-primary/10"
+														title="Transfer trip to another staff">
+														<ArrowRightLeft className="w-3 h-3" />
+														<span>Transfer</span>
 													</button>
-												)}
+													{tripIsToday && (
+														<button
+															type="button"
+															disabled={undoingTripId === trip.id}
+															onClick={() => handleUndoTrip(trip.id)}
+															className="btn btn-ghost btn-xs text-error gap-1 hover:bg-error/10"
+															title="Undo today's trip">
+															<RotateCcw className="w-3 h-3" />
+															{undoingTripId === trip.id ? "..." : "Undo"}
+														</button>
+													)}
+												</div>
 											</td>
 										</tr>
 									);
@@ -440,6 +486,154 @@ const DeliveryTripTracker = () => {
 					<div
 						className="modal-backdrop bg-black/60 backdrop-blur-xs"
 						onClick={isResetting ? undefined : () => setIsResetModalOpen(false)}
+					/>
+				</div>
+			)}
+
+			{/* Transfer Trip Modal */}
+			{transferTripTarget && (
+				<div className="modal modal-open z-[100]">
+					<div className="modal-box max-w-md bg-base-100 rounded-3xl border border-base-300 shadow-2xl p-6">
+						<div className="flex items-center justify-between pb-4 border-b border-base-200">
+							<div className="flex items-center gap-2.5">
+								<div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold">
+									<ArrowRightLeft className="w-5 h-5" />
+								</div>
+								<div>
+									<h3 className="font-black text-lg text-base-content leading-tight">
+										Transfer Delivery Trip
+									</h3>
+									<p className="text-xs text-base-content/60">
+										Reassign this trip to another staff member
+									</p>
+								</div>
+							</div>
+							<button
+								type="button"
+								onClick={() => setTransferTripTarget(null)}
+								disabled={isTransferring}
+								className="btn btn-sm btn-circle btn-ghost">
+								✕
+							</button>
+						</div>
+
+						{/* Trip Details Card */}
+						<div className="my-4 p-3.5 bg-base-200/50 rounded-2xl border border-base-200 space-y-2 text-xs">
+							<div className="flex justify-between items-center">
+								<span className="text-base-content/60 font-semibold">
+									Currently Assigned To:
+								</span>
+								<span className="font-black text-sm text-primary">
+									{transferTripTarget.employees?.name || "Unknown"}
+								</span>
+							</div>
+							<div className="flex justify-between items-center">
+								<span className="text-base-content/60 font-semibold">
+									Orders Carried:
+								</span>
+								<span className="font-bold">
+									{transferTripTarget.orders &&
+									transferTripTarget.orders.length > 0
+										? transferTripTarget.orders
+												.map((o) => `#${o.order_number || o.id.slice(0, 5)}`)
+												.join(", ")
+										: `${transferTripTarget.order_count || 1} order(s)`}
+								</span>
+							</div>
+							<div className="flex justify-between items-center">
+								<span className="text-base-content/60 font-semibold">
+									Trip Fee / Payout:
+								</span>
+								<span className="font-black text-success">
+									฿{Number(transferTripTarget.trip_fee || 20).toFixed(2)}
+								</span>
+							</div>
+						</div>
+
+						{/* Target Staff Member Selection */}
+						<div className="space-y-2">
+							<label className="text-xs font-bold uppercase tracking-wider text-base-content/70 block">
+								Select New Staff Member:
+							</label>
+							<div className="max-h-48 overflow-y-auto space-y-1.5 pr-1">
+								{activeEmployees
+									.filter((emp) => emp.id !== transferTripTarget.employee_id)
+									.map((emp) => {
+										const isSelected = transferTargetEmployeeId === emp.id;
+										return (
+											<button
+												key={emp.id}
+												type="button"
+												onClick={() => setTransferTargetEmployeeId(emp.id)}
+												className={`w-full text-left p-2.5 rounded-xl border transition-all flex items-center justify-between ${
+													isSelected
+														? "bg-primary text-primary-content border-primary shadow-sm"
+														: "bg-base-200/60 hover:bg-base-200 border-base-200 text-base-content"
+												}`}>
+												<div className="flex items-center gap-2.5 min-w-0">
+													<div
+														className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${
+															isSelected
+																? "bg-primary-content/20 text-primary-content"
+																: "bg-base-300 text-base-content/70"
+														}`}>
+														<User className="w-3.5 h-3.5" />
+													</div>
+													<div className="truncate">
+														<div className="font-bold text-xs truncate">
+															{emp.name}
+														</div>
+														{emp.position && (
+															<div
+																className={`text-[10px] truncate ${
+																	isSelected
+																		? "text-primary-content/80"
+																		: "text-base-content/50"
+																}`}>
+																{emp.position}
+															</div>
+														)}
+													</div>
+												</div>
+												{isSelected && (
+													<span className="badge badge-xs bg-primary-content text-primary font-bold">
+														Selected
+													</span>
+												)}
+											</button>
+										);
+									})}
+							</div>
+						</div>
+
+						{/* Modal Actions */}
+						<div className="modal-action mt-6 flex justify-end gap-2">
+							<button
+								type="button"
+								onClick={() => setTransferTripTarget(null)}
+								className="btn btn-ghost btn-sm"
+								disabled={isTransferring}>
+								Cancel
+							</button>
+							<button
+								type="button"
+								onClick={handleConfirmTransfer}
+								className="btn btn-primary btn-sm gap-1.5 font-bold shadow-sm"
+								disabled={!transferTargetEmployeeId || isTransferring}>
+								{isTransferring ? (
+									<span className="loading loading-spinner loading-xs" />
+								) : (
+									<ArrowRight className="w-4 h-4" />
+								)}
+								Confirm Transfer
+							</button>
+						</div>
+					</div>
+					<div
+						className="modal-backdrop bg-black/60 backdrop-blur-xs"
+						onClick={
+							isTransferring ? undefined : () => setTransferTripTarget(null)
+						}
 					/>
 				</div>
 			)}

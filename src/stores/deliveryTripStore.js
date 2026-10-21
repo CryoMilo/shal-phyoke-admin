@@ -205,6 +205,34 @@ const useDeliveryTripStore = create((set, get) => ({
 		}
 	},
 
+	transferTrip: async (tripId, newEmployeeId) => {
+		if (!tripId || !newEmployeeId) {
+			showToast.error("Missing trip or staff information");
+			return { success: false };
+		}
+
+		set({ loading: true });
+		try {
+			const { error } = await supabase
+				.from("delivery_trips")
+				.update({
+					employee_id: newEmployeeId,
+				})
+				.eq("id", tripId);
+
+			if (error) throw error;
+
+			showToast.success("Trip transferred successfully");
+			set({ loading: false });
+			return { success: true };
+		} catch (error) {
+			console.error("Error transferring delivery trip:", error);
+			showToast.error(error.message || "Failed to transfer trip");
+			set({ loading: false });
+			return { success: false, error };
+		}
+	},
+
 	resetAllTrips: async () => {
 		set({ loading: true });
 		try {

@@ -213,4 +213,36 @@ describe("deliveryTripStore", () => {
 		expect(useDeliveryTripStore.getState().todayTrips).toEqual([]);
 		expect(useDeliveryTripStore.getState().monthlyTrips).toEqual([]);
 	});
+
+	it("fails transferTrip if tripId or newEmployeeId is missing", async () => {
+		const res1 = await useDeliveryTripStore.getState().transferTrip("", "emp-2");
+		expect(res1.success).toBe(false);
+
+		const res2 = await useDeliveryTripStore.getState().transferTrip("trip-1", "");
+		expect(res2.success).toBe(false);
+	});
+
+	it("successfully transfers a delivery trip to another staff member", async () => {
+		const mockEq = vi.fn().mockResolvedValue({ error: null });
+		const mockUpdate = vi.fn().mockReturnValue({ eq: mockEq });
+
+		supabase.from.mockImplementation((table) => {
+			if (table === "delivery_trips") {
+				return { update: mockUpdate };
+			}
+			return {};
+		});
+
+		const result = await useDeliveryTripStore
+			.getState()
+			.transferTrip("trip-123", "emp-new");
+
+		expect(result.success).toBe(true);
+		expect(mockUpdate).toHaveBeenCalledWith(
+			expect.objectContaining({
+				employee_id: "emp-new",
+			})
+		);
+		expect(mockEq).toHaveBeenCalledWith("id", "trip-123");
+	});
 });
