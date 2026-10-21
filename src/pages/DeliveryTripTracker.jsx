@@ -15,9 +15,9 @@ import {
 } from "lucide-react";
 import useDeliveryTripStore from "../stores/deliveryTripStore";
 import useEmployeeStore from "../stores/employeeStore";
-import ResetTripsModal from "../components/orders/ResetTripsModal";
-import TransferTripModal from "../components/orders/TransferTripModal";
-import DeleteTripModal from "../components/orders/DeleteTripModal";
+import ResetTripsModal from "../components/delivery/ResetTripsModal";
+import TransferTripModal from "../components/delivery/TransferTripModal";
+import DeleteTripModal from "../components/delivery/DeleteTripModal";
 import { format, addMonths, subMonths } from "date-fns";
 
 const DeliveryTripTracker = () => {

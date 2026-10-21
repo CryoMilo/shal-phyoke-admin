@@ -18,8 +18,8 @@ import {
 } from "lucide-react";
 import PrintKitchenTicketButton from "./PrintKitchenTicketButton";
 import DeliveryPagerModal from "./DeliveryPagerModal";
-import DeliveryTripSelectModal from "./DeliveryTripSelectModal";
-import TodayTripsModal from "./TodayTripsModal";
+import DeliveryTripSelectModal from "../delivery/DeliveryTripSelectModal";
+import TodayTripsModal from "../delivery/TodayTripsModal";
 import { showToast } from "../../utils/toastUtils";
 import {
 	getBangkokISOString,
