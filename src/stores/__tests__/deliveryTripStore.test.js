@@ -226,9 +226,15 @@ describe("deliveryTripStore", () => {
 		const mockEq = vi.fn().mockResolvedValue({ error: null });
 		const mockUpdate = vi.fn().mockReturnValue({ eq: mockEq });
 
+		const mockLte = vi.fn().mockReturnValue({
+			order: vi.fn().mockResolvedValue({ data: [], error: null }),
+		});
+		const mockGte = vi.fn().mockReturnValue({ lte: mockLte });
+		const mockSelect = vi.fn().mockReturnValue({ gte: mockGte });
+
 		supabase.from.mockImplementation((table) => {
 			if (table === "delivery_trips") {
-				return { update: mockUpdate };
+				return { update: mockUpdate, select: mockSelect };
 			}
 			return {};
 		});

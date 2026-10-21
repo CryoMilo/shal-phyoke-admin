@@ -1,7 +1,8 @@
 import { create } from "zustand";
 import { supabase } from "../services/supabase";
 import { showToast } from "../utils/toastUtils";
-import { startOfDay, endOfDay, startOfMonth, endOfMonth } from "date-fns";
+import { startOfMonth, endOfMonth } from "date-fns";
+import { getBangkokDayRange } from "../utils/dateUtils";
 
 const useDeliveryTripStore = create((set, get) => ({
 	todayTrips: [],
@@ -11,8 +12,7 @@ const useDeliveryTripStore = create((set, get) => ({
 
 	fetchTodayTrips: async () => {
 		try {
-			const todayStart = startOfDay(new Date()).toISOString();
-			const todayEnd = endOfDay(new Date()).toISOString();
+			const { start: todayStart, end: todayEnd } = getBangkokDayRange();
 
 			const { data, error } = await supabase
 				.from("delivery_trips")
@@ -223,6 +223,7 @@ const useDeliveryTripStore = create((set, get) => ({
 			if (error) throw error;
 
 			showToast.success("Trip transferred successfully");
+			await get().fetchTodayTrips();
 			set({ loading: false });
 			return { success: true };
 		} catch (error) {
