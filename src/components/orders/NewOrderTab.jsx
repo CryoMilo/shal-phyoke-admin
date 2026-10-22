@@ -19,6 +19,7 @@ import useCustomerStore from "../../stores/customerStore";
 import { useAuth } from "../../contexts/AuthContext";
 import useOrderStore from "../../stores/orderStore";
 import PaymentModal from "../common/PaymentModal";
+import WaitingTimeClock from "../common/WaitingTimeClock";
 import { showToast } from "../../utils/toastUtils";
 import { generateOrderDetailsText } from "../../utils/orderUtils";
 import { isBaseItemAvailable } from "../../utils/menuAvailabilityUtils";
@@ -821,8 +822,13 @@ const NewOrderTab = ({ processOrder, isProcessing }) => {
 					/>
 				</div>
 
+				{/* Kitchen Waiting Time Indicator */}
+				<div className="mt-3">
+					<WaitingTimeClock className="w-full shadow-xs" />
+				</div>
+
 				{/* Action Buttons */}
-				<div className="mt-6 space-y-2">
+				<div className="mt-4 space-y-2">
 					<button
 						className="btn btn-primary w-full active:scale-95 transition-transform duration-100 ease-out"
 						disabled={cart.length === 0 || isProcessing || isOrderInvalid}
