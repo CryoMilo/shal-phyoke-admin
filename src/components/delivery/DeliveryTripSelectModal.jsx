@@ -110,14 +110,15 @@ const DeliveryTripSelectModal = ({ isOpen, onClose, onStartSelection }) => {
 						</div>
 					</div>
 
-					{/* Employee selection list */}
+					{/* Employee selection dropdown */}
 					<div>
-						<label className="text-xs font-bold uppercase tracking-wider text-base-content/60 mb-2 block">
+						<label className="text-xs font-bold uppercase tracking-wider text-base-content/60 mb-2 flex items-center gap-1.5">
+							<User className="w-3.5 h-3.5" />
 							Select Delivering Staff:
 						</label>
 
 						{loading && activeEmployees.length === 0 ? (
-							<div className="py-6 text-center">
+							<div className="py-4 text-center">
 								<span className="loading loading-spinner loading-sm text-primary"></span>
 							</div>
 						) : activeEmployees.length === 0 ? (
@@ -125,53 +126,19 @@ const DeliveryTripSelectModal = ({ isOpen, onClose, onStartSelection }) => {
 								No active employees found
 							</div>
 						) : (
-							<div className="max-h-48 overflow-y-auto space-y-1.5 pr-1">
-								{activeEmployees.map((emp) => {
-									const isSelected = selectedEmployeeId === emp.id;
-									return (
-										<button
-											key={emp.id}
-											type="button"
-											onClick={() => setSelectedEmployeeId(emp.id)}
-											className={`w-full text-left p-2.5 rounded-xl border transition-all flex items-center justify-between ${
-												isSelected
-													? "bg-primary text-primary-content border-primary shadow-sm"
-													: "bg-base-200/60 hover:bg-base-200 border-base-200 text-base-content"
-											}`}>
-											<div className="flex items-center gap-2.5 min-w-0">
-												<div
-													className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${
-														isSelected
-															? "bg-primary-content/20 text-primary-content"
-															: "bg-base-300 text-base-content/70"
-													}`}>
-													<User className="w-4 h-4" />
-												</div>
-												<div className="truncate">
-													<div className="font-bold text-sm truncate">
-														{emp.name}
-													</div>
-													{emp.position && (
-														<div
-															className={`text-[10px] truncate ${
-																isSelected
-																	? "text-primary-content/80"
-																	: "text-base-content/50"
-															}`}>
-															{emp.position}
-														</div>
-													)}
-												</div>
-											</div>
-											{isSelected && (
-												<span className="badge badge-sm bg-primary-content text-primary font-bold">
-													Selected
-												</span>
-											)}
-										</button>
-									);
-								})}
-							</div>
+							<select
+								value={selectedEmployeeId}
+								onChange={(e) => setSelectedEmployeeId(e.target.value)}
+								className="select select-bordered w-full font-bold rounded-2xl bg-base-100 text-sm">
+								<option value="" disabled>
+									-- Choose a staff member --
+								</option>
+								{activeEmployees.map((emp) => (
+									<option key={emp.id} value={emp.id}>
+										{emp.name} {emp.position ? `(${emp.position})` : ""}
+									</option>
+								))}
+							</select>
 						)}
 					</div>
 				</div>

@@ -119,70 +119,42 @@ const StaffTripSummary = () => {
 			</PageHeader>
 
 			{/* Staff Member Selector */}
-			<div className="bg-base-100 p-4 rounded-3xl border border-base-200 shadow-sm space-y-2">
-				<div className="flex items-center justify-between">
+			<div className="bg-base-100 p-4 rounded-3xl border border-base-200 shadow-sm">
+				<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
 					<label className="text-xs font-bold uppercase tracking-wider text-base-content/60 flex items-center gap-1.5">
 						<User className="w-3.5 h-3.5" />
 						Select Staff Member
 					</label>
-					{selectedEmployee && (
-						<span className="badge badge-sm badge-ghost font-semibold">
-							{selectedEmployee.position || "Staff"}
-						</span>
-					)}
+
+					<div className="flex items-center gap-2">
+						{employeesLoading && activeEmployees.length === 0 ? (
+							<span className="loading loading-spinner loading-xs text-primary" />
+						) : activeEmployees.length === 0 ? (
+							<span className="text-xs opacity-50">No active staff members registered</span>
+						) : (
+							<select
+								value={selectedEmployeeId}
+								onChange={(e) => setSelectedEmployeeId(e.target.value)}
+								className="select select-bordered select-sm w-full sm:w-72 font-bold rounded-xl bg-base-100">
+								{activeEmployees.map((emp) => {
+									const empTodayTrips = todayTrips.filter(
+										(t) => t.employee_id === emp.id
+									).length;
+									return (
+										<option key={emp.id} value={emp.id}>
+											{emp.name} {emp.position ? `(${emp.position})` : ""} {empTodayTrips > 0 ? `• ${empTodayTrips} trips today` : ""}
+										</option>
+									);
+								})}
+							</select>
+						)}
+						{selectedEmployee && (
+							<span className="badge badge-sm badge-ghost font-semibold hidden sm:inline-flex">
+								{selectedEmployee.position || "Staff"}
+							</span>
+						)}
+					</div>
 				</div>
-
-				{employeesLoading && activeEmployees.length === 0 ? (
-					<div className="py-4 text-center">
-						<span className="loading loading-spinner loading-sm text-primary"></span>
-					</div>
-				) : activeEmployees.length === 0 ? (
-					<div className="text-sm opacity-50 py-3 text-center">
-						No active staff members registered
-					</div>
-				) : (
-					<div className="flex gap-2 overflow-x-auto pb-1 pt-1 no-scrollbar">
-						{activeEmployees.map((emp) => {
-							const isSelected = selectedEmployeeId === emp.id;
-							// Find today's trip count for quick chip info
-							const empTodayTrips = todayTrips.filter(
-								(t) => t.employee_id === emp.id
-							).length;
-
-							return (
-								<button
-									key={emp.id}
-									type="button"
-									onClick={() => setSelectedEmployeeId(emp.id)}
-									className={`btn btn-sm rounded-2xl flex items-center gap-2 shrink-0 transition-all ${
-										isSelected
-											? "btn-primary font-bold shadow-md scale-[1.02]"
-											: "btn-ghost bg-base-200/60 hover:bg-base-200 text-base-content font-medium"
-									}`}>
-									<div
-										className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black ${
-											isSelected
-												? "bg-primary-content text-primary"
-												: "bg-base-300 text-base-content"
-										}`}>
-										{emp.name.slice(0, 1).toUpperCase()}
-									</div>
-									<span>{emp.name}</span>
-									{empTodayTrips > 0 && (
-										<span
-											className={`badge badge-xs font-bold ${
-												isSelected
-													? "bg-primary-content/20 text-primary-content"
-													: "badge-secondary"
-											}`}>
-											{empTodayTrips} today
-										</span>
-									)}
-								</button>
-							);
-						})}
-					</div>
-				)}
 			</div>
 
 			{/* Hero Collective Metrics for Selected Staff */}

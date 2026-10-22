@@ -90,7 +90,8 @@ const TransferTripModal = ({ isOpen, trip, employees = [], onClose, onSuccess })
 
 				{/* Target Staff Selection */}
 				<div className="space-y-2">
-					<label className="text-xs font-bold uppercase tracking-wider text-base-content/70 block">
+					<label className="text-xs font-bold uppercase tracking-wider text-base-content/70 flex items-center gap-1.5">
+						<User className="w-3.5 h-3.5" />
 						Select New Staff Member:
 					</label>
 					{activeEmployees.length === 0 ? (
@@ -98,53 +99,19 @@ const TransferTripModal = ({ isOpen, trip, employees = [], onClose, onSuccess })
 							No other active staff available to transfer to
 						</div>
 					) : (
-						<div className="max-h-48 overflow-y-auto space-y-1.5 pr-1">
-							{activeEmployees.map((emp) => {
-								const isSelected = targetEmployeeId === emp.id;
-								return (
-									<button
-										key={emp.id}
-										type="button"
-										onClick={() => setTargetEmployeeId(emp.id)}
-										className={`w-full text-left p-2.5 rounded-xl border transition-all flex items-center justify-between ${
-											isSelected
-												? "bg-primary text-primary-content border-primary shadow-sm"
-												: "bg-base-200/60 hover:bg-base-200 border-base-200 text-base-content"
-										}`}>
-										<div className="flex items-center gap-2.5 min-w-0">
-											<div
-												className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${
-													isSelected
-														? "bg-primary-content/20 text-primary-content"
-														: "bg-base-300 text-base-content/70"
-												}`}>
-												<User className="w-3.5 h-3.5" />
-											</div>
-											<div className="truncate">
-												<div className="font-bold text-xs truncate">
-													{emp.name}
-												</div>
-												{emp.position && (
-													<div
-														className={`text-[10px] truncate ${
-															isSelected
-																? "text-primary-content/80"
-																: "text-base-content/50"
-														}`}>
-														{emp.position}
-													</div>
-												)}
-											</div>
-										</div>
-										{isSelected && (
-											<span className="badge badge-xs bg-primary-content text-primary font-bold">
-												Selected
-											</span>
-										)}
-									</button>
-								);
-							})}
-						</div>
+						<select
+							value={targetEmployeeId}
+							onChange={(e) => setTargetEmployeeId(e.target.value)}
+							className="select select-bordered w-full font-bold rounded-2xl bg-base-100 text-sm">
+							<option value="" disabled>
+								-- Choose new staff member --
+							</option>
+							{activeEmployees.map((emp) => (
+								<option key={emp.id} value={emp.id}>
+									{emp.name} {emp.position ? `(${emp.position})` : ""}
+								</option>
+							))}
+						</select>
 					)}
 				</div>
 
