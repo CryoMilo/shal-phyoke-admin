@@ -1,5 +1,6 @@
 import React from "react";
-import { X, Banknote, CreditCard, CheckCircle2 } from "lucide-react";
+import { X, CheckCircle2 } from "lucide-react";
+import WaitingTimeClock from "./WaitingTimeClock";
 
 const PaymentModal = ({
 	isOpen,
@@ -45,16 +46,11 @@ const PaymentModal = ({
 						</div>
 					</div>
 
-					<div className="flex flex-col items-center justify-center min-h-[200px] bg-base-200/50 rounded-2xl p-6 border-2 border-dashed border-base-300">
+					<div className="flex flex-col items-center justify-center min-h-[180px] bg-base-200/40 rounded-2xl p-4">
 						{isCash && (
 							<div className="flex flex-col items-center animate-in fade-in zoom-in duration-300 w-full">
-								<div className="flex items-center gap-2 mb-3">
-									<div className="w-8 h-8 bg-success/10 text-success rounded-full flex items-center justify-center">
-										<Banknote className="w-5 h-5" />
-									</div>
-									<span className="font-bold text-sm text-success uppercase tracking-wider">
-										Cash Calculator
-									</span>
+								<div className="w-full flex justify-center mb-3">
+									<WaitingTimeClock />
 								</div>
 
 								{/* Input field for Cash Received */}
@@ -117,11 +113,11 @@ const PaymentModal = ({
 
 						{isQR && (
 							<div className="flex flex-col items-center animate-in fade-in zoom-in duration-300 w-full">
-								<div className="relative group overflow-hidden rounded-xl border-4 border-white shadow-lg mb-4">
+								<div className="relative group overflow-hidden rounded-2xl shadow-md mb-3.5">
 									<img
 										src="/payment.jpg"
 										alt="QR Payment"
-										className="w-full max-w-[220px] h-auto object-contain"
+										className="w-full max-w-[210px] h-auto object-contain"
 										onError={(e) => {
 											e.target.onerror = null;
 											e.target.style.display = "none";
@@ -130,23 +126,16 @@ const PaymentModal = ({
 										}}
 									/>
 								</div>
-								<div className="flex items-center gap-2 text-info">
-									<CreditCard className="w-5 h-5" />
-									<span className="font-bold text-xl uppercase tracking-wider">
-										QR Scan
-									</span>
-								</div>
+								<WaitingTimeClock />
 							</div>
 						)}
 
 						{!isCash && !isQR && (
 							<div className="flex flex-col items-center animate-in fade-in zoom-in duration-300">
-								<div className="w-24 h-24 bg-base-300 text-base-content/30 rounded-full flex items-center justify-center mb-4">
-									<CheckCircle2 className="w-12 h-12" />
+								<div className="w-20 h-20 bg-base-300 text-base-content/30 rounded-full flex items-center justify-center mb-3">
+									<CheckCircle2 className="w-10 h-10" />
 								</div>
-								<span className="font-bold text-xl opacity-60 uppercase tracking-wider">
-									{paymentMethod} Payment
-								</span>
+								<WaitingTimeClock />
 							</div>
 						)}
 					</div>
