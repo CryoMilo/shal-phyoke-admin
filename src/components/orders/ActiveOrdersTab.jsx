@@ -552,7 +552,6 @@ const ActiveOrdersTab = () => {
 			<TodayTripsModal
 				isOpen={isTodayTripsOpen}
 				onClose={() => setIsTodayTripsOpen(false)}
-				onTripsChanged={fetchActiveOrders}
 			/>
 		</div>
 	);

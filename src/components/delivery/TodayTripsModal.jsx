@@ -1,19 +1,14 @@
-import React, { useState, useEffect, useMemo } from "react";
-import { X, Bike, RotateCcw } from "lucide-react";
+import React, { useEffect, useMemo } from "react";
+import { X, Bike } from "lucide-react";
 import useDeliveryTripStore from "../../stores/deliveryTripStore";
-import { useAuth } from "../../contexts/AuthContext";
 import { format } from "date-fns";
 
-const TodayTripsModal = ({ isOpen, onClose, onTripsChanged }) => {
-	const { todayTrips, fetchTodayTrips, undoTrip } = useDeliveryTripStore();
-	const { isAdmin } = useAuth();
-	const [tripToUndo, setTripToUndo] = useState(null);
-	const [isUndoing, setIsUndoing] = useState(false);
+const TodayTripsModal = ({ isOpen, onClose }) => {
+	const { todayTrips, fetchTodayTrips } = useDeliveryTripStore();
 
 	useEffect(() => {
 		if (isOpen) {
 			fetchTodayTrips();
-			setTripToUndo(null);
 		}
 	}, [isOpen, fetchTodayTrips]);
 
@@ -30,16 +25,6 @@ const TodayTripsModal = ({ isOpen, onClose, onTripsChanged }) => {
 	}, [todayTrips]);
 
 	if (!isOpen) return null;
-
-	const handleConfirmUndo = async (tripId) => {
-		setIsUndoing(true);
-		const result = await undoTrip(tripId);
-		setIsUndoing(false);
-		if (result.success) {
-			setTripToUndo(null);
-			if (onTripsChanged) onTripsChanged();
-		}
-	};
 
 	return (
 		<div className="modal modal-open z-[100]">
@@ -85,7 +70,6 @@ const TodayTripsModal = ({ isOpen, onClose, onTripsChanged }) => {
 							const formattedTime = trip.created_at
 								? format(new Date(trip.created_at), "HH:mm")
 								: "";
-							const isConfirmingThis = tripToUndo === trip.id;
 							const personTripCount = staffTripCounts[trip.employee_id] || 1;
 							const orderNumbers =
 								trip.orders && trip.orders.length > 0
@@ -125,44 +109,15 @@ const TodayTripsModal = ({ isOpen, onClose, onTripsChanged }) => {
 											</div>
 										</div>
 
-										<div className="flex flex-col items-end gap-1 shrink-0">
-											<div className="flex items-center gap-1.5">
-												<span
-													className="badge badge-ghost badge-sm font-bold text-xs opacity-75"
-													title={`Completed ${personTripCount} trip(s) today`}>
-													{personTripCount} {personTripCount === 1 ? "trip" : "trips"}
-												</span>
-												<span className="badge badge-success badge-sm font-black">
-													฿{Number(trip.trip_fee || 20).toFixed(2)}
-												</span>
-											</div>
-											{isAdmin && (
-												!isConfirmingThis ? (
-													<button
-														type="button"
-														onClick={() => setTripToUndo(trip.id)}
-														className="btn btn-ghost btn-xs text-error gap-1 px-2 hover:bg-error/10">
-														<RotateCcw className="w-3 h-3" />
-														Undo
-													</button>
-												) : (
-													<div className="flex items-center gap-1 mt-1">
-														<button
-															type="button"
-															disabled={isUndoing}
-															onClick={() => handleConfirmUndo(trip.id)}
-															className="btn btn-error btn-xs font-bold">
-															{isUndoing ? "..." : "Confirm"}
-														</button>
-														<button
-															type="button"
-															onClick={() => setTripToUndo(null)}
-															className="btn btn-ghost btn-xs">
-															Cancel
-														</button>
-													</div>
-												)
-											)}
+										<div className="flex items-center gap-1.5 shrink-0">
+											<span
+												className="badge badge-ghost badge-sm font-bold text-xs opacity-75"
+												title={`Completed ${personTripCount} trip(s) today`}>
+												{personTripCount} {personTripCount === 1 ? "trip" : "trips"}
+											</span>
+											<span className="badge badge-success badge-sm font-black">
+												฿{Number(trip.trip_fee || 20).toFixed(2)}
+											</span>
 										</div>
 									</div>
 								</div>
