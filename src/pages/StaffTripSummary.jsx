@@ -142,16 +142,11 @@ const StaffTripSummary = () => {
 									).length;
 									return (
 										<option key={emp.id} value={emp.id}>
-											{emp.name} {emp.position ? `(${emp.position})` : ""} {empTodayTrips > 0 ? `• ${empTodayTrips} trips today` : ""}
+											{emp.name} {empTodayTrips > 0 ? `• ${empTodayTrips} trips today` : ""}
 										</option>
 									);
 								})}
 							</select>
-						)}
-						{selectedEmployee && (
-							<span className="badge badge-sm badge-ghost font-semibold hidden sm:inline-flex">
-								{selectedEmployee.position || "Staff"}
-							</span>
 						)}
 					</div>
 				</div>
