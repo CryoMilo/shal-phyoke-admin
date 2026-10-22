@@ -208,20 +208,22 @@ const ActiveOrdersTab = () => {
 					</div>
 
 					<div className="flex items-center gap-2">
-						{isAdmin && !tripSelectionConfig && (
+						{!tripSelectionConfig && (
 							<>
-								<button
-									type="button"
-									onClick={() => setIsTripModalOpen(true)}
-									className="btn btn-primary btn-xs sm:btn-sm gap-1.5 font-bold shadow-sm">
-									<Bike className="w-3.5 h-3.5" />
-									<span>Record Trip</span>
-									{pendingDeliveryOrdersCount > 0 && (
-										<span className="badge badge-warning badge-xs font-bold">
-											{pendingDeliveryOrdersCount}
-										</span>
-									)}
-								</button>
+								{isAdmin && (
+									<button
+										type="button"
+										onClick={() => setIsTripModalOpen(true)}
+										className="btn btn-primary btn-xs sm:btn-sm gap-1.5 font-bold shadow-sm">
+										<Bike className="w-3.5 h-3.5" />
+										<span>Record Trip</span>
+										{pendingDeliveryOrdersCount > 0 && (
+											<span className="badge badge-warning badge-xs font-bold">
+												{pendingDeliveryOrdersCount}
+											</span>
+										)}
+									</button>
+								)}
 								<button
 									type="button"
 									onClick={() => setIsTodayTripsOpen(true)}
@@ -537,23 +539,21 @@ const ActiveOrdersTab = () => {
 			/>
 
 			{isAdmin && (
-				<>
-					<DeliveryTripSelectModal
-						isOpen={isTripModalOpen}
-						onClose={() => setIsTripModalOpen(false)}
-						onStartSelection={(config) => {
-							setTripSelectionConfig(config);
-							setSelectedDeliveryOrderIds([]);
-						}}
-					/>
-
-					<TodayTripsModal
-						isOpen={isTodayTripsOpen}
-						onClose={() => setIsTodayTripsOpen(false)}
-						onTripsChanged={fetchActiveOrders}
-					/>
-				</>
+				<DeliveryTripSelectModal
+					isOpen={isTripModalOpen}
+					onClose={() => setIsTripModalOpen(false)}
+					onStartSelection={(config) => {
+						setTripSelectionConfig(config);
+						setSelectedDeliveryOrderIds([]);
+					}}
+				/>
 			)}
+
+			<TodayTripsModal
+				isOpen={isTodayTripsOpen}
+				onClose={() => setIsTodayTripsOpen(false)}
+				onTripsChanged={fetchActiveOrders}
+			/>
 		</div>
 	);
 };

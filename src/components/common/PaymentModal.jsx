@@ -36,17 +36,17 @@ const PaymentModal = ({
 				</div>
 
 				{/* Content */}
-				<div className="p-8 text-center">
-					<div className="mb-6">
+				<div className="p-4 text-center">
+					<div className="mb-2">
 						<div className="text-sm opacity-60 uppercase tracking-widest font-bold mb-1">
 							Total Amount
 						</div>
-						<div className="text-5xl font-black text-primary">
+						<div className="text-4xl font-black text-primary">
 							฿{Number(amount).toFixed(2)}
 						</div>
 					</div>
 
-					<div className="flex flex-col items-center justify-center min-h-[180px] bg-base-200/40 rounded-2xl p-4">
+					<div className="flex flex-col items-center justify-center min-h-[180px] rounded-2xl p-4">
 						{isCash && (
 							<div className="flex flex-col items-center animate-in fade-in zoom-in duration-300 w-full">
 								<div className="w-full flex justify-center mb-3">

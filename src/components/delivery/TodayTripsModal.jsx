@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { X, Bike, RotateCcw } from "lucide-react";
 import useDeliveryTripStore from "../../stores/deliveryTripStore";
+import { useAuth } from "../../contexts/AuthContext";
 import { format } from "date-fns";
 
 const TodayTripsModal = ({ isOpen, onClose, onTripsChanged }) => {
 	const { todayTrips, fetchTodayTrips, undoTrip } = useDeliveryTripStore();
+	const { isAdmin } = useAuth();
 	const [tripToUndo, setTripToUndo] = useState(null);
 	const [isUndoing, setIsUndoing] = useState(false);
 
@@ -14,6 +16,18 @@ const TodayTripsModal = ({ isOpen, onClose, onTripsChanged }) => {
 			setTripToUndo(null);
 		}
 	}, [isOpen, fetchTodayTrips]);
+
+	// Calculate total trips completed today per staff member
+	const staffTripCounts = useMemo(() => {
+		const counts = {};
+		todayTrips.forEach((trip) => {
+			const empId = trip.employee_id;
+			if (empId) {
+				counts[empId] = (counts[empId] || 0) + 1;
+			}
+		});
+		return counts;
+	}, [todayTrips]);
 
 	if (!isOpen) return null;
 
@@ -26,11 +40,6 @@ const TodayTripsModal = ({ isOpen, onClose, onTripsChanged }) => {
 			if (onTripsChanged) onTripsChanged();
 		}
 	};
-
-	const totalPayoutToday = todayTrips.reduce(
-		(sum, trip) => sum + Number(trip.trip_fee || 0),
-		0
-	);
 
 	return (
 		<div className="modal modal-open z-[100]">
@@ -51,7 +60,7 @@ const TodayTripsModal = ({ isOpen, onClose, onTripsChanged }) => {
 								</span>
 							</div>
 							<p className="text-xs text-base-content/60">
-								Today's staff trips & quick undo
+								Today's recorded delivery trips
 							</p>
 						</div>
 					</div>
@@ -61,16 +70,6 @@ const TodayTripsModal = ({ isOpen, onClose, onTripsChanged }) => {
 						type="button">
 						<X className="w-4 h-4" />
 					</button>
-				</div>
-
-				{/* Summary Bar */}
-				<div className="bg-base-200/60 px-5 py-3 border-b border-base-200 flex justify-between items-center text-xs">
-					<span className="font-bold text-base-content/70">
-						Total Staff Payout Today:
-					</span>
-					<span className="font-black text-sm text-primary">
-						฿{totalPayoutToday.toFixed(2)}
-					</span>
 				</div>
 
 				{/* Body */}
@@ -87,6 +86,7 @@ const TodayTripsModal = ({ isOpen, onClose, onTripsChanged }) => {
 								? format(new Date(trip.created_at), "HH:mm")
 								: "";
 							const isConfirmingThis = tripToUndo === trip.id;
+							const personTripCount = staffTripCounts[trip.employee_id] || 1;
 							const orderNumbers =
 								trip.orders && trip.orders.length > 0
 									? trip.orders
@@ -126,33 +126,42 @@ const TodayTripsModal = ({ isOpen, onClose, onTripsChanged }) => {
 										</div>
 
 										<div className="flex flex-col items-end gap-1 shrink-0">
-											<span className="badge badge-success badge-sm font-black">
-												฿{Number(trip.trip_fee || 20).toFixed(2)}
-											</span>
-											{!isConfirmingThis ? (
-												<button
-													type="button"
-													onClick={() => setTripToUndo(trip.id)}
-													className="btn btn-ghost btn-xs text-error gap-1 px-2 hover:bg-error/10">
-													<RotateCcw className="w-3 h-3" />
-													Undo
-												</button>
-											) : (
-												<div className="flex items-center gap-1 mt-1">
+											<div className="flex items-center gap-1.5">
+												<span
+													className="badge badge-ghost badge-sm font-bold text-xs opacity-75"
+													title={`Completed ${personTripCount} trip(s) today`}>
+													{personTripCount} {personTripCount === 1 ? "trip" : "trips"}
+												</span>
+												<span className="badge badge-success badge-sm font-black">
+													฿{Number(trip.trip_fee || 20).toFixed(2)}
+												</span>
+											</div>
+											{isAdmin && (
+												!isConfirmingThis ? (
 													<button
 														type="button"
-														disabled={isUndoing}
-														onClick={() => handleConfirmUndo(trip.id)}
-														className="btn btn-error btn-xs font-bold">
-														{isUndoing ? "..." : "Confirm"}
+														onClick={() => setTripToUndo(trip.id)}
+														className="btn btn-ghost btn-xs text-error gap-1 px-2 hover:bg-error/10">
+														<RotateCcw className="w-3 h-3" />
+														Undo
 													</button>
-													<button
-														type="button"
-														onClick={() => setTripToUndo(null)}
-														className="btn btn-ghost btn-xs">
-														Cancel
-													</button>
-												</div>
+												) : (
+													<div className="flex items-center gap-1 mt-1">
+														<button
+															type="button"
+															disabled={isUndoing}
+															onClick={() => handleConfirmUndo(trip.id)}
+															className="btn btn-error btn-xs font-bold">
+															{isUndoing ? "..." : "Confirm"}
+														</button>
+														<button
+															type="button"
+															onClick={() => setTripToUndo(null)}
+															className="btn btn-ghost btn-xs">
+															Cancel
+														</button>
+													</div>
+												)
 											)}
 										</div>
 									</div>
