@@ -22,7 +22,27 @@ export const ALL_CATEGORIES = [
 	"Discontinued",
 ];
 
-export const MENU_TAGS = ["night"];
+export const MENU_TAGS = [
+	"night",
+	"day",
+	"recommend",
+	"best-seller",
+	"signature",
+	"popular",
+	"must-try",
+	"new",
+];
+
+export const MENU_TAG_DISPLAY_NAMES = {
+	night: "Night 🌙",
+	day: "Day ☀️",
+	recommend: "Recommend ⭐",
+	"best-seller": "Best-Seller 🔥",
+	signature: "Signature 👑",
+	popular: "Popular 🌟",
+	"must-try": "Must-Try 🍴",
+	new: "New 🆕",
+};
 
 export const vendorColors = [
 	{

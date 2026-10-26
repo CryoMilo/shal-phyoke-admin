@@ -2,6 +2,7 @@ import React from "react";
 import { Edit, Trash2 } from "lucide-react";
 import { isBaseItemAvailable } from "../../utils/menuAvailabilityUtils";
 import { getSafeImageUrl } from "../../utils/imageUtils";
+import { MENU_TAG_DISPLAY_NAMES } from "../../constants";
 
 const RegularMenuCard = ({ menu, onEdit, onDelete, onToggleStatus }) => {
 	const isAvailable = isBaseItemAvailable(menu);
@@ -79,6 +80,19 @@ const RegularMenuCard = ({ menu, onEdit, onDelete, onToggleStatus }) => {
 				{/* English/Thai Name */}
 				{menu.name_english && (
 					<p className="text-sm text-gray-600">{menu.name_english}</p>
+				)}
+
+				{/* Tags */}
+				{Array.isArray(menu.tags) && menu.tags.length > 0 && (
+					<div className="flex flex-wrap gap-1 mt-1.5">
+						{menu.tags.map((tag) => (
+							<span
+								key={tag}
+								className="badge badge-xs badge-ghost text-[10px] font-semibold opacity-80">
+								{MENU_TAG_DISPLAY_NAMES[tag] || tag}
+							</span>
+						))}
+					</div>
 				)}
 
 				{/* Price */}

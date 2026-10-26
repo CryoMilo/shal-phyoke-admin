@@ -2,7 +2,7 @@ import React, { useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { menuSchema } from "../../validations/menuSchema";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ALL_CATEGORIES, CATEGORY_DISPLAY_NAMES, MENU_TAGS } from "../../constants";
+import { ALL_CATEGORIES, CATEGORY_DISPLAY_NAMES, MENU_TAGS, MENU_TAG_DISPLAY_NAMES } from "../../constants";
 import ImageUploadField from "./ImageUploadField";
 import useQuickNoteStore from "../../stores/quickNoteStore";
 
@@ -11,7 +11,6 @@ const MenuForm = ({
 	onSubmit,
 	onCancel,
 	loading = false,
-	isRegularOnly = false,
 	activeTab = "basic",
 }) => {
 	const { activeNotes, fetchActiveNotes } = useQuickNoteStore();
@@ -21,9 +20,6 @@ const MenuForm = ({
 		handleSubmit,
 		reset,
 		formState: { errors },
-		watch,
-		setValue,
-		trigger,
 		control,
 	} = useForm({
 		resolver: zodResolver(menuSchema),
@@ -58,7 +54,7 @@ const MenuForm = ({
 					image_url: "",
 					sensitive_ingredients: "",
 					is_active: true,
-					is_regular: isRegularOnly ? true : false,
+					is_regular: true,
 					is_vegan: false,
 					requires_addon: false,
 					requires_stock_check: false,
@@ -70,8 +66,6 @@ const MenuForm = ({
 	useEffect(() => {
 		fetchActiveNotes();
 	}, [fetchActiveNotes]);
-
-	const watchIsRegular = watch("is_regular");
 
 	useEffect(() => {
 		if (editingMenu) {
@@ -104,7 +98,7 @@ const MenuForm = ({
 				image_url: "",
 				sensitive_ingredients: "",
 				is_active: true,
-				is_regular: isRegularOnly ? true : false,
+				is_regular: true,
 				is_vegan: false,
 				requires_addon: false,
 				requires_stock_check: false,
@@ -112,7 +106,7 @@ const MenuForm = ({
 				tags: [],
 			});
 		}
-	}, [editingMenu, reset, isRegularOnly]);
+	}, [editingMenu, reset]);
 
 	const handleFormSubmit = (data) => {
 		const rawAliases =
@@ -127,6 +121,7 @@ const MenuForm = ({
 
 		const processedData = {
 			...data,
+			is_regular: true,
 			aliases: rawAliases,
 			sensitive_ingredients: data.sensitive_ingredients
 				? data.sensitive_ingredients.split(",").map((item) => item.trim())
@@ -135,13 +130,6 @@ const MenuForm = ({
 		};
 		onSubmit(processedData);
 	};
-
-	const handleMenuTypeChange = (isRegular) => {
-		setValue("is_regular", isRegular, { shouldValidate: true });
-		trigger("is_regular");
-	};
-
-	const isRegularValue = watchIsRegular === true || watchIsRegular === "true";
 
 	return (
 		<form
@@ -265,7 +253,7 @@ const MenuForm = ({
 						</label>
 					</div>
 
-					<div className="form-control">
+					<div className="form-control col-span-1 md:col-span-2">
 						<label className="label">
 							<span className="label-text font-medium">Category *</span>
 						</label>
@@ -287,37 +275,6 @@ const MenuForm = ({
 							</label>
 						)}
 					</div>
-
-					{!isRegularOnly && (
-						<div className="form-control">
-							<label className="label">
-								<span className="label-text font-medium">Menu Type *</span>
-							</label>
-							<div className="flex space-x-2">
-								<button
-									type="button"
-									onClick={() => handleMenuTypeChange(true)}
-									className={`btn flex-1 ${
-										isRegularValue ? "btn-primary" : "btn-outline"
-									}`}>
-									<span className="text-sm">Regular</span>
-								</button>
-								<button
-									type="button"
-									onClick={() => handleMenuTypeChange(false)}
-									className={`btn flex-1 ${
-										!isRegularValue ? "btn-primary" : "btn-outline"
-									}`}>
-									<span className="text-sm">Rotating</span>
-								</button>
-							</div>
-							<input
-								type="hidden"
-								{...register("is_regular")}
-								value={isRegularValue}
-							/>
-						</div>
-					)}
 				</div>
 
 				{/* Taste Profile */}
@@ -435,15 +392,15 @@ const MenuForm = ({
 						name="tags"
 						control={control}
 						render={({ field }) => (
-							<div className="flex flex-wrap gap-3">
+							<div className="flex flex-wrap gap-2.5">
 								{MENU_TAGS.map((tag) => {
 									const isSelected = field.value?.includes(tag);
 									return (
 										<label
 											key={tag}
-											className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-all hover:bg-base-200 ${
+											className={`flex items-center gap-2 px-3 py-2 rounded-xl border cursor-pointer transition-all hover:bg-base-200 select-none ${
 												isSelected
-													? "border-primary bg-primary/5 text-primary"
+													? "border-primary bg-primary/10 text-primary font-bold shadow-xs"
 													: "border-base-300 bg-base-100 text-base-content/85"
 											}`}>
 											<input
@@ -458,8 +415,8 @@ const MenuForm = ({
 													field.onChange(newValue);
 												}}
 											/>
-											<span className="text-xs font-bold capitalize">
-												{tag}
+											<span className="text-xs">
+												{MENU_TAG_DISPLAY_NAMES[tag] || tag.replace("-", " ")}
 											</span>
 										</label>
 									);
@@ -525,32 +482,10 @@ const MenuForm = ({
 								disabled={loading}
 							/>
 							<div className="flex flex-col">
-								<span className="label-text font-medium">Requires Stock Check</span>
-								<span className="label-text-alt text-base-content/60">
-									Requires kitchen stock check before customer payment
-								</span>
+								<span className="label-text font-medium">Requires Check</span>
 							</div>
 						</label>
 					</div>
-
-					{isRegularOnly && (
-						<div className="form-control">
-							<label className="label cursor-pointer justify-start gap-3 p-0">
-								<input
-									type="checkbox"
-									checked={true}
-									className="toggle toggle-primary"
-									disabled
-								/>
-								<div className="flex flex-col">
-									<span className="label-text font-medium">Menu Type</span>
-									<span className="label-text-alt text-base-content/60">
-										Regular - Always Available
-									</span>
-								</div>
-							</label>
-						</div>
-					)}
 				</div>
 			</div>
 

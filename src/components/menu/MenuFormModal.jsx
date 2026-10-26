@@ -10,7 +10,6 @@ const MenuFormModal = ({
 	editingMenu,
 	handleSubmit,
 	loading = false,
-	isRegularOnly = false,
 }) => {
 	const [activeTab, setActiveTab] = useState("basic"); // 'basic' or 'extras'
 
@@ -82,7 +81,6 @@ const MenuFormModal = ({
 								onSubmit={handleSubmit}
 								onCancel={() => setShowModal(false)}
 								loading={loading}
-								isRegularOnly={isRegularOnly}
 								activeTab={activeTab}
 							/>
 						</div>

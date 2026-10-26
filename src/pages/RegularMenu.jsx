@@ -218,7 +218,6 @@ const RegularMenuPage = () => {
 				editingMenu={editingMenu}
 				handleSubmit={handleFormSubmit}
 				loading={formLoading}
-				isRegularOnly={true}
 			/>
 
 			{/* Unavailable Items Modal */}
