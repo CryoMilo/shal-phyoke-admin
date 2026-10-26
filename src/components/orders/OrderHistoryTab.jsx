@@ -19,6 +19,7 @@ import {
 	toBangkokDateString,
 } from "../../utils/dateUtils";
 import BangkokDatePicker from "../common/BangkokDatePicker";
+import CopyableText from "../common/CopyableText";
 
 const STATUS_FILTERS = [
 	{ id: "all", label: "All" },
@@ -315,9 +316,13 @@ const OrderHistoryTab = () => {
 												<div className="text-[10px] opacity-40 mb-0.5 flex items-center gap-1">
 													<Phone className="w-2.5 h-2.5" /> Phone
 												</div>
-												<div className="text-sm font-bold font-mono">
-													{selectedOrder.customer_phone}
-												</div>
+												<CopyableText
+													text={selectedOrder.customer_phone}
+													label="phone number">
+													<span className="text-sm font-bold font-mono">
+														{selectedOrder.customer_phone}
+													</span>
+												</CopyableText>
 											</div>
 										)}
 										{(selectedOrder.delivery_address ||
@@ -329,15 +334,26 @@ const OrderHistoryTab = () => {
 												</div>
 												<div className="text-sm font-medium leading-relaxed flex flex-wrap items-center gap-2">
 													{selectedOrder.delivery_address && (
-														<span>{selectedOrder.delivery_address}</span>
+														<CopyableText
+															text={selectedOrder.delivery_address}
+															label="delivery address">
+															<span>{selectedOrder.delivery_address}</span>
+														</CopyableText>
 													)}
 													{(selectedOrder.building_info ||
 														selectedOrder.customers?.building_info) && (
-														<span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-md bg-base-300/70 text-base-content/80 font-normal">
-															<Building2 className="w-3 h-3 text-primary shrink-0" />
-															{selectedOrder.building_info ||
-																selectedOrder.customers?.building_info}
-														</span>
+														<CopyableText
+															text={
+																selectedOrder.building_info ||
+																selectedOrder.customers?.building_info
+															}
+															label="building info">
+															<span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-md bg-base-300/70 text-base-content/80 font-normal">
+																<Building2 className="w-3 h-3 text-primary shrink-0" />
+																{selectedOrder.building_info ||
+																	selectedOrder.customers?.building_info}
+															</span>
+														</CopyableText>
 													)}
 												</div>
 											</div>

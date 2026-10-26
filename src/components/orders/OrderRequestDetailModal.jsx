@@ -17,6 +17,7 @@ import {
 	XCircle,
 } from "lucide-react";
 import useOrderRequestStore from "../../stores/orderRequestStore";
+import CopyableText from "../common/CopyableText";
 
 const OrderRequestDetailModal = ({ isOpen, onClose, request }) => {
 	const {
@@ -202,23 +203,27 @@ const OrderRequestDetailModal = ({ isOpen, onClose, request }) => {
 								{request.customer_name}
 							</span>
 							{request.customer_phone && (
-								<a
-									href={`tel:${request.customer_phone}`}
-									className="btn btn-xs btn-outline btn-primary gap-1 font-mono">
-									<Phone className="w-3 h-3" />
-									{request.customer_phone}
-								</a>
+								<CopyableText text={request.customer_phone} label="phone number">
+									<span className="btn btn-xs btn-outline btn-primary gap-1 font-mono">
+										<Phone className="w-3 h-3" />
+										{request.customer_phone}
+									</span>
+								</CopyableText>
 							)}
 						</div>
 
 						<div className="flex items-start gap-1.5 text-xs text-base-content/80">
 							<Building2 className="w-3.5 h-3.5 text-primary mt-0.5 shrink-0" />
-							<span>
-								{request.clean_building_info && (
-									<strong>{request.clean_building_info} - </strong>
-								)}
-								{request.clean_address || request.delivery_address}
-							</span>
+							<CopyableText
+								text={`${request.clean_building_info ? request.clean_building_info + " - " : ""}${request.clean_address || request.delivery_address || ""}`}
+								label="delivery address">
+								<span className="cursor-pointer hover:text-primary transition-colors">
+									{request.clean_building_info && (
+										<strong>{request.clean_building_info} - </strong>
+									)}
+									{request.clean_address || request.delivery_address}
+								</span>
+							</CopyableText>
 						</div>
 
 						{request.notes && (

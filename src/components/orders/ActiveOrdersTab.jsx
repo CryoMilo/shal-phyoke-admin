@@ -29,6 +29,7 @@ import PaymentModal from "../common/PaymentModal";
 import OrderRequestsSection from "./OrderRequestsSection";
 import { useAuth } from "../../contexts/AuthContext";
 import useDeliveryTripStore from "../../stores/deliveryTripStore";
+import CopyableText from "../common/CopyableText";
 
 // Synchronous guard to prevent duplicate order completions across re-renders
 const inProgressOrders = new Set();
@@ -558,7 +559,9 @@ const ActiveOrdersTab = () => {
 };
 
 const SingularOrderModal = ({ order, onClose, onUpdate, onOpenPager }) => {
+	const { recordBoltDelivery, unmarkBoltDelivery } = useDeliveryTripStore();
 	const [isProcessing, setIsProcessing] = useState(false);
+	const [isBoltProcessing, setIsBoltProcessing] = useState(false);
 	const [showPaymentModal, setShowPaymentModal] = useState(false);
 	const [pendingPaymentData, setPendingPaymentData] = useState(null);
 	const [confirmAction, setConfirmAction] = useState(null);
@@ -567,6 +570,32 @@ const SingularOrderModal = ({ order, onClose, onUpdate, onOpenPager }) => {
 
 	const isDeliveryUnassigned =
 		order.order_type === "delivery" && !order.delivery_fee_paid;
+
+	const handleAssignBolt = async () => {
+		if (isBoltProcessing) return;
+		setIsBoltProcessing(true);
+		try {
+			const res = await recordBoltDelivery({ orderIds: [order.id] });
+			if (res.success) {
+				await onUpdate();
+			}
+		} finally {
+			setIsBoltProcessing(false);
+		}
+	};
+
+	const handleUnmarkBolt = async () => {
+		if (isBoltProcessing) return;
+		setIsBoltProcessing(true);
+		try {
+			const res = await unmarkBoltDelivery(order.id);
+			if (res.success) {
+				await onUpdate();
+			}
+		} finally {
+			setIsBoltProcessing(false);
+		}
+	};
 
 	const handleCompleteOrder = async () => {
 		if (isDeliveryUnassigned) {
@@ -708,9 +737,48 @@ const SingularOrderModal = ({ order, onClose, onUpdate, onOpenPager }) => {
 									  } Order`)}
 						</h3>
 					</div>
-					<button className="btn btn-sm btn-circle btn-ghost" onClick={onClose}>
-						✕
-					</button>
+					<div className="flex items-center gap-2">
+						{order.order_type === "delivery" && (
+							order.delivery_provider === "bolt" ? (
+								<button
+									type="button"
+									disabled={isBoltProcessing}
+									onClick={handleUnmarkBolt}
+									title="Click to cancel Bolt assignment"
+									className="btn btn-sm bg-amber-500 hover:bg-amber-600 text-black border-none font-bold gap-1 shadow-sm">
+									{isBoltProcessing ? (
+										<span className="loading loading-spinner loading-xs text-black"></span>
+									) : (
+										<Zap className="w-3.5 h-3.5 fill-current" />
+									)}
+									<span>Bolt Trip ✓</span>
+								</button>
+							) : !order.delivery_fee_paid ? (
+								<button
+									type="button"
+									disabled={isBoltProcessing}
+									onClick={handleAssignBolt}
+									className="btn btn-sm btn-warning text-black font-bold gap-1 shadow-sm">
+									{isBoltProcessing ? (
+										<span className="loading loading-spinner loading-xs text-black"></span>
+									) : (
+										<Zap className="w-3.5 h-3.5 fill-current" />
+									)}
+									<span>Bolt Trip</span>
+								</button>
+							) : (
+								<span className="badge badge-primary badge-sm font-bold gap-1 py-3 px-2.5">
+									<Bike className="w-3 h-3" /> Staff Trip
+								</span>
+							)
+						)}
+						<button
+							className="btn btn-sm btn-circle btn-ghost"
+							onClick={onClose}
+							type="button">
+							✕
+						</button>
+					</div>
 				</div>
 
 				{/* 2. Static Top Details: Order #, Status, Customer Address */}
@@ -764,9 +832,11 @@ const SingularOrderModal = ({ order, onClose, onUpdate, onOpenPager }) => {
 										<div className="text-[10px] opacity-40 mb-0.5 flex items-center gap-1">
 											<Phone className="w-2.5 h-2.5" /> Phone
 										</div>
-										<div className="text-sm font-bold font-mono">
-											{order.customer_phone}
-										</div>
+										<CopyableText text={order.customer_phone} label="phone number">
+											<span className="text-sm font-bold font-mono">
+												{order.customer_phone}
+											</span>
+										</CopyableText>
 									</div>
 								)}
 								{(order.delivery_address ||
@@ -778,15 +848,21 @@ const SingularOrderModal = ({ order, onClose, onUpdate, onOpenPager }) => {
 										</div>
 										<div className="text-sm font-medium leading-relaxed flex flex-wrap items-center gap-2">
 											{order.delivery_address && (
-												<span>{order.delivery_address}</span>
+												<CopyableText text={order.delivery_address} label="delivery address">
+													<span>{order.delivery_address}</span>
+												</CopyableText>
 											)}
 											{(order.building_info ||
 												order.customers?.building_info) && (
-												<span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-md bg-base-300/70 text-base-content/80 font-normal">
-													<Building2 className="w-3 h-3 text-primary shrink-0" />
-													{order.building_info ||
-														order.customers?.building_info}
-												</span>
+												<CopyableText
+													text={order.building_info || order.customers?.building_info}
+													label="building info">
+													<span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-md bg-base-300/70 text-base-content/80 font-normal">
+														<Building2 className="w-3 h-3 text-primary shrink-0" />
+														{order.building_info ||
+															order.customers?.building_info}
+													</span>
+												</CopyableText>
 											)}
 										</div>
 									</div>
@@ -888,7 +964,7 @@ const SingularOrderModal = ({ order, onClose, onUpdate, onOpenPager }) => {
 								{isDeliveryUnassigned && (
 									<div className="col-span-2 text-center p-2 bg-warning/10 border border-warning/30 rounded-xl">
 										<span className="text-xs font-bold text-warning flex items-center justify-center gap-1.5">
-											⚠️ Assign to Staff Trip or Bolt before completing
+											⚠️ Assign to Staff Trip or Bolt (top right) before completing
 										</span>
 									</div>
 								)}

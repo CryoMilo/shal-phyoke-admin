@@ -133,6 +133,32 @@ describe("deliveryTripStore", () => {
 		expect(mockIn).toHaveBeenCalledWith("id", ["ord-99"]);
 	});
 
+	it("successfully unmarks Bolt delivery by resetting provider and fee paid", async () => {
+		const mockEq = vi.fn().mockResolvedValue({ error: null });
+		const mockUpdate = vi.fn().mockReturnValue({ eq: mockEq });
+
+		supabase.from.mockImplementation((table) => {
+			if (table === "orders") {
+				return { update: mockUpdate };
+			}
+			return {};
+		});
+
+		const result = await useDeliveryTripStore
+			.getState()
+			.unmarkBoltDelivery("ord-99");
+
+		expect(result.success).toBe(true);
+		expect(mockUpdate).toHaveBeenCalledWith(
+			expect.objectContaining({
+				delivery_provider: null,
+				delivery_trip_id: null,
+				delivery_fee_paid: false,
+			})
+		);
+		expect(mockEq).toHaveBeenCalledWith("id", "ord-99");
+	});
+
 	it("successfully undoes a trip by resetting orders and deleting trip row", async () => {
 		const mockEqOrders = vi.fn().mockResolvedValue({ error: null });
 		const mockUpdateOrders = vi.fn().mockReturnValue({ eq: mockEqOrders });

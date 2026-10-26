@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { X, Bike, Zap, User, ArrowRight } from "lucide-react";
+import { X, Bike, User, ArrowRight, Check } from "lucide-react";
 import useEmployeeStore from "../../stores/employeeStore";
 
 const DeliveryTripSelectModal = ({ isOpen, onClose, onStartSelection }) => {
@@ -30,15 +30,6 @@ const DeliveryTripSelectModal = ({ isOpen, onClose, onStartSelection }) => {
 		onClose();
 	};
 
-	const handleSelectBolt = () => {
-		onStartSelection({
-			type: "bolt",
-			employee: null,
-			tripFee: 0,
-		});
-		onClose();
-	};
-
 	return (
 		<div className="modal modal-open z-[100]">
 			<div className="modal-box max-w-md p-0 overflow-hidden bg-base-100 rounded-3xl shadow-2xl border border-base-300">
@@ -53,7 +44,7 @@ const DeliveryTripSelectModal = ({ isOpen, onClose, onStartSelection }) => {
 								Record Delivery Trip
 							</h3>
 							<p className="text-xs text-base-content/60">
-								Choose in-house staff or mark external Bolt
+								Choose delivering staff member
 							</p>
 						</div>
 					</div>
@@ -66,33 +57,6 @@ const DeliveryTripSelectModal = ({ isOpen, onClose, onStartSelection }) => {
 				</div>
 
 				<div className="p-5 space-y-4">
-					{/* External Bolt Option */}
-					<div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center justify-between gap-3">
-						<div className="flex items-center gap-3">
-							<div className="w-10 h-10 rounded-xl bg-amber-500 text-black flex items-center justify-center font-black shadow-sm">
-								<Zap className="w-5 h-5 fill-current" />
-							</div>
-							<div>
-								<h4 className="font-bold text-sm text-base-content">
-									Bolt / External Delivery
-								</h4>
-								<p className="text-[11px] text-base-content/60">
-									Far deliveries (no staff trip fee payout)
-								</p>
-							</div>
-						</div>
-						<button
-							type="button"
-							onClick={handleSelectBolt}
-							className="btn btn-sm btn-warning font-bold text-xs gap-1 shadow-sm">
-							Select Bolt <ArrowRight className="w-3.5 h-3.5" />
-						</button>
-					</div>
-
-					<div className="divider text-xs text-base-content/40 uppercase tracking-widest my-1 font-semibold">
-						or In-House Staff (฿20/trip)
-					</div>
-
 					{/* Trip Fee setting */}
 					<div className="flex items-center justify-between bg-base-200/50 px-3.5 py-2.5 rounded-xl border border-base-200">
 						<span className="text-xs font-bold text-base-content/80">
@@ -110,35 +74,78 @@ const DeliveryTripSelectModal = ({ isOpen, onClose, onStartSelection }) => {
 						</div>
 					</div>
 
-					{/* Employee selection dropdown */}
+					{/* Employee selection buttons */}
 					<div>
-						<label className="text-xs font-bold uppercase tracking-wider text-base-content/60 mb-2 flex items-center gap-1.5">
-							<User className="w-3.5 h-3.5" />
-							Select Delivering Staff:
-						</label>
+						<div className="flex items-center justify-between mb-2">
+							<label className="text-xs font-bold uppercase tracking-wider text-base-content/60 flex items-center gap-1.5">
+								<User className="w-3.5 h-3.5" />
+								Select Delivering Staff:
+							</label>
+							{selectedEmployeeId && (
+								<span className="text-[11px] font-bold text-primary">
+									1 selected
+								</span>
+							)}
+						</div>
 
 						{loading && activeEmployees.length === 0 ? (
-							<div className="py-4 text-center">
-								<span className="loading loading-spinner loading-sm text-primary"></span>
+							<div className="py-6 text-center">
+								<span className="loading loading-spinner loading-md text-primary"></span>
 							</div>
 						) : activeEmployees.length === 0 ? (
-							<div className="py-4 text-center text-xs opacity-50 border border-dashed rounded-xl">
+							<div className="py-6 text-center text-xs opacity-50 border-2 border-dashed border-base-300 rounded-2xl">
 								No active employees found
 							</div>
 						) : (
-							<select
-								value={selectedEmployeeId}
-								onChange={(e) => setSelectedEmployeeId(e.target.value)}
-								className="select select-bordered w-full font-bold rounded-2xl bg-base-100 text-sm">
-								<option value="" disabled>
-									-- Choose a staff member --
-								</option>
-								{activeEmployees.map((emp) => (
-									<option key={emp.id} value={emp.id}>
-										{emp.name} {emp.position ? `(${emp.position})` : ""}
-									</option>
-								))}
-							</select>
+							<div className="grid grid-cols-2 gap-2.5 max-h-64 overflow-y-auto pr-0.5">
+								{activeEmployees.map((emp) => {
+									const isSelected = selectedEmployeeId === emp.id;
+									return (
+										<button
+											key={emp.id}
+											type="button"
+											onClick={() =>
+												setSelectedEmployeeId((prev) =>
+													prev === emp.id ? "" : emp.id
+												)
+											}
+											className={`relative p-3 rounded-2xl text-left border-2 transition-all flex items-center gap-2.5 ${
+												isSelected
+													? "bg-primary text-primary-content border-primary shadow-md ring-2 ring-primary/20 scale-[1.01]"
+													: "bg-base-200/60 hover:bg-base-200 border-base-300/80 text-base-content hover:scale-[1.01] active:scale-95"
+											}`}>
+											<div
+												className={`w-9 h-9 rounded-xl flex items-center justify-center font-black text-xs shrink-0 transition-colors ${
+													isSelected
+														? "bg-primary-content/20 text-primary-content"
+														: "bg-primary/10 text-primary"
+												}`}>
+												{emp.name ? emp.name.slice(0, 2).toUpperCase() : "?"}
+											</div>
+											<div className="min-w-0 flex-1">
+												<div className="font-bold text-sm truncate leading-snug">
+													{emp.name}
+												</div>
+												{emp.position && (
+													<div
+														className={`text-[10px] truncate leading-tight ${
+															isSelected
+																? "text-primary-content/80 font-medium"
+																: "text-base-content/60"
+														}`}>
+														{emp.position}
+													</div>
+												)}
+											</div>
+											{isSelected && (
+												<div className="w-5 h-5 rounded-full bg-primary-content text-primary flex items-center justify-center shrink-0 shadow-xs">
+													<Check className="w-3 h-3 stroke-[3]" />
+												</div>
+											)}
+										</button>
+									);
+								})}
+							</div>
 						)}
 					</div>
 				</div>
@@ -165,3 +172,4 @@ const DeliveryTripSelectModal = ({ isOpen, onClose, onStartSelection }) => {
 };
 
 export default DeliveryTripSelectModal;
+

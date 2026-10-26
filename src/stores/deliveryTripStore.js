@@ -167,6 +167,34 @@ const useDeliveryTripStore = create((set, get) => ({
 		}
 	},
 
+	unmarkBoltDelivery: async (orderId) => {
+		if (!orderId) return { success: false };
+
+		set({ loading: true });
+		try {
+			const { error } = await supabase
+				.from("orders")
+				.update({
+					delivery_provider: null,
+					delivery_trip_id: null,
+					delivery_fee_paid: false,
+					updated_at: new Date().toISOString(),
+				})
+				.eq("id", orderId);
+
+			if (error) throw error;
+
+			showToast.success("Removed Bolt delivery assignment");
+			set({ loading: false });
+			return { success: true };
+		} catch (error) {
+			console.error("Error unmarking Bolt delivery:", error);
+			showToast.error(error.message || "Failed to remove Bolt delivery");
+			set({ loading: false });
+			return { success: false, error };
+		}
+	},
+
 	deleteTrip: async (tripId, successMessage = "Trip deleted successfully") => {
 		if (!tripId) return { success: false };
 
