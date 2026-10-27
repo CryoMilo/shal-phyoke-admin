@@ -52,18 +52,34 @@ const InventoryCard = ({ item, onAddToMarketList, onUpdateStock, onClick }) => {
 
 				{/* Item Details */}
 				<div className="flex-1 min-w-0">
-					<div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-						<span className="text-base truncate">{item.name}</span>
+					<div className="flex items-baseline gap-2 flex-wrap">
+						<span className="text-base font-semibold text-base-content leading-relaxed">
+							{item.name_burmese || item.name}
+						</span>
 						<span className={`badge ${status.color} badge-xs`}>
 							{status.text}
 						</span>
 					</div>
-					<div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-base-content/60">
+					{item.name_english && item.name_english !== item.name_burmese && (
+						<p className="text-xs text-base-content/60 -mt-0.5 truncate">
+							{item.name_english}
+						</p>
+					)}
+					<div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 mt-1 text-xs text-base-content/60">
 						<span className="badge badge-ghost badge-sm">{item.category}</span>
 						<span>
-							Unit:{" "}
-							<span className="font-medium text-base-content">{item.unit}</span>
+							Unit: <span className="font-medium text-base-content">{item.unit}</span>
+							{item.base_unit && item.base_unit !== item.unit && (
+								<span className="text-base-content/50 ml-1">
+									({item.base_quantity_per_unit || 1} {item.base_unit})
+								</span>
+							)}
 						</span>
+						{item.cost_per_unit > 0 && (
+							<span className="text-emerald-600 dark:text-emerald-400 font-medium">
+								฿{Number(item.cost_per_unit).toFixed(2)}/{item.unit}
+							</span>
+						)}
 						{!item.is_regular && (
 							<span className="text-warning font-medium">Occasional</span>
 						)}

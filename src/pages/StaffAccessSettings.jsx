@@ -22,6 +22,8 @@ import {
 	Printer,
 	UserCheck,
 	Bike,
+	ChefHat,
+	Sparkles,
 } from "lucide-react";
 import useStaffAccessStore, { DEFAULT_PERMISSIONS } from "../stores/staffAccessStore";
 
@@ -31,7 +33,9 @@ const ALL_TABS = [
 	{ name: "Customers", path: "/customers", icon: UserCheck, category: "Operations" },
 	{ name: "Combo Manager", path: "/combo-manager", icon: Layers2, category: "Operations" },
 	{ name: "Regular Menu Items", path: "/regular-menu", icon: Menu, category: "Menu" },
+	{ name: "Recipe Book", path: "/recipes", icon: ChefHat, category: "Menu" },
 	{ name: "Procurement", path: "/procurement", icon: ShoppingCart, category: "Inventory" },
+	{ name: "Procurement Insights", path: "/procurement/insights", icon: Sparkles, category: "Inventory" },
 	{ name: "Inventory Items", path: "/inventory-items", icon: Box, category: "Inventory" },
 	{ name: "Daily Cash", path: "/daily-cash", icon: DollarSign, category: "Finance" },
 	{ name: "Daily Expenses", path: "/daily-expenses", icon: TrendingDown, category: "Finance" },

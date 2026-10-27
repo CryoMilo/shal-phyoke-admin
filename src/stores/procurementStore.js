@@ -51,10 +51,14 @@ const useProcurementStore = create((set, get) => ({
           )
         `
 				)
-				.order("name");
+				.order("name_english");
 
 			if (error) throw error;
-			set({ inventoryItems: data || [] });
+			const formatted = (data || []).map((item) => ({
+				...item,
+				name: item.name_english || item.name || item.name_burmese,
+			}));
+			set({ inventoryItems: formatted });
 		} catch (error) {
 			console.error("Error fetching inventory items:", error);
 			showToast.error("Failed to load inventory items");
@@ -72,9 +76,11 @@ const useProcurementStore = create((set, get) => ({
           *,
           inventory_item:inventory_item_id (
             id,
-            name,
+            name_english,
+            name_burmese,
             image_url,
-            category
+            category,
+            unit
           ),
           vendor:vendor_id (
             id,
@@ -92,6 +98,10 @@ const useProcurementStore = create((set, get) => ({
 			const fetchedItems = data || [];
 			const mergedItems = fetchedItems.map(item => ({
 				...item,
+				inventory_item: item.inventory_item ? {
+					...item.inventory_item,
+					name: item.inventory_item.name_english || item.inventory_item.name_burmese,
+				} : null,
 				quantity: pendingUpdates[item.id] !== undefined ? pendingUpdates[item.id] : item.quantity
 			}));
 
@@ -455,7 +465,8 @@ const useProcurementStore = create((set, get) => ({
             is_missed,
             inventory_item:inventory_item_id (
               id,
-              name,
+              name_english,
+              name_burmese,
               image_url,
               unit
             )
@@ -465,7 +476,21 @@ const useProcurementStore = create((set, get) => ({
 				.order("created_at", { ascending: false });
 
 			if (error) throw error;
-			set({ procurementOrders: data || [] });
+			const formattedOrders = (data || []).map((order) => ({
+				...order,
+				items: (order.items || []).map((item) => ({
+					...item,
+					inventory_item: item.inventory_item
+						? {
+								...item.inventory_item,
+								name:
+									item.inventory_item.name_english ||
+									item.inventory_item.name_burmese,
+						  }
+						: null,
+				})),
+			}));
+			set({ procurementOrders: formattedOrders });
 		} catch (error) {
 			console.error("Error fetching orders:", error);
 			showToast.error("Failed to load procurement orders");

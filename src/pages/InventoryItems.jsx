@@ -55,9 +55,10 @@ const InventoryItems = () => {
 
 	const handleAddToMarketList = async (item) => {
 		const quantity = quantities[item.id] || 1;
+		const itemName = item.name_burmese || item.name_english || item.name;
 		const result = await addToMarketList({
 			id: item.id,
-			name: item.name,
+			name: itemName,
 			default_vendor_id: item.default_vendor_id,
 			quantity,
 			unit: item.unit,
@@ -65,11 +66,11 @@ const InventoryItems = () => {
 		});
 
 		if (result?.success) {
-			showToast.itemAdded(item.name, quantity, item.unit);
+			showToast.itemAdded(itemName, quantity, item.unit);
 			// Reset quantity after successful add
 			setQuantities((prev) => ({ ...prev, [item.id]: 1 }));
 		} else {
-			showToast.error(`Failed to add ${item.name} to market list`);
+			showToast.error(`Failed to add ${itemName} to market list`);
 		}
 	};
 
@@ -88,13 +89,15 @@ const InventoryItems = () => {
 
 	const handleModalSubmit = async (data) => {
 		try {
+			let res;
 			if (editingItem) {
-				await updateInventoryItem(editingItem.id, data);
+				res = await updateInventoryItem(editingItem.id, data);
 			} else {
-				await createInventoryItem(data);
+				res = await createInventoryItem(data);
 			}
 			setShowModal(false);
 			setEditingItem(null);
+			return res;
 		} catch (error) {
 			console.error("Error saving item:", error);
 		}

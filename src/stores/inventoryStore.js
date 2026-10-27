@@ -36,11 +36,12 @@ const useInventoryStore = create(
             id,
             name,
             line_id
-          )
+          ),
+          conversions:item_unit_conversions (*)
         `
 						)
 						.order("category")
-						.order("name");
+						.order("name_english");
 
 					if (error) throw error;
 
@@ -49,6 +50,8 @@ const useInventoryStore = create(
 					const fetchedItems = data || [];
 					const mergedItems = fetchedItems.map((item) => ({
 						...item,
+						name: item.name_english || item.name || item.name_burmese || "",
+						item_unit_conversions: item.conversions || item.item_unit_conversions || [],
 						quantity:
 							pendingUpdates[item.id] !== undefined
 								? pendingUpdates[item.id]
@@ -235,13 +238,16 @@ const useInventoryStore = create(
 			getFilteredItems: () => {
 				const items = get().inventoryItems;
 				const { searchQuery, selectedVendors, showRegularOnly } = get();
+				const q = (searchQuery || "").trim().toLowerCase();
 
 				return items.filter((item) => {
-					// Search filter
+					// Bilingual search filter
 					const matchesSearch =
-						searchQuery === "" ||
-						item.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-						item.category?.toLowerCase().includes(searchQuery.toLowerCase());
+						q === "" ||
+						(item.name_english && item.name_english.toLowerCase().includes(q)) ||
+						(item.name_burmese && item.name_burmese.toLowerCase().includes(q)) ||
+						(item.name && item.name.toLowerCase().includes(q)) ||
+						(item.category && item.category.toLowerCase().includes(q));
 
 					// Vendor filter - if no vendors selected, show all
 					const matchesVendor =
@@ -258,15 +264,17 @@ const useInventoryStore = create(
 
 			createInventoryItem: async (itemData) => {
 				try {
-					const { error } = await supabase
+					const { data, error } = await supabase
 						.from("inventory_items")
-						.insert([itemData]);
+						.insert([itemData])
+						.select()
+						.single();
 
 					if (error) throw error;
 
 					await get().fetchInventoryItems();
 					showToast.success("Inventory item created");
-					return { success: true };
+					return { success: true, item: data };
 				} catch (error) {
 					console.error("Error creating inventory item:", error);
 					showToast.error("Failed to create inventory item");
@@ -290,6 +298,46 @@ const useInventoryStore = create(
 				} catch (error) {
 					console.error("Error updating inventory item:", error);
 					showToast.error("Failed to update inventory item");
+					return { error: error.message };
+				}
+			},
+
+			// Unit conversions management (Item-specific calibrations)
+			addOrUpdateConversion: async (conversionData) => {
+				try {
+					const { error } = await supabase
+						.from("item_unit_conversions")
+						.upsert(conversionData, {
+							onConflict: "inventory_item_id,unit_code",
+						});
+
+					if (error) throw error;
+
+					await get().fetchInventoryItems();
+					showToast.success("Unit conversion calibrated");
+					return { success: true };
+				} catch (error) {
+					console.error("Error saving unit conversion:", error);
+					showToast.error("Failed to save unit conversion");
+					return { error: error.message };
+				}
+			},
+
+			deleteConversion: async (conversionId) => {
+				try {
+					const { error } = await supabase
+						.from("item_unit_conversions")
+						.delete()
+						.eq("id", conversionId);
+
+					if (error) throw error;
+
+					await get().fetchInventoryItems();
+					showToast.success("Unit conversion removed");
+					return { success: true };
+				} catch (error) {
+					console.error("Error deleting unit conversion:", error);
+					showToast.error("Failed to delete unit conversion");
 					return { error: error.message };
 				}
 			},

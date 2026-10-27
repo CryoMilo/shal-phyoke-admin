@@ -23,6 +23,8 @@ import {
 	UserCheck,
 	Wallet,
 	Bike,
+	ChefHat,
+	Sparkles,
 } from "lucide-react";
 
 const Sidebar = ({ children }) => {
@@ -95,6 +97,11 @@ const Sidebar = ({ children }) => {
 			icon: Menu,
 		},
 		{
+			name: "Recipe Book",
+			path: "/recipes",
+			icon: ChefHat,
+		},
+		{
 			type: "divider",
 			label: "Inventory",
 		},
@@ -102,6 +109,11 @@ const Sidebar = ({ children }) => {
 			name: "Procurement",
 			path: "/procurement",
 			icon: ShoppingCart,
+		},
+		{
+			name: "Procurement Insights",
+			path: "/procurement/insights",
+			icon: Sparkles,
 		},
 		{
 			name: "Inventory Items",

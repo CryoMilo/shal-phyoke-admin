@@ -24,6 +24,8 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import BonusTracker from "./components/employees/BonusTracker";
 import DeliveryTripTracker from "./pages/DeliveryTripTracker";
 import StaffTripSummary from "./pages/StaffTripSummary";
+import Recipes from "./pages/Recipes";
+import ProcurementInsights from "./pages/ProcurementInsights";
 
 const rootRoute = createRootRoute({
 	component: () => <App />,
@@ -204,6 +206,26 @@ const comboManagerRoute = createRoute({
 	),
 });
 
+const recipesRoute = createRoute({
+	path: "/recipes",
+	getParentRoute: () => rootRoute,
+	component: () => (
+		<ProtectedRoute>
+			<Recipes />
+		</ProtectedRoute>
+	),
+});
+
+const procurementInsightsRoute = createRoute({
+	path: "/procurement/insights",
+	getParentRoute: () => rootRoute,
+	component: () => (
+		<ProtectedRoute>
+			<ProcurementInsights />
+		</ProtectedRoute>
+	),
+});
+
 const routeTree = rootRoute.addChildren([
 	loginRoute,
 	rootIndexRoute,
@@ -222,7 +244,9 @@ const routeTree = rootRoute.addChildren([
 	deliveryTripsRoute,
 	staffTripSummaryRoute,
 	procurementRoute,
+	procurementInsightsRoute,
 	inventoryItemsRoute,
+	recipesRoute,
 ]);
 
 export const router = createRouter({ routeTree });
