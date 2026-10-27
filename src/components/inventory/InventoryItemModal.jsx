@@ -108,6 +108,7 @@ const InventoryItemModal = ({
 		defaultValues: {
 			name_burmese: "",
 			name_english: "",
+			item_type: "ingredient",
 			category: "Other",
 			default_vendor_id: "",
 			unit: "pack",
@@ -146,6 +147,7 @@ const InventoryItemModal = ({
 			reset({
 				name_burmese: editingItem.name_burmese || editingItem.name || "",
 				name_english: editingItem.name_english || editingItem.name || "",
+				item_type: editingItem.item_type || "ingredient",
 				category: editingItem.category || "Other",
 				default_vendor_id: editingItem.default_vendor_id || "",
 				unit: editingItem.unit || "pack",
@@ -170,6 +172,7 @@ const InventoryItemModal = ({
 			reset({
 				name_burmese: "",
 				name_english: "",
+				item_type: "ingredient",
 				category: "Other",
 				default_vendor_id: "",
 				unit: "pack",
@@ -267,6 +270,7 @@ const InventoryItemModal = ({
 			...data,
 			name_burmese: data.name_burmese.trim(),
 			name_english: data.name_english.trim(),
+			item_type: data.item_type || "ingredient",
 			default_vendor_id: data.default_vendor_id || null,
 			image_url: data.image_url || null,
 			base_unit: data.base_unit || "g",
@@ -320,6 +324,64 @@ const InventoryItemModal = ({
 				</div>
 
 				<form onSubmit={formSubmit(onSubmit)} className="space-y-5" noValidate>
+					{/* Item Classification Type */}
+					<div className="form-control">
+						<label className="label py-1">
+							<span className="label-text font-semibold text-xs">
+								Item Type (ပစ္စည်းအမျိုးအစား ခွဲခြားမှု)
+							</span>
+						</label>
+						<div className="grid grid-cols-3 gap-2">
+							<label
+								className={`flex flex-col items-center justify-center p-2.5 rounded-xl border-2 cursor-pointer text-center transition-all ${
+									watch("item_type") === "ingredient"
+										? "border-primary bg-primary/10 text-primary font-bold shadow-sm"
+										: "border-base-200 hover:border-base-300 bg-base-100 text-base-content/70"
+								}`}>
+								<input
+									type="radio"
+									value="ingredient"
+									{...register("item_type")}
+									className="hidden"
+								/>
+								<span className="text-xs">🥘 Ingredient</span>
+								<span className="text-[10px] opacity-70">ဟင်းချက်ကုန်ကြမ်း</span>
+							</label>
+
+							<label
+								className={`flex flex-col items-center justify-center p-2.5 rounded-xl border-2 cursor-pointer text-center transition-all ${
+									watch("item_type") === "packaging"
+										? "border-indigo-500 bg-indigo-500/10 text-indigo-500 font-bold shadow-sm"
+										: "border-base-200 hover:border-base-300 bg-base-100 text-base-content/70"
+								}`}>
+								<input
+									type="radio"
+									value="packaging"
+									{...register("item_type")}
+									className="hidden"
+								/>
+								<span className="text-xs">📦 Packaging</span>
+								<span className="text-[10px] opacity-70">ထုပ်ပိုးပစ္စည်း</span>
+							</label>
+
+							<label
+								className={`flex flex-col items-center justify-center p-2.5 rounded-xl border-2 cursor-pointer text-center transition-all ${
+									watch("item_type") === "operational_supply"
+										? "border-amber-500 bg-amber-500/10 text-amber-500 font-bold shadow-sm"
+										: "border-base-200 hover:border-base-300 bg-base-100 text-base-content/70"
+								}`}>
+								<input
+									type="radio"
+									value="operational_supply"
+									{...register("item_type")}
+									className="hidden"
+								/>
+								<span className="text-xs">🧹 Operational</span>
+								<span className="text-[10px] opacity-70">သုံးကုန် / ဆေး</span>
+							</label>
+						</div>
+					</div>
+
 					{/* Image Upload */}
 					<Controller
 						name="image_url"

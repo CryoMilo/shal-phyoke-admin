@@ -38,6 +38,9 @@ const RecipeComponentAdder = ({ currentRecipe, branchPreps, inventoryItems, onAd
 	const filteredInventoryItems = useMemo(() => {
 		const q = search.trim().toLowerCase();
 		return inventoryItems.filter((item) => {
+			// Culinary recipe pickers only allow culinary ingredients (skip packaging & operational supplies)
+			if ((item.item_type || "ingredient") !== "ingredient") return false;
+
 			if (!q) return true;
 			return (
 				item.name_english?.toLowerCase().includes(q) ||

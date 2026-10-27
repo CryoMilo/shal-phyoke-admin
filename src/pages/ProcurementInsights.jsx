@@ -1,5 +1,6 @@
 // src/pages/ProcurementInsights.jsx
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import {
 	Scale,
 	Sparkles,
@@ -9,25 +10,24 @@ import {
 	RefreshCw,
 	TrendingUp,
 } from "lucide-react";
+import { PageHeader } from "../components/common/PageHeader";
 import { Loading } from "../components/common/Loading";
 import useProcurementInsightsStore from "../stores/procurementInsightsStore";
 import useInventoryStore from "../stores/inventoryStore";
 import useRecipeStore from "../stores/recipeStore";
 import TheoreticalVarianceTable from "../components/procurement/TheoreticalVarianceTable";
 import SmartOrderGeneratorCard from "../components/procurement/SmartOrderGeneratorCard";
-import StaffStockAuditModal from "../components/procurement/StaffStockAuditModal";
 import KitchenPrepLogModal from "../components/procurement/KitchenPrepLogModal";
 
 const ProcurementInsights = () => {
+	const navigate = useNavigate();
 	const {
 		loading,
 		startDate,
 		endDate,
 		theoreticalConsumption,
 		stockAudits,
-		prepLogs,
 		suggestedOrders,
-		vendors,
 		fetchInsightsData,
 		setDates,
 	} = useProcurementInsightsStore();
@@ -36,7 +36,6 @@ const ProcurementInsights = () => {
 	const { fetchRecipes } = useRecipeStore();
 
 	const [activeTab, setActiveTab] = useState("reconciliation"); // 'reconciliation' | 'smart-generator'
-	const [showStockAuditModal, setShowStockAuditModal] = useState(false);
 	const [showPrepLogModal, setShowPrepLogModal] = useState(false);
 
 	useEffect(() => {
@@ -59,44 +58,42 @@ const ProcurementInsights = () => {
 
 	return (
 		<div className="container mx-auto p-3 md:p-6 space-y-5">
-			{/* Header & Controls */}
-			<div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-				<div>
-					<h1 className="text-xl sm:text-2xl font-bold text-base-content leading-relaxed">
-						Procurement Insights & Stock Audits (ကုန်ကြမ်း အလေအလွင့်နှင့် ဈေးဝယ်အင်ဂျင်)
-					</h1>
-					<p className="text-xs text-base-content/60">
-						Automated BOM Theoretical Consumption, Staff Audit Reconciliation, and Smart Replenishment.
-					</p>
-				</div>
-
-				{/* Action Modals Trigger Buttons */}
-				<div className="flex flex-wrap items-center gap-2">
-					<button
-						type="button"
-						onClick={() => setShowStockAuditModal(true)}
-						className="btn btn-sm btn-outline gap-1.5">
-						<ClipboardCheck className="w-4 h-4 text-primary" />
-						Physical Stock Audit
-					</button>
-
-					<button
-						type="button"
-						onClick={() => setShowPrepLogModal(true)}
-						className="btn btn-sm btn-outline gap-1.5">
-						<Utensils className="w-4 h-4 text-primary" />
-						Kitchen Prep Log
-					</button>
-
-					<button
-						type="button"
-						onClick={fetchInsightsData}
-						className="btn btn-sm btn-ghost btn-square"
-						title="Refresh Calculations">
-						<RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
-					</button>
-				</div>
-			</div>
+			{/* Reusable PageHeader */}
+			<PageHeader
+				title="Procurement Insights & Stock Audits"
+				description="Automated BOM theoretical consumption, physical audit reconciliation, and smart replenishment."
+				buttons={[
+					{
+						type: "button",
+						label: "Stock Checklist",
+						shortlabel: "Checklist",
+						icon: ClipboardCheck,
+						onClick: () => navigate({ to: "/stock-checklist" }),
+						variant: "primary",
+					},
+					{
+						type: "button",
+						label: "Kitchen Prep Log",
+						shortlabel: "Prep Log",
+						icon: Utensils,
+						onClick: () => setShowPrepLogModal(true),
+						variant: "outline",
+					},
+					{
+						type: "custom",
+						component: (
+							<button
+								key="refresh-btn"
+								type="button"
+								onClick={fetchInsightsData}
+								className="btn btn-sm btn-ghost btn-square"
+								title="Refresh Calculations">
+								<RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+							</button>
+						),
+					},
+				]}
+			/>
 
 			{/* Date Range Picker Bar */}
 			<div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-base-100 border border-base-200 shadow-sm text-xs">
@@ -169,21 +166,13 @@ const ProcurementInsights = () => {
 				<TheoreticalVarianceTable
 					theoreticalConsumption={theoreticalConsumption}
 					stockAudits={stockAudits}
-					prepLogs={prepLogs}
 					inventoryItems={inventoryItems}
 				/>
 			) : (
 				<SmartOrderGeneratorCard
 					suggestedOrders={suggestedOrders}
-					vendors={vendors}
 				/>
 			)}
-
-			{/* Staff Modals */}
-			<StaffStockAuditModal
-				showModal={showStockAuditModal}
-				setShowModal={setShowStockAuditModal}
-			/>
 
 			<KitchenPrepLogModal
 				showModal={showPrepLogModal}

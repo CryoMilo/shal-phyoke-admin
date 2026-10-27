@@ -154,18 +154,31 @@ export const useProcurementInsightsStore = create((set, get) => ({
 
 			const suggestedList = inventoryItems
 				.map((item) => {
-					const consumed = theoreticalConsumption[item.id]?.total_units || 0;
-					const dailyAvg = consumed / daysSpan;
-					const cycleDays = item.order_cycle_days || 1;
+					const itemType = item.item_type || "ingredient";
 					const threshold = item.threshold || 0;
 					const currentQty = item.quantity || 0;
+					const cycleDays = item.order_cycle_days || 1;
 
-					// Formula: Required = (dailyAvg * cycleDays) + threshold
-					const requiredStock = dailyAvg * cycleDays + threshold;
-					const suggestedQty = Math.ceil(Math.max(0, requiredStock - currentQty));
+					let dailyAvg = 0;
+					let requiredStock = 0;
+					let suggestedQty = 0;
+
+					if (itemType === "ingredient") {
+						// Ingredients: Reordered based on Recipe BOMs + Sales Trends
+						const consumed = theoreticalConsumption[item.id]?.total_units || 0;
+						dailyAvg = consumed / daysSpan;
+						requiredStock = dailyAvg * cycleDays + threshold;
+						suggestedQty = Math.ceil(Math.max(0, requiredStock - currentQty));
+					} else {
+						// Packaging & Operational Supplies: Reordered purely on minimum safety threshold
+						const targetBuffer = threshold > 0 ? threshold * 2 : 5;
+						requiredStock = targetBuffer;
+						suggestedQty = currentQty <= threshold ? Math.ceil(Math.max(0, targetBuffer - currentQty)) : 0;
+					}
 
 					return {
 						item,
+						itemType,
 						dailyAvg: Math.round(dailyAvg * 100) / 100,
 						cycleDays,
 						currentQty,

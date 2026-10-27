@@ -25,6 +25,8 @@ import {
 	Bike,
 	ChefHat,
 	Sparkles,
+	Utensils,
+	ClipboardCheck,
 } from "lucide-react";
 
 const Sidebar = ({ children }) => {
@@ -102,6 +104,11 @@ const Sidebar = ({ children }) => {
 			icon: ChefHat,
 		},
 		{
+			name: "Kitchen Prep & Waste",
+			path: "/kitchen-logs",
+			icon: Utensils,
+		},
+		{
 			type: "divider",
 			label: "Inventory",
 		},
@@ -114,6 +121,11 @@ const Sidebar = ({ children }) => {
 			name: "Procurement Insights",
 			path: "/procurement/insights",
 			icon: Sparkles,
+		},
+		{
+			name: "Stock Checklist",
+			path: "/stock-checklist",
+			icon: ClipboardCheck,
 		},
 		{
 			name: "Inventory Items",

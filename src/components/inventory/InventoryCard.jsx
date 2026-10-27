@@ -1,8 +1,8 @@
 import React from "react";
-import { ShoppingCart, Minus, Plus, Package } from "lucide-react";
+import { ShoppingCart, Package } from "lucide-react";
 import { getSafeImageUrl } from "../../utils/imageUtils";
 
-const InventoryCard = ({ item, onAddToMarketList, onUpdateStock, onClick }) => {
+const InventoryCard = ({ item, onAddToMarketList, onClick }) => {
 	const stockStatus = () => {
 		if (item.quantity <= 0)
 			return { color: "badge-error", text: "Out of Stock" };
@@ -13,27 +13,10 @@ const InventoryCard = ({ item, onAddToMarketList, onUpdateStock, onClick }) => {
 
 	const status = stockStatus();
 
-	const handleStockUpdate = (newValue) => {
-		const numValue = parseFloat(newValue);
-		if (isNaN(numValue) || numValue < 0) return;
-
-		onUpdateStock(item.id, numValue);
-	};
-
-	const handleIncrement = () => {
-		const newValue = (item.quantity || 0) + 1;
-		handleStockUpdate(newValue);
-	};
-
-	const handleDecrement = () => {
-		const newValue = Math.max(0, (item.quantity || 0) - 1);
-		handleStockUpdate(newValue);
-	};
-
 	return (
 		<div
 			id={`item-${item.id}`}
-			className="group flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 bg-base-100 rounded-xl border border-base-200 hover:shadow-lg transition-all shadow-sm">
+			className="group flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 bg-base-100 rounded-xl border border-base-200 hover:shadow-md transition-all shadow-sm">
 			<div className="flex items-center gap-3 w-full sm:w-auto flex-1 min-w-0">
 				{/* Image */}
 				<div
@@ -42,7 +25,7 @@ const InventoryCard = ({ item, onAddToMarketList, onUpdateStock, onClick }) => {
 					{getSafeImageUrl(item.image_url) ? (
 						<img
 							src={getSafeImageUrl(item.image_url)}
-							alt={item.name}
+							alt={item.name_english || item.name}
 							className="w-full h-full object-cover"
 						/>
 					) : (
@@ -51,22 +34,32 @@ const InventoryCard = ({ item, onAddToMarketList, onUpdateStock, onClick }) => {
 				</div>
 
 				{/* Item Details */}
-				<div className="flex-1 min-w-0">
+				<div className="flex-1 min-w-0 cursor-pointer" onClick={onClick}>
 					<div className="flex items-baseline gap-2 flex-wrap">
 						<span className="text-base font-semibold text-base-content leading-relaxed">
-							{item.name_burmese || item.name}
+							{item.name_english || item.name}
 						</span>
-						<span className={`badge ${status.color} badge-xs`}>
+						<span className={`badge ${status.color} badge-xs font-semibold`}>
 							{status.text}
 						</span>
 					</div>
-					{item.name_english && item.name_english !== item.name_burmese && (
-						<p className="text-xs text-base-content/60 -mt-0.5 truncate">
-							{item.name_english}
+					{item.name_burmese && item.name_burmese !== item.name_english && (
+						<p className="text-xs text-base-content/60 -mt-0.5 truncate font-normal">
+							{item.name_burmese}
 						</p>
 					)}
 					<div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 mt-1 text-xs text-base-content/60">
-						<span className="badge badge-ghost badge-sm">{item.category}</span>
+						{item.item_type === "packaging" ? (
+							<span className="badge badge-sm bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/30 font-semibold">
+								Packaging
+							</span>
+						) : item.item_type === "operational_supply" ? (
+							<span className="badge badge-sm bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30 font-semibold">
+								Supply
+							</span>
+						) : (
+							<span className="badge badge-ghost badge-sm">{item.category}</span>
+						)}
 						<span>
 							Unit: <span className="font-medium text-base-content">{item.unit}</span>
 							{item.base_unit && item.base_unit !== item.unit && (
@@ -87,57 +80,43 @@ const InventoryCard = ({ item, onAddToMarketList, onUpdateStock, onClick }) => {
 				</div>
 			</div>
 
-			{/* Controls Row (Mobile friendly stack) */}
-			<div className="flex items-center justify-between gap-3 w-full sm:w-auto pt-3 sm:pt-0 border-t sm:border-t-0 border-base-200">
-				{/* Stock Level Controls */}
-				<div
-					className="w-full sm:w-36 bg-base-200 rounded-xl p-1 shadow-inner"
-					onClick={(e) => e.stopPropagation()}>
-					<div className="flex items-center justify-between gap-1">
-						<button
-							onClick={(e) => {
-								e.stopPropagation();
-								handleDecrement();
-							}}
-							className="btn btn-sm btn-square btn-ghost bg-base-100 hover:bg-base-300 shadow-sm">
-							<Minus className="w-4 h-4" />
-						</button>
-
-						<div className="flex-1 text-center min-w-[3rem]">
-							<input
-								type="text"
-								inputMode="decimal"
-								value={item.quantity || 0}
-								onChange={(e) => handleStockUpdate(e.target.value)}
-								onClick={(e) => e.stopPropagation()}
-								className="w-full text-center bg-transparent border-none font-black text-sm p-0 focus:outline-none"
-							/>
-						</div>
-
-						<button
-							onClick={(e) => {
-								e.stopPropagation();
-								handleIncrement();
-							}}
-							className="btn btn-sm btn-square btn-ghost bg-base-100 hover:bg-base-300 shadow-sm">
-							<Plus className="w-4 h-4" />
-						</button>
+			{/* Stock Display & Actions Row */}
+			<div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto pt-3 sm:pt-0 border-t sm:border-t-0 border-base-200">
+				{/* Current Stock Level */}
+				<div className="flex flex-col items-start sm:items-end">
+					<span className="text-[10px] uppercase tracking-wider text-base-content/50 font-bold">
+						Current Stock
+					</span>
+					<div className="flex items-baseline gap-1">
+						<span className="text-lg font-black text-base-content">
+							{item.quantity ?? 0}
+						</span>
+						<span className="text-xs font-semibold text-base-content/70">
+							{item.unit}
+						</span>
 					</div>
+					{item.threshold > 0 && (
+						<span className="text-[10px] text-base-content/50">
+							Min: {item.threshold} {item.unit}
+						</span>
+					)}
 				</div>
 
-				{/* Action Buttons */}
+				{/* Add to Market Button */}
 				<div
 					className="flex items-center gap-2"
 					onClick={(e) => e.stopPropagation()}>
 					<button
+						type="button"
 						onClick={(e) => {
 							e.stopPropagation();
 							onAddToMarketList(item);
 						}}
 						disabled={item.quantity >= item.threshold + 1}
-						className="btn btn-primary btn-sm md:btn-md gap-2 shadow-md">
+						className="btn btn-primary btn-sm gap-1.5 shadow-sm"
+						title="Add to Market List">
 						<ShoppingCart className="w-4 h-4" />
-						<span className="hidden lg:inline">Add to Market</span>
+						<span className="hidden sm:inline">Add to Market</span>
 					</button>
 				</div>
 			</div>

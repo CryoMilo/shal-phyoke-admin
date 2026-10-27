@@ -26,6 +26,8 @@ import DeliveryTripTracker from "./pages/DeliveryTripTracker";
 import StaffTripSummary from "./pages/StaffTripSummary";
 import Recipes from "./pages/Recipes";
 import ProcurementInsights from "./pages/ProcurementInsights";
+import KitchenLogs from "./pages/KitchenLogs";
+import StockChecklist from "./pages/StockChecklist";
 
 const rootRoute = createRootRoute({
 	component: () => <App />,
@@ -190,8 +192,18 @@ const inventoryItemsRoute = createRoute({
 	path: "/inventory-items",
 	getParentRoute: () => rootRoute,
 	component: () => (
-		<ProtectedRoute>
+		<ProtectedRoute requiredRole="admin">
 			<InventoryItems />
+		</ProtectedRoute>
+	),
+});
+
+const stockChecklistRoute = createRoute({
+	path: "/stock-checklist",
+	getParentRoute: () => rootRoute,
+	component: () => (
+		<ProtectedRoute>
+			<StockChecklist />
 		</ProtectedRoute>
 	),
 });
@@ -226,6 +238,16 @@ const procurementInsightsRoute = createRoute({
 	),
 });
 
+const kitchenLogsRoute = createRoute({
+	path: "/kitchen-logs",
+	getParentRoute: () => rootRoute,
+	component: () => (
+		<ProtectedRoute>
+			<KitchenLogs />
+		</ProtectedRoute>
+	),
+});
+
 const routeTree = rootRoute.addChildren([
 	loginRoute,
 	rootIndexRoute,
@@ -246,7 +268,9 @@ const routeTree = rootRoute.addChildren([
 	procurementRoute,
 	procurementInsightsRoute,
 	inventoryItemsRoute,
+	stockChecklistRoute,
 	recipesRoute,
+	kitchenLogsRoute,
 ]);
 
 export const router = createRouter({ routeTree });

@@ -80,52 +80,50 @@ const Recipes = () => {
 
 	return (
 		<div className="container mx-auto p-3 md:p-6 space-y-4">
-			{/* Top Page Header & Segmented View Mode Toggle */}
-			<div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-				<div>
-					<h1 className="text-xl sm:text-2xl font-bold text-base-content leading-relaxed">
-						Interconnected Recipe Book (ဟင်းချက်နည်းနှင့် ကုန်ကျစရိတ်)
-					</h1>
-					<p className="text-xs text-base-content/60">
-						Multi-level Bill of Materials, DAG Sub-Recipes, and live BOM Explosion.
-					</p>
-				</div>
-
-				<div className="flex items-center gap-2 self-stretch sm:self-auto justify-between sm:justify-end">
-					{/* Top Segmented Toggle */}
-					<div className="join bg-base-200 p-1 rounded-xl shadow-inner">
-						<button
-							type="button"
-							onClick={() => setViewMode("split")}
-							className={`join-item btn btn-sm gap-1.5 border-none ${
-								viewMode === "split"
-									? "btn-primary shadow-sm"
-									: "btn-ghost text-base-content/70"
-							}`}>
-							<LayoutGrid className="w-4 h-4" />
-							<span className="text-xs">Split Builder</span>
-						</button>
-						<button
-							type="button"
-							onClick={() => setViewMode("graph")}
-							className={`join-item btn btn-sm gap-1.5 border-none ${
-								viewMode === "graph"
-									? "btn-primary shadow-sm"
-									: "btn-ghost text-base-content/70"
-							}`}>
-							<Network className="w-4 h-4" />
-							<span className="text-xs">Dependency Graph (DAG)</span>
-						</button>
-					</div>
-
-					<button
-						type="button"
-						onClick={handleCreateNew}
-						className="btn btn-sm btn-primary gap-1">
-						<Plus className="w-4 h-4" /> New Recipe
-					</button>
-				</div>
-			</div>
+			{/* Top Page Header using standard reusable PageHeader component */}
+			<PageHeader
+				title="Interconnected Recipe Book"
+				description="Multi-level Bill of Materials, DAG Sub-Recipes, and live BOM Explosion."
+				buttons={[
+					{
+						type: "custom",
+						component: (
+							<div key="view-mode-toggle" className="join bg-base-200 p-1 rounded-xl shadow-inner">
+								<button
+									type="button"
+									onClick={() => setViewMode("split")}
+									className={`join-item btn btn-sm gap-1.5 border-none ${
+										viewMode === "split"
+											? "btn-primary shadow-sm"
+											: "btn-ghost text-base-content/70"
+									}`}>
+									<LayoutGrid className="w-4 h-4" />
+									<span className="text-xs">Split Builder</span>
+								</button>
+								<button
+									type="button"
+									onClick={() => setViewMode("graph")}
+									className={`join-item btn btn-sm gap-1.5 border-none ${
+										viewMode === "graph"
+											? "btn-primary shadow-sm"
+											: "btn-ghost text-base-content/70"
+									}`}>
+									<Network className="w-4 h-4" />
+									<span className="text-xs">Dependency Graph (DAG)</span>
+								</button>
+							</div>
+						),
+					},
+					{
+						type: "button",
+						label: "New Recipe",
+						shortlabel: "New",
+						icon: Plus,
+						onClick: handleCreateNew,
+						variant: "primary",
+					},
+				]}
+			/>
 
 			{/* Main Workspace */}
 			{viewMode === "split" ? (

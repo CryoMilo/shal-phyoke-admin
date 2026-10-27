@@ -175,9 +175,20 @@ const SmartOrderGeneratorCard = ({ suggestedOrders }) => {
 													</td>
 
 													<td>
-														<p className="font-bold text-xs leading-relaxed">
-															{entry.item.name_burmese}
-														</p>
+														<div className="flex items-center gap-1.5 flex-wrap">
+															<p className="font-bold text-xs leading-relaxed">
+																{entry.item.name_burmese}
+															</p>
+															{entry.itemType === "packaging" ? (
+																<span className="badge badge-xs bg-indigo-500/10 text-indigo-500 border-indigo-500/20">
+																	Packaging
+																</span>
+															) : entry.itemType === "operational_supply" ? (
+																<span className="badge badge-xs bg-amber-500/10 text-amber-500 border-amber-500/20">
+																	Supply
+																</span>
+															) : null}
+														</div>
 														<p className="text-[10px] text-base-content/60">
 															{entry.item.name_english}
 														</p>

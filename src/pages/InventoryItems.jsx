@@ -1,6 +1,7 @@
 // src/pages/InventoryItems.jsx
 import React, { useState, useEffect } from "react";
-import { Search, Package, Plus } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
+import { Search, Package, Plus, ClipboardCheck } from "lucide-react";
 import useInventoryStore from "../stores/inventoryStore";
 import useProcurementStore from "../stores/procurementStore";
 import { Loading } from "../components/common/Loading";
@@ -11,22 +12,24 @@ import InventoryItemModal from "../components/inventory/InventoryItemModal";
 import { showToast } from "../utils/toastUtils";
 
 const InventoryItems = () => {
+	const navigate = useNavigate();
 	const {
 		inventoryItems: items,
 		vendors,
 		loading,
 		searchQuery,
 		selectedVendors,
+		selectedItemType,
 		showRegularOnly,
 		fetchInventoryItems,
 		fetchVendors,
 		subscribeToInventory,
-		updateQuantity,
 		createInventoryItem,
 		updateInventoryItem,
 		getFilteredItems,
 		getVendorsWithCounts,
 		setSearchQuery,
+		setSelectedItemType,
 		toggleVendorFilter,
 		setShowRegularOnly,
 		resetFilters,
@@ -55,7 +58,7 @@ const InventoryItems = () => {
 
 	const handleAddToMarketList = async (item) => {
 		const quantity = quantities[item.id] || 1;
-		const itemName = item.name_burmese || item.name_english || item.name;
+		const itemName = item.name_english || item.name_burmese || item.name;
 		const result = await addToMarketList({
 			id: item.id,
 			name: itemName,
@@ -67,19 +70,10 @@ const InventoryItems = () => {
 
 		if (result?.success) {
 			showToast.itemAdded(itemName, quantity, item.unit);
-			// Reset quantity after successful add
 			setQuantities((prev) => ({ ...prev, [item.id]: 1 }));
 		} else {
 			showToast.error(`Failed to add ${itemName} to market list`);
 		}
-	};
-
-	const handleQuantityChange = (itemId, newValue) => {
-		setQuantities((prev) => ({ ...prev, [itemId]: newValue }));
-	};
-
-	const handleUpdateStock = async (itemId, newQuantity) => {
-		await updateQuantity(itemId, newQuantity);
 	};
 
 	const handleCardClick = (item) => {
@@ -110,10 +104,18 @@ const InventoryItems = () => {
 	return (
 		<div className="container mx-auto p-3 md:p-6">
 			<PageHeader
-				title="Inventory Stock"
-				description="Update stock levels and reorder items"
+				title="Inventory Catalog"
+				description="Manage inventory items, packaging ratios, vendor assignments, and reorder levels."
 				icon={Package}
 				buttons={[
+					{
+						type: "button",
+						label: "Stock Checklist",
+						shortlabel: "Checklist",
+						icon: ClipboardCheck,
+						onClick: () => navigate({ to: "/stock-checklist" }),
+						variant: "outline",
+					},
 					{
 						type: "button",
 						label: "Add Item",
@@ -130,11 +132,47 @@ const InventoryItems = () => {
 
 			{/* Filters */}
 			<div className="card bg-base-100 shadow-sm border border-base-200 mb-6">
-				<div className="card-body p-4">
+				<div className="card-body p-4 space-y-3">
+					{/* Item Type Classification Tabs */}
+					<div className="tabs tabs-boxed bg-base-200 p-1 rounded-xl text-xs flex-wrap self-start">
+						<button
+							type="button"
+							onClick={() => setSelectedItemType("all")}
+							className={`tab tab-sm font-semibold ${
+								selectedItemType === "all" ? "tab-active !bg-primary !text-primary-content" : ""
+							}`}>
+							All Items
+						</button>
+						<button
+							type="button"
+							onClick={() => setSelectedItemType("ingredient")}
+							className={`tab tab-sm font-semibold ${
+								selectedItemType === "ingredient" ? "tab-active !bg-primary !text-primary-content" : ""
+							}`}>
+							Ingredients
+						</button>
+						<button
+							type="button"
+							onClick={() => setSelectedItemType("packaging")}
+							className={`tab tab-sm font-semibold ${
+								selectedItemType === "packaging" ? "tab-active !bg-primary !text-primary-content" : ""
+							}`}>
+							Packaging
+						</button>
+						<button
+							type="button"
+							onClick={() => setSelectedItemType("operational_supply")}
+							className={`tab tab-sm font-semibold ${
+								selectedItemType === "operational_supply" ? "tab-active !bg-primary !text-primary-content" : ""
+							}`}>
+							Operational Supplies
+						</button>
+					</div>
+
 					{/* Search */}
 					<div className="mb-4">
 						<div className="relative">
-							<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500" />
+							<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-base-content/50" />
 							<input
 								type="text"
 								placeholder="Search items by name or category..."
@@ -150,6 +188,7 @@ const InventoryItems = () => {
 						<div className="flex items-center gap-2 mb-2">
 							<span className="text-sm font-medium">Filter by Vendor:</span>
 							<button
+								type="button"
 								onClick={() => setShowRegularOnly(!showRegularOnly)}
 								className={`badge badge-sm gap-1 cursor-pointer ${
 									showRegularOnly ? "badge-primary" : "badge-ghost"
@@ -176,9 +215,8 @@ const InventoryItems = () => {
 						</div>
 					</div>
 
-					<div className="text-sm text-gray-500">
-						Showing <span className="font-medium">{filteredItems.length}</span>{" "}
-						items
+					<div className="text-sm text-base-content/60">
+						Showing <span className="font-semibold text-base-content">{filteredItems.length}</span> items
 					</div>
 				</div>
 			</div>
@@ -189,19 +227,17 @@ const InventoryItems = () => {
 					<InventoryCard
 						key={item.id}
 						item={item}
-						cartQuantity={quantities[item.id] || 1}
-						onQuantityChange={handleQuantityChange}
 						onAddToMarketList={() => handleAddToMarketList(item)}
-						onUpdateStock={handleUpdateStock}
 						onClick={() => handleCardClick(item)}
 					/>
 				))}
 
 				{filteredItems.length === 0 && (
 					<div className="text-center py-12 bg-base-100 rounded-lg border border-base-200">
-						<Package className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-						<p className="text-gray-500">No items match your filters</p>
+						<Package className="w-12 h-12 text-base-content/40 mx-auto mb-3" />
+						<p className="text-base-content/60">No items match your filters</p>
 						<button
+							type="button"
 							className="btn btn-outline btn-sm mt-4"
 							onClick={resetFilters}>
 							Clear Filters

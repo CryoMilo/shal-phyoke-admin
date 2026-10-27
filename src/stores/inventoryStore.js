@@ -18,7 +18,11 @@ const useInventoryStore = create(
 			// Filter states
 			searchQuery: "",
 			selectedVendors: [],
+			selectedItemType: "all", // 'all' | 'ingredient' | 'packaging' | 'operational_supply'
 			showRegularOnly: false,
+
+			// Setters
+			setSelectedItemType: (type) => set({ selectedItemType: type }),
 
 			// Fetch all inventory items
 			fetchInventoryItems: async () => {
@@ -237,10 +241,16 @@ const useInventoryStore = create(
 			// Filtered items
 			getFilteredItems: () => {
 				const items = get().inventoryItems;
-				const { searchQuery, selectedVendors, showRegularOnly } = get();
+				const { searchQuery, selectedVendors, selectedItemType, showRegularOnly } = get();
 				const q = (searchQuery || "").trim().toLowerCase();
 
 				return items.filter((item) => {
+					// Item type filter (ingredient vs packaging vs operational_supply)
+					const matchesType =
+						!selectedItemType ||
+						selectedItemType === "all" ||
+						(item.item_type || "ingredient") === selectedItemType;
+
 					// Bilingual search filter
 					const matchesSearch =
 						q === "" ||
@@ -258,7 +268,7 @@ const useInventoryStore = create(
 					// Regular only filter
 					const matchesRegular = !showRegularOnly || item.is_regular === true;
 
-					return matchesSearch && matchesVendor && matchesRegular;
+					return matchesType && matchesSearch && matchesVendor && matchesRegular;
 				});
 			},
 
@@ -339,6 +349,70 @@ const useInventoryStore = create(
 					console.error("Error deleting unit conversion:", error);
 					showToast.error("Failed to delete unit conversion");
 					return { error: error.message };
+				}
+			},
+
+			// Staff Daily Stock Checklist Submission
+			// Automatically audits variance and updates on-hand stock
+			submitStockChecklist: async (checklistEntries, wasteReasons = {}) => {
+				const entries = Object.entries(checklistEntries).filter(
+					([, qty]) => qty !== "" && !isNaN(parseFloat(qty))
+				);
+				if (entries.length === 0) {
+					showToast.error("No stock count values entered");
+					return { error: "No values entered" };
+				}
+
+				set({ loading: true });
+				try {
+					const items = get().inventoryItems;
+					const auditRecords = [];
+					const itemUpdates = [];
+
+					for (const [id, val] of entries) {
+						const item = items.find((i) => i.id === id);
+						if (!item) continue;
+
+						const actual = parseFloat(val);
+						const theoretical = item.quantity || 0;
+						const variance = actual - theoretical;
+						const cost = Math.round(variance * (item.cost_per_unit || 0) * 100) / 100;
+						const reason = wasteReasons[id] || (variance !== 0 ? "Daily Checklist Count" : null);
+
+						auditRecords.push({
+							inventory_item_id: id,
+							audit_date: new Date().toISOString().split("T")[0],
+							theoretical_closing_qty: theoretical,
+							actual_closing_qty: actual,
+							variance_cost: cost,
+							waste_reason: reason,
+						});
+
+						itemUpdates.push(
+							supabase.from("inventory_items").update({ quantity: actual }).eq("id", id)
+						);
+					}
+
+					// Insert audit ledger records
+					if (auditRecords.length > 0) {
+						const { error: auditErr } = await supabase
+							.from("inventory_stock_audits")
+							.insert(auditRecords);
+						if (auditErr) console.warn("Audit log notice:", auditErr);
+					}
+
+					// Update inventory items quantities
+					await Promise.all(itemUpdates);
+
+					await get().fetchInventoryItems();
+					showToast.success(`Checklist submitted! Audited ${entries.length} items.`);
+					return { success: true, count: entries.length };
+				} catch (error) {
+					console.error("Error submitting stock checklist:", error);
+					showToast.error("Failed to submit checklist");
+					return { error: error.message };
+				} finally {
+					set({ loading: false });
 				}
 			},
 		}),
